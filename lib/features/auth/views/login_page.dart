@@ -104,7 +104,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Bouton connexion
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
+                  onPressed: _isLoading ? null : () => _signIn(),
                   child: _isLoading
                     ? const SizedBox(
                         height: 20, width: 20,
@@ -118,7 +118,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Google
                 OutlinedButton(
-                  onPressed: _isLoading ? null : _signInWithGoogle,
+                  onPressed: _isLoading ? null : () => _signInWithGoogle(),
                   child: const Text('Continuer avec Google'),
                 ),
                 const SizedBox(height: 24),
