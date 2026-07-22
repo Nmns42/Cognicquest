@@ -85,7 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
 
                 ElevatedButton(
-                  onPressed: _isLoading ? null : () => _register(),
+                  onPressed: () => _isLoading ? null : _register(),
                   child: _isLoading
                     ? const SizedBox(
                         height: 20, width: 20,
