@@ -244,7 +244,7 @@ class _StreakBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFD85A30).withOpacity(0.1),
+        color: AppTheme.errorColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -255,7 +255,7 @@ class _StreakBadge extends StatelessWidget {
           Text(
             '$streak',
             style: const TextStyle(
-              color: Color(0xFFD85A30),
+              color: AppTheme.errorColor,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

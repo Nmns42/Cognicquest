@@ -84,7 +84,7 @@ class DashboardPage extends ConsumerWidget {
                         icon: Icons.task_alt_outlined,
                         label: 'Tâches',
                         value: tasks.isEmpty ? '—' : '$doneTasks/${tasks.length}',
-                        color: const Color(0xFFBA7517),
+                        color: AppTheme.textMuted,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -93,7 +93,7 @@ class DashboardPage extends ConsumerWidget {
                         icon: Icons.local_fire_department_outlined,
                         label: 'Habitudes',
                         value: habits.isEmpty ? '—' : '$doneHabits/${habits.length}',
-                        color: const Color(0xFFD85A30),
+                        color: AppTheme.errorColor,
                       ),
                     ),
                   ],
@@ -184,7 +184,7 @@ class _GreetingCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             dateStr,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
           ),
         ],
       ),
@@ -343,8 +343,8 @@ class _TaskRow extends ConsumerWidget {
 
   Color get _dot {
     switch (task.priority) {
-      case 'high':   return const Color(0xFFD85A30);
-      case 'medium': return const Color(0xFFBA7517);
+      case 'high':   return AppTheme.errorColor;
+      case 'medium': return AppTheme.textMuted;
       default:       return AppTheme.vert;
     }
   }
@@ -447,7 +447,7 @@ class _HabitRow extends ConsumerWidget {
                   '🔥 ${habit.streak}',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: Color(0xFFD85A30),
+                    color: AppTheme.errorColor,
                   ),
                 ),
             ],
