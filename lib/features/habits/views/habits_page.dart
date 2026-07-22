@@ -42,7 +42,7 @@ class HabitsPage extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.beige,
+      backgroundColor: AppTheme.beigeDark.withOpacity(0.35),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -111,7 +111,7 @@ class _HabitCard extends ConsumerWidget {
       confirmDismiss: (_) => showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.beige,
+          backgroundColor: AppTheme.beigeDark.withOpacity(0.35),
           title: const Text('Supprimer cette habitude ?'),
           content: Text('"${habit.name}" et tout son historique seront supprimés.'),
           actions: [
