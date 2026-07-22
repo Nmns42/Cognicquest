@@ -10,13 +10,13 @@ class AppTheme {
       bodyLarge: TextStyle(fontSize: 16),
       bodyMedium: TextStyle(fontSize: 14),
     ),
-    // Ajout des propriétés de couleur demandées
+    // Déclaration des constantes statiques
     vert: const Color(0xFF7A9E7E),
-    textMuted: const Color(0xFFBA7517),
-    beigeDark: const Color(0xFFF5F0E8),
-    textPrimary: Colors.black,
-    textHint: const Color(0xFFD8CFC2),
-    beige: const Color(0xFFF5F0E8),
-    errorColor: const Color(0xFFD85A30),
+    beige: const Color(0xFFF9F6F0),
+    beigeDark: const Color(0xFFEFECE6),
+    textPrimary: const Color(0xFF2C3E50),
+    textMuted: const Color(0xFF7F8C8D),
+    textHint: const Color(0xFFBDC3C7),
+    errorColor: const Color(0xFFE74C3C),
   );
 }
