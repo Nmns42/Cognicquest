@@ -1,98 +1,323 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../core/config/app_config.dart';
+import '../core/navigation/adaptive_shell.dart';
+import '../core/theme/app_theme.dart';
+import '../features/auth/providers/auth_provider.dart';
+import '../features/auth/views/forgot_password_page.dart';
 import '../features/auth/views/login_page.dart';
 import '../features/auth/views/register_page.dart';
 import '../features/dashboard/views/dashboard_page.dart';
-import '../features/pomodoro/views/pomodoro_page.dart';
-import '../features/kanban/views/kanban_page.dart';
+import '../features/graph/views/graph_page.dart';
 import '../features/habits/views/habits_page.dart';
+import '../features/kanban/views/kanban_page.dart';
+import '../features/metacognition/views/error_logs_page.dart';
+import '../features/metacognition/views/journal_entry_page.dart';
+import '../features/metacognition/views/journal_hub_page.dart';
+import '../features/metacognition/views/profiling_page.dart';
+import '../features/metacognition/views/reframe_page.dart';
+import '../features/metacognition/views/why_chain_page.dart';
+import '../features/notes/views/note_editor_page.dart';
+import '../features/notes/views/notes_page.dart';
+import '../features/planning/views/gantt_page.dart';
+import '../features/planning/views/goals_page.dart';
+import '../features/planning/views/planning_hub_page.dart';
+import '../features/planning/views/revision_order_page.dart';
+import '../features/planning/views/study_speed_page.dart';
+import '../features/pomodoro/views/pomodoro_page.dart';
+import '../features/review/views/explain_page.dart';
+import '../features/review/views/review_home_page.dart';
+import '../features/review/views/review_session_page.dart';
+import '../features/review/views/sq3r_page.dart';
+import '../features/settings/views/settings_page.dart';
+import '../features/sync/widgets/offline_banner.dart';
+
+/// Chemins de l'application, centralisés pour éviter les chaînes magiques
+/// dispersées dans les pages.
+abstract final class AppRoute {
+  static const String login = '/login';
+  static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+
+  static const String home = '/home';
+  static const String pomodoro = '/pomodoro';
+  static const String kanban = '/kanban';
+  static const String habits = '/habits';
+  static const String notes = '/notes';
+  static const String graph = '/graph';
+  static const String review = '/review';
+  static const String planning = '/planning';
+  static const String gantt = '/planning/gantt';
+  static const String revisionOrder = '/planning/order';
+  static const String studySpeed = '/planning/speed';
+  static const String goals = '/planning/goals';
+
+  static const String settings = '/settings';
+
+  static const String journal = '/journal';
+  static const String journalEntry = '/journal/entry';
+  static const String reframe = '/journal/reframe';
+  static const String whyChain = '/journal/why';
+  static const String errorLogs = '/journal/errors';
+  static const String profiling = '/journal/profile';
+  static const String reviewSession = '/review/session';
+  static const String sq3rPicker = '/review/sq3r';
+  static const String explainPicker = '/review/explain';
+
+  static String sq3rFor(String noteId) => '$sq3rPicker/$noteId';
+  static String explainFor(String noteId) => '$explainPicker/$noteId';
+
+  static const Set<String> publicRoutes = {login, register, forgotPassword};
+}
+
+/// Adapte un `Stream` en `Listenable` pour `GoRouter.refreshListenable`.
+///
+/// C'est ce qui manquait : l'ancien `redirect` lisait un `bool` statique, donc
+/// la navigation ne réagissait jamais à une connexion ou une déconnexion.
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+
+  // Le routeur est construit une seule fois : on ne `watch` pas la session ici
+  // (cela recréerait le GoRouter et réinitialiserait la pile de navigation).
+  // On se contente de le notifier via refreshListenable.
+  final refreshListenable = _GoRouterRefreshStream(client.auth.onAuthStateChange);
+  ref.onDispose(refreshListenable.dispose);
+
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: AppRoute.home,
+    refreshListenable: refreshListenable,
+    debugLogDiagnostics: false,
     redirect: (context, state) {
-      final loggedIn = _isLoggedIn();
-      final isAuth = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
-      if (!loggedIn && !isAuth) return '/login';
-      if (loggedIn && isAuth) return '/home';
+      final isLoggedIn =
+          client.auth.currentSession != null || AppConfig.devBypassAuth;
+      final isOnPublicRoute =
+          AppRoute.publicRoutes.contains(state.matchedLocation);
+
+      if (!isLoggedIn && !isOnPublicRoute) {
+        // On mémorise la destination voulue pour y revenir après connexion.
+        final from = state.matchedLocation;
+        return from == AppRoute.home
+            ? AppRoute.login
+            : '${AppRoute.login}?from=${Uri.encodeComponent(from)}';
+      }
+
+      if (isLoggedIn && isOnPublicRoute) {
+        return AppRoute.home;
+      }
+
       return null;
     },
     routes: [
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
+        path: AppRoute.login,
+        builder: (context, state) =>
+            LoginPage(redirectTo: state.uri.queryParameters['from']),
       ),
       GoRoute(
-        path: '/register',
+        path: AppRoute.register,
         builder: (context, state) => const RegisterPage(),
       ),
+      GoRoute(
+        path: AppRoute.forgotPassword,
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
       ShellRoute(
-        builder: (context, state, child) => _MainShell(child: child),
+        builder: (context, state, child) => AdaptiveShell(
+          currentLocation: state.matchedLocation,
+          // Le bandeau hors ligne vit au-dessus de toutes les sections : la
+          // synchronisation concerne l'app entière, pas un écran.
+          child: Column(
+            children: [
+              Expanded(child: child),
+              const OfflineBanner(),
+            ],
+          ),
+        ),
         routes: [
-          GoRoute(path: '/home',     builder: (_, __) => const DashboardPage()),
-          GoRoute(path: '/pomodoro', builder: (_, __) => const PomodoroPage()),
-          GoRoute(path: '/kanban',   builder: (_, __) => const KanbanPage()),
-          GoRoute(path: '/habits',   builder: (_, __) => const HabitsPage()),
+          GoRoute(
+            path: AppRoute.home,
+            builder: (_, __) => const DashboardPage(),
+          ),
+          GoRoute(
+            path: AppRoute.pomodoro,
+            builder: (_, __) => const PomodoroPage(),
+          ),
+          GoRoute(
+            path: AppRoute.kanban,
+            builder: (_, __) => const KanbanPage(),
+          ),
+          GoRoute(
+            path: AppRoute.habits,
+            builder: (_, __) => const HabitsPage(),
+          ),
+          GoRoute(
+            path: AppRoute.settings,
+            builder: (_, __) => const SettingsPage(),
+          ),
+          GoRoute(
+            path: AppRoute.planning,
+            builder: (_, __) => const PlanningHubPage(),
+            routes: [
+              GoRoute(path: 'gantt', builder: (_, __) => const GanttPage()),
+              GoRoute(
+                path: 'order',
+                builder: (_, __) => const RevisionOrderPage(),
+              ),
+              GoRoute(
+                path: 'speed',
+                builder: (_, __) => const StudySpeedPage(),
+              ),
+              GoRoute(path: 'goals', builder: (_, __) => const GoalsPage()),
+            ],
+          ),
+          GoRoute(
+            path: AppRoute.journal,
+            builder: (_, __) => const JournalHubPage(),
+            routes: [
+              GoRoute(
+                path: 'entry',
+                builder: (_, __) => const JournalEntryPage(),
+              ),
+              GoRoute(
+                path: 'reframe',
+                builder: (_, __) => const ReframePage(),
+              ),
+              GoRoute(
+                path: 'why',
+                builder: (_, __) => const WhyChainPage(),
+              ),
+              GoRoute(
+                path: 'errors',
+                builder: (_, __) => const ErrorLogsPage(),
+              ),
+              GoRoute(
+                path: 'profile',
+                builder: (_, __) => const ProfilingPage(),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoute.review,
+            builder: (_, __) => const ReviewHomePage(),
+            routes: [
+              GoRoute(
+                path: 'session',
+                builder: (_, __) => const ReviewSessionPage(),
+              ),
+              GoRoute(
+                path: 'sq3r',
+                builder: (_, __) => const NotePickerPage(
+                  title: 'Lecture guidée SQ3R',
+                  subtitle: 'Choisis la fiche à travailler en cinq étapes : '
+                      'survol, questions, lecture, récitation, révision.',
+                  routeBuilder: AppRoute.sq3rFor,
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':noteId',
+                    builder: (context, state) =>
+                        Sq3rPage(noteId: state.pathParameters['noteId']!),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'explain',
+                builder: (_, __) => const NotePickerPage(
+                  title: 'Explique-moi',
+                  subtitle: 'Choisis la notion que tu vas reformuler avec '
+                      'tes propres mots.',
+                  routeBuilder: AppRoute.explainFor,
+                ),
+                routes: [
+                  GoRoute(
+                    path: ':noteId',
+                    builder: (context, state) =>
+                        ExplainPage(noteId: state.pathParameters['noteId']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoute.graph,
+            builder: (_, __) => const GraphPage(),
+          ),
+          GoRoute(
+            path: AppRoute.notes,
+            builder: (_, __) => const NotesPage(),
+            routes: [
+              // Route enfant : l'éditeur reste sous /notes, donc l'onglet
+              // « Fiches » demeure sélectionné quand une fiche est ouverte.
+              GoRoute(
+                path: ':noteId',
+                builder: (context, state) => NoteEditorPage(
+                  noteId: state.pathParameters['noteId']!,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ],
+    errorBuilder: (context, state) => _RouteErrorPage(location: state.uri.toString()),
   );
 });
 
-bool _isLoggedIn() {
-  return Supabase.instance.client.auth.currentUser != null;
-}
+class _RouteErrorPage extends StatelessWidget {
+  const _RouteErrorPage({required this.location});
 
-class _MainShell extends StatelessWidget {
-  final Widget child;
-  const _MainShell({required this.child});
+  final String location;
 
   @override
   Widget build(BuildContext context) {
-    final loc = GoRouterState.of(context).matchedLocation;
     return Scaffold(
-      body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index(loc),
-        onTap: (i) => _nav(context, i),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Accueil',
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               Icon(Icons.explore_off_outlined,
+                  size: 48, color: context.cq.textHint),
+              const SizedBox(height: 16),
+              Text(
+                'Cette page n\'existe pas',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                location,
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.go(AppRoute.home),
+                child: const Text('Retour à l\'accueil'),
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timer_outlined),
-            label: 'Pomodoro',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.view_kanban_outlined),
-            label: 'Tâches',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle_outline),
-            label: 'Habitudes',
-          ),
-        ],
+        ),
       ),
     );
-  }
-
-  int _index(String loc) {
-    if (loc.startsWith('/pomodoro')) return 1;
-    if (loc.startsWith('/kanban')) return 2;
-    if (loc.startsWith('/habits')) return 3;
-    return 0;
-  }
-
-  void _nav(BuildContext ctx, int i) {
-    switch (i) {
-      case 0: ctx.go('/home'); break;
-      case 1: ctx.go('/pomodoro'); break;
-      case 2: ctx.go('/kanban'); break;
-      case 3: ctx.go('/habits'); break;
-    }
   }
 }

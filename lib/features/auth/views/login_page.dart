@@ -1,20 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/config/app_config.dart';
+import '../../../router/app_router.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/auth_scaffold.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.redirectTo});
+
+  /// Destination demandée avant la redirection vers `/login`, si l'utilisateur
+  /// a atterri ici depuis une route protégée.
+  final String? redirectTo;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _emailController    = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String? _error;
+
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -24,130 +33,132 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _signIn() async {
-    setState(() { _isLoading = true; _error = null; });
-    try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      if (mounted) context.go('/home');
-    } on AuthException catch (e) {
-      setState(() { _error = e.message; });
-    } finally {
-      if (mounted) setState(() { _isLoading = false; });
+    FocusScope.of(context).unfocus();
+    if (!_formKey.currentState!.validate()) return;
+
+    final success = await ref.read(authControllerProvider.notifier).signIn(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+
+    // Le routeur redirige déjà via `refreshListenable` dès que la session
+    // arrive ; on ne navigue explicitement que pour honorer `redirectTo`.
+    if (success && mounted && widget.redirectTo != null) {
+      context.go(widget.redirectTo!);
     }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() { _isLoading = true; _error = null; });
-    try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'http://localhost',
-      );
-    } on AuthException catch (e) {
-      setState(() { _error = e.message; });
-    } finally {
-      if (mounted) setState(() { _isLoading = false; });
+    FocusScope.of(context).unfocus();
+    await ref.read(authControllerProvider.notifier).signInWithGoogle();
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return 'Entre ton adresse email.';
+    if (!AppConfig.emailPattern.hasMatch(email)) {
+      return 'Cette adresse email n\'est pas valide.';
     }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if ((value ?? '').isEmpty) return 'Entre ton mot de passe.';
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'CognicQuest',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Apprendre mieux, chaque jour.',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
+    final authState = ref.watch(authControllerProvider);
+    final isLoading = authState.isLoading;
+    final error = authState.hasError ? authState.error.toString() : null;
 
-                // Email
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(hintText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
+    return AuthScaffold(
+      title: AppConfig.appName,
+      subtitle: 'Apprendre mieux, chaque jour.',
+      children: [
+        Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'ton.email@exemple.com',
+                  prefixIcon: Icon(Icons.mail_outline, size: 20),
                 ),
-                const SizedBox(height: 12),
-
-                // Mot de passe
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(hintText: 'Mot de passe'),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 8),
-
-                // Erreur
-                if (_error != null)
-                  Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red, fontSize: 13),
-                    textAlign: TextAlign.center,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                autocorrect: false,
+                enabled: !isLoading,
+                validator: _validateEmail,
+                onChanged: (_) =>
+                    ref.read(authControllerProvider.notifier).clearError(),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: 'Mot de passe',
+                  prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 20,
+                    ),
+                    tooltip: _obscurePassword
+                        ? 'Afficher le mot de passe'
+                        : 'Masquer le mot de passe',
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                const SizedBox(height: 16),
-
-                // Bouton connexion
-                ElevatedButton(
-                  onPressed: _isLoading ? null : () => _signIn(),
-                  child: _isLoading
-                    ? const SizedBox(
-                        height: 20, width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white,
-                        ),
-                      )
-                    : const Text('Se connecter'),
                 ),
-                const SizedBox(height: 12),
-
-                // Google
-                OutlinedButton(
-                  onPressed: _isLoading ? null : () => _signInWithGoogle(),
-                  child: const Text('Continuer avec Google'),
-                ),
-                const SizedBox(height: 24),
-
-                // Lien vers register
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Pas encore de compte ? ',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go('/register'),
-                      child: const Text(
-                        'Créer un compte',
-                        style: TextStyle(
-                          color: Color(0xFF7A9E7E),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
+                enabled: !isLoading,
+                validator: _validatePassword,
+                onFieldSubmitted: (_) => isLoading ? null : _signIn(),
+                onChanged: (_) =>
+                    ref.read(authControllerProvider.notifier).clearError(),
+              ),
+            ],
           ),
         ),
-      ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: isLoading
+                ? null
+                : () => context.push(AppRoute.forgotPassword),
+            child: const Text('Mot de passe oublié ?'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (error != null) AuthMessageBanner(message: error),
+        AuthPrimaryButton(
+          label: 'Se connecter',
+          isLoading: isLoading,
+          onPressed: _signIn,
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: isLoading ? null : _signInWithGoogle,
+          icon: const Icon(Icons.g_mobiledata, size: 26),
+          label: const Text('Continuer avec Google'),
+        ),
+        const SizedBox(height: 16),
+        AuthFooterLink(
+          question: 'Pas encore de compte ?',
+          actionLabel: 'Créer un compte',
+          onPressed: () => context.go(AppRoute.register),
+        ),
+      ],
     );
   }
 }
