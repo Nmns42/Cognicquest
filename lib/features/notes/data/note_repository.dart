@@ -48,7 +48,11 @@ class LocalFirstNoteRepository implements NoteRepository {
   static const String _notesTable = 'notes';
   static const String _blocksTable = 'note_blocks';
 
-  static final _random = Random();
+  /// Générateur cryptographique (crypto.getRandomValues sur le web) : les
+  /// identifiants servent de clés primaires côté serveur, ils ne doivent pas
+  /// être prévisibles à partir de ceux déjà vus. `Random()` est un
+  /// générateur pseudo-aléatoire non cryptographique.
+  static final _random = Random.secure();
 
   /// Identifiant unique généré côté client, au format UUID v4.
   ///
