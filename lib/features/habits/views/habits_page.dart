@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
@@ -273,7 +274,13 @@ class _HabitTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.all(2),
-                    child: AnimatedContainer(
+                    // Micro-animation n° 1 : la coche rebondit quand
+                    // l'habitude devient faite (pas quand on la décoche).
+                    child: PulseOnChange(
+                      trigger: isDone,
+                      enabled: isDone,
+                      scale: 1.2,
+                      child: AnimatedContainer(
                       duration: Motion.duration(context, const Duration(milliseconds: 200)),
                       width: 24,
                       height: 24,
@@ -288,6 +295,7 @@ class _HabitTile extends StatelessWidget {
                       child: isDone
                           ? const Icon(Icons.check, size: 16, color: Colors.white)
                           : null,
+                    ),
                     ),
                   ),
                 ),
@@ -315,18 +323,24 @@ class _HabitTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (habit.streak > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Text(
-                      '🔥 ${habit.streak}',
-                      style:  TextStyle(
-                        fontSize: 13,
-                        color: context.cq.errorColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                // La série monte d'un cran. Toujours dans l'arbre (vide à
+                // zéro) pour que le passage de 0 à 1 soit animé aussi.
+                RollingNumber(
+                  value: habit.streak,
+                  builder: (context, streak) => streak == 0
+                      ? const SizedBox.shrink()
+                      : Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Text(
+                            '🔥 $streak',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: context.cq.errorColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                ),
                 PopupMenuButton<String>(
                   popUpAnimationStyle: Motion.style(context),
                   tooltip: 'Options',

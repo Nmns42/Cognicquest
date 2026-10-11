@@ -101,3 +101,52 @@ class _PulseOnChangeState extends State<PulseOnChange> {
     );
   }
 }
+
+/// Affiche [value] via [builder] ; quand la valeur augmente, le nouvel
+/// affichage monte légèrement en apparaissant. Une baisse est instantanée.
+class RollingNumber extends StatefulWidget {
+  const RollingNumber({
+    super.key,
+    required this.value,
+    required this.builder,
+    this.duration = const Duration(milliseconds: 280),
+  });
+
+  final int value;
+  final Widget Function(BuildContext context, int value) builder;
+  final Duration duration;
+
+  @override
+  State<RollingNumber> createState() => _RollingNumberState();
+}
+
+class _RollingNumberState extends State<RollingNumber> {
+  int _rolls = 0;
+
+  @override
+  void didUpdateWidget(RollingNumber oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value > oldWidget.value) _rolls++;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: _rolls.toDouble()),
+      duration: Motion.duration(context, widget.duration),
+      curve: Curves.easeOut,
+      builder: (context, value, _) {
+        // En cours d'animation : progression de 0 à 1 ; au repos : 1.
+        final progress =
+            value < _rolls ? value - value.floorToDouble() : 1.0;
+        return Opacity(
+          opacity: progress,
+          child: Transform.translate(
+            offset: Offset(0, (1 - progress) * 8),
+            child: widget.builder(context, widget.value),
+          ),
+        );
+      },
+    );
+  }
+}

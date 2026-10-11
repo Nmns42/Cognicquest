@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
@@ -344,7 +345,12 @@ class HabitPreviewRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
-              AnimatedContainer(
+              // Micro-animation n° 1, comme sur la page Habitudes.
+              PulseOnChange(
+                trigger: done,
+                enabled: done,
+                scale: 1.2,
+                child: AnimatedContainer(
                 duration: Motion.duration(context, const Duration(milliseconds: 200)),
                 width: 20,
                 height: 20,
@@ -360,6 +366,7 @@ class HabitPreviewRow extends StatelessWidget {
                     ? const Icon(Icons.check, size: 13, color: Colors.white)
                     : null,
               ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -374,12 +381,16 @@ class HabitPreviewRow extends StatelessWidget {
                   ),
                 ),
               ),
-              if (habit.streak > 0)
-                Text(
-                  '🔥 ${habit.streak}',
-                  style:  TextStyle(
-                      fontSize: 12, color: context.cq.errorColor),
-                ),
+              RollingNumber(
+                value: habit.streak,
+                builder: (context, streak) => streak == 0
+                    ? const SizedBox.shrink()
+                    : Text(
+                        '🔥 $streak',
+                        style: TextStyle(
+                            fontSize: 12, color: context.cq.errorColor),
+                      ),
+              ),
             ],
           ),
         ),
