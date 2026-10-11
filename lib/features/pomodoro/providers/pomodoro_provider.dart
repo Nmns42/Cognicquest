@@ -301,3 +301,27 @@ final pomodoroStatsProvider = StreamProvider<PomodoroStats>((ref) {
   if (repository == null) return Stream.value(const PomodoroStats.empty());
   return repository.watchRecent().map(PomodoroStats.fromSessions);
 });
+
+/// Nombre de sessions de travail **menées à leur terme** depuis l'ouverture
+/// de l'app : signal de la micro-animation de fin de Pomodoro (n° 7).
+///
+/// `completedSessions` ne suffit pas : il est aussi recalé sur l'historique
+/// au chargement, ce qui déclencherait l'animation à l'ouverture. Ici, seul
+/// compte le passage de la phase de travail à une pause avec une session de
+/// plus — pas un passage manuel (« Passer »), qui ne compte pas la session.
+class PomodoroCompletions extends Notifier<int> {
+  @override
+  int build() {
+    ref.listen(pomodoroProvider, (previous, next) {
+      if (previous == null) return;
+      final finishedWork = previous.phase == PomodoroPhase.work &&
+          next.phase != PomodoroPhase.work &&
+          next.completedSessions == previous.completedSessions + 1;
+      if (finishedWork) state++;
+    });
+    return 0;
+  }
+}
+
+final pomodoroCompletionsProvider =
+    NotifierProvider<PomodoroCompletions, int>(PomodoroCompletions.new);

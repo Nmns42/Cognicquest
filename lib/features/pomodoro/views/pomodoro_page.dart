@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
@@ -32,7 +33,15 @@ class PomodoroPage extends ConsumerWidget {
             children: [
               _PhaseHeader(state: state, color: color),
               const SizedBox(height: 32),
-              _TimerDial(state: state, color: color),
+              // Micro-animation n° 7 : la jauge bat une fois à la fin d'une
+              // session de travail. Le son et la vibration de fin de phase
+              // (PomodoroNotifier) restent, animations réduites ou non.
+              PulseOnChange(
+                trigger: ref.watch(pomodoroCompletionsProvider),
+                scale: 1.06,
+                duration: const Duration(milliseconds: 420),
+                child: _TimerDial(state: state, color: color),
+              ),
               const SizedBox(height: 36),
               _Controls(
                 state: state,
