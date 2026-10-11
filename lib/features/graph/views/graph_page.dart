@@ -116,6 +116,13 @@ class _GraphCanvasState extends State<_GraphCanvas> {
   String _signature = '';
   Size? _fittedViewport;
 
+  /// Un calcul asynchrone est en cours ; la carte précédente reste affichée.
+  bool _isComputing = false;
+
+  /// Numéro du dernier calcul lancé : le résultat d'un calcul dépassé (les
+  /// fiches ont changé entre-temps) est ignoré.
+  int _generation = 0;
+
   @override
   void initState() {
     super.initState();
@@ -144,10 +151,31 @@ class _GraphCanvasState extends State<_GraphCanvas> {
     if (signature == _signature) return;
 
     _signature = signature;
-    _layout = GraphLayout.compute(
-      ids,
-      widget.links.map((l) => (l.sourceId, l.targetId)),
-    );
+    final edgePairs = [for (final l in widget.links) (l.sourceId, l.targetId)];
+    final generation = ++_generation;
+
+    // Petit carnet : le calcul tient dans une frame, il reste synchrone et
+    // la carte s'affiche d'emblée, comme avant.
+    if (ids.length <= GraphLayout.asyncThreshold) {
+      _isComputing = false;
+      _applyLayout(GraphLayout.compute(ids, edgePairs));
+      return;
+    }
+
+    // Grand carnet : plusieurs centaines de millisecondes de calcul, hors du
+    // thread UI (isolate, ou tranches sur le web).
+    _isComputing = true;
+    GraphLayout.computeAsync(ids, edgePairs).then((layout) {
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _isComputing = false;
+        _applyLayout(layout);
+      });
+    });
+  }
+
+  void _applyLayout(GraphLayout layout) {
+    _layout = layout;
     // Nouvelle carte : on la recadre au prochain affichage.
     _fittedViewport = null;
   }
@@ -236,6 +264,10 @@ class _GraphCanvasState extends State<_GraphCanvas> {
                 child: const Icon(Icons.center_focus_strong_outlined),
               ),
             ),
+            // Premier calcul d'un grand carnet : rien à montrer encore.
+            // Avant, l'écran entier restait figé pendant ce temps.
+            if (_isComputing && _layout.isEmpty)
+              const Center(child: CircularProgressIndicator()),
           ],
         );
       },

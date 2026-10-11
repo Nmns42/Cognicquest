@@ -62,6 +62,21 @@ Widget graphApp({required List<Note> notes, required List<NoteLink> links}) {
 
 Finder chipOf(String id) => find.text('Fiche $id');
 
+/// Attend la fin du calcul de disposition. Au-delà de
+/// [GraphLayout.asyncThreshold] fiches, il tourne dans un isolate, qui
+/// n'avance pas dans le temps simulé de `testWidgets` : on lui laisse du
+/// temps réel jusqu'à ce que l'indicateur de chargement disparaisse.
+Future<void> settleGraph(WidgetTester tester) async {
+  await tester.pump();
+  for (var i = 0; i < 200; i++) {
+    if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+    await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
+
 void main() {
   group('GraphPage — carnet dense', () {
     late List<Note> notes;
@@ -75,7 +90,7 @@ void main() {
 
     testWidgets('affiche toutes les fiches, isolées comprises', (tester) async {
       await tester.pumpWidget(graphApp(notes: notes, links: links));
-      await tester.pumpAndSettle();
+      await settleGraph(tester);
 
       for (final n in notes) {
         expect(chipOf(n.id), findsOneWidget, reason: 'fiche ${n.id} absente');
@@ -86,7 +101,7 @@ void main() {
     testWidgets('la carte ne bouge pas quand on sélectionne un nœud',
         (tester) async {
       await tester.pumpWidget(graphApp(notes: notes, links: links));
-      await tester.pumpAndSettle();
+      await settleGraph(tester);
 
       final before = tester.getCenter(chipOf('n10'));
       await tester.tap(chipOf('n0'), warnIfMissed: false);
@@ -101,10 +116,10 @@ void main() {
     testWidgets('le filtre par sujet ne garde que les fiches du sujet',
         (tester) async {
       await tester.pumpWidget(graphApp(notes: notes, links: links));
-      await tester.pumpAndSettle();
+      await settleGraph(tester);
 
       await tester.tap(find.widgetWithText(FilterChip, 'Physique'));
-      await tester.pumpAndSettle();
+      await settleGraph(tester);
 
       expect(chipOf('n1'), findsOneWidget); // Physique
       expect(chipOf('n0'), findsNothing); // Maths
@@ -114,7 +129,7 @@ void main() {
     testWidgets('le bouton Recentrer et le zoom ne lèvent pas d\'erreur',
         (tester) async {
       await tester.pumpWidget(graphApp(notes: notes, links: links));
-      await tester.pumpAndSettle();
+      await settleGraph(tester);
 
       await tester.tap(find.byTooltip('Recentrer'));
       await tester.pumpAndSettle();
