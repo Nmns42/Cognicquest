@@ -867,3 +867,30 @@ create policy "exam_targets_all_own" on public.exam_targets
 
 alter table public.user_preferences
   add column if not exists settings jsonb not null default '{}'::jsonb;
+
+-- ============================================================================
+-- Horodatage serveur de updated_at
+-- ============================================================================
+-- Seules profiles, tasks et user_preferences avaient le trigger
+-- set_updated_at : ailleurs, updated_at venait de l'horloge du client, et la
+-- résolution de conflits des fiches comparait des horloges d'appareils
+-- différents (un téléphone en avance d'une heure gagnait tous les conflits).
+--
+-- `before insert or update` : un upsert qui crée la ligne ne doit pas non
+-- plus garder l'heure du client. Le client relit la valeur serveur après
+-- chaque envoi (cf. LocalFirstNoteRepository).
+
+drop trigger if exists notes_set_updated_at on public.notes;
+create trigger notes_set_updated_at
+  before insert or update on public.notes
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists sq3r_sessions_set_updated_at on public.sq3r_sessions;
+create trigger sq3r_sessions_set_updated_at
+  before insert or update on public.sq3r_sessions
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists learning_profiles_set_updated_at on public.learning_profiles;
+create trigger learning_profiles_set_updated_at
+  before insert or update on public.learning_profiles
+  for each row execute function public.set_updated_at();

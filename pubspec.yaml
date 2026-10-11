@@ -43,6 +43,8 @@ dev_dependencies:
   drift_dev: ^2.35.0
   build_runner: ^2.15.1
   sqlite3: ^3.5.2
+  # MockClient : simule PostgREST dans les tests de synchronisation.
+  http: ^1.6.0
 
 flutter:
   uses-material-design: true

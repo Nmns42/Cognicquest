@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/remote_pagination.dart';
+import '../../../core/database/sync_queue.dart';
 import '../../../core/errors/data_failure.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -204,11 +205,15 @@ class LocalFirstNoteRepository implements NoteRepository {
 
   // ── Synchronisation ──────────────────────────────────────────────────────
 
-  @override
-  Future<void> sync() async {
+  /// Sérialisée : chaque `save` déclenche un envoi, et deux synchronisations
+  /// concurrentes poussaient les mêmes fiches puis se disputaient le pull.
+  late final SerialSync _serialSync = SerialSync(() async {
     await _pushQueue();
     await _pullRemote();
-  }
+  });
+
+  @override
+  Future<void> sync() => _serialSync();
 
   Future<void> _pushQueue() async {
     final pending = await (_db.select(_db.syncQueueEntries)
@@ -237,7 +242,16 @@ class LocalFirstNoteRepository implements NoteRepository {
                 ..orderBy([(t) => OrderingTerm.asc(t.position)]))
               .get();
 
-          await _client.from(_notesTable).upsert(_toRemoteJson(row));
+          // `updated_at` est posé par le serveur (trigger) : on relit sa
+          // valeur pour que les comparaisons du pull se fassent entre deux
+          // heures serveur, jamais avec l'horloge de cet appareil.
+          final saved = await _client
+              .from(_notesTable)
+              .upsert(_toRemoteJson(row))
+              .select('updated_at')
+              .single();
+          final serverUpdatedAt =
+              DateTime.parse(saved['updated_at'] as String).toLocal();
 
           await _client.from(_blocksTable).delete().eq('note_id', row.id);
           if (blocks.isNotEmpty) {
@@ -254,8 +268,16 @@ class LocalFirstNoteRepository implements NoteRepository {
             ]);
           }
 
-          await (_db.update(_db.localNotes)..where((t) => t.id.equals(row.id)))
-              .write(const LocalNotesCompanion(isSynced: Value(true)));
+          // Conditionnel : une modification faite pendant l'envoi a changé
+          // `updatedAt` et remis une entrée en file ; elle ne doit pas être
+          // marquée synchronisée.
+          await (_db.update(_db.localNotes)
+                ..where((t) =>
+                    t.id.equals(row.id) & t.updatedAt.equals(row.updatedAt)))
+              .write(LocalNotesCompanion(
+                isSynced: const Value(true),
+                updatedAt: Value(serverUpdatedAt),
+              ));
         }
 
         await _dequeue(entry.id);
@@ -282,7 +304,9 @@ class LocalFirstNoteRepository implements NoteRepository {
     final remoteNotes = await fetchAllPages(
       () => _client.from(_notesTable).select().eq('user_id', _userId),
     );
-    if (remoteNotes.isEmpty) return;
+    // Pas de retour anticipé sur une liste vide : toutes les fiches ont pu
+    // être supprimées depuis un autre appareil, et la purge plus bas doit
+    // quand même avoir lieu.
 
     final ids = remoteNotes.map((r) => r['id'] as String).toList();
     final remoteBlocks = await fetchAllPagesIn(
@@ -297,25 +321,32 @@ class LocalFirstNoteRepository implements NoteRepository {
     }
 
     await _db.transaction(() async {
+      // Relu dans la transaction : une écriture survenue pendant la requête
+      // réseau ne doit pas être écrasée.
+      final pending = await SyncQueue(_db).pendingIds(_notesTable);
+      final remoteIds = <String>{};
+
       for (final remote in remoteNotes) {
         final id = remote['id'] as String;
+        remoteIds.add(id);
+
+        // Résolution de conflit :
+        // - une modification locale pas encore envoyée gagne toujours : elle
+        //   partira au prochain push (même règle que les tâches) ;
+        // - sinon, la version distante ne remplace la locale que si elle est
+        //   plus récente. Les deux dates viennent du serveur (trigger
+        //   set_updated_at, relu après chaque push) : aucune horloge
+        //   d'appareil n'entre dans la comparaison.
+        if (pending.contains(id)) continue;
 
         final local = await (_db.select(_db.localNotes)
               ..where((t) => t.id.equals(id)))
             .getSingleOrNull();
-
-        // Résolution de conflit : le plus récemment modifié gagne. Une version
-        // locale non synchronisée n'est jamais écrasée par une version
-        // distante plus ancienne.
         final remoteUpdatedAt =
             DateTime.parse(remote['updated_at'] as String).toLocal();
-        if (local != null) {
-          if (!local.isSynced && !remoteUpdatedAt.isAfter(local.updatedAt)) {
-            continue;
-          }
-          if (local.isSynced && !remoteUpdatedAt.isAfter(local.updatedAt)) {
-            continue;
-          }
+        if (local != null &&
+            (!local.isSynced || !remoteUpdatedAt.isAfter(local.updatedAt))) {
+          continue;
         }
 
         await _db.into(_db.localNotes).insertOnConflictUpdate(
@@ -353,6 +384,19 @@ class LocalFirstNoteRepository implements NoteRepository {
               );
         }
       }
+
+      // Une fiche déjà synchronisée qui a disparu du serveur a été supprimée
+      // depuis un autre appareil. Ce cas n'était jamais traité : la fiche
+      // restait indéfiniment sur cet appareil. Les blocs, liens et sessions
+      // suivent par les clés étrangères locales (cascade / set null), comme
+      // côté serveur.
+      await (_db.delete(_db.localNotes)
+            ..where((t) =>
+                t.userId.equals(_userId) &
+                t.isSynced.equals(true) &
+                t.id.isNotIn(remoteIds) &
+                t.id.isNotIn(pending)))
+          .go();
     });
   }
 
@@ -367,7 +411,7 @@ class LocalFirstNoteRepository implements NoteRepository {
         'is_favorite': row.isFavorite,
         'is_archived': row.isArchived,
         'created_at': row.createdAt.toUtc().toIso8601String(),
-        'updated_at': row.updatedAt.toUtc().toIso8601String(),
+        // Pas d'`updated_at` : le serveur le pose lui-même (trigger).
       };
 
   static Note _toNote(LocalNote row, List<NoteBlock> blocks) => Note(

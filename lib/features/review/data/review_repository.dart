@@ -372,7 +372,6 @@ class LocalFirstReviewRepository implements ReviewRepository {
           'recite_notes': row.reciteNotes,
           'review_notes': row.reviewNotes,
           'created_at': row.createdAt.toUtc().toIso8601String(),
-          'updated_at': row.updatedAt.toUtc().toIso8601String(),
           'completed_at': row.completedAt?.toUtc().toIso8601String(),
         });
         await (_db.update(_db.localSq3rSessions)

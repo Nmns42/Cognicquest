@@ -407,7 +407,6 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
           'processing_style': row.processingStyle,
           'preferred_channel': row.preferredChannel,
           'completed_at': row.completedAt?.toUtc().toIso8601String(),
-          'updated_at': row.updatedAt.toUtc().toIso8601String(),
         }, onConflict: 'user_id');
         await (_db.update(_db.localLearningProfiles)
               ..where((t) => t.userId.equals(row.userId)))
