@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/pomodoro_provider.dart';
@@ -116,7 +117,7 @@ class _TimerDial extends StatelessWidget {
           // la jauge descend en continu au lieu de tressauter.
           TweenAnimationBuilder<double>(
             tween: Tween(begin: state.progress, end: state.progress),
-            duration: const Duration(milliseconds: 900),
+            duration: Motion.duration(context, const Duration(milliseconds: 900)),
             builder: (context, value, _) => SizedBox.expand(
               child: CircularProgressIndicator(
                 value: value,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// Tendance de l'humeur sur 7 jours.
@@ -146,7 +147,7 @@ class _MoodBar extends StatelessWidget {
                     end: (mood / MoodTrendChart.maxMood * plotHeight)
                         .clamp(6.0, plotHeight),
                   ),
-                  duration: const Duration(milliseconds: 420),
+                  duration: Motion.duration(context, const Duration(milliseconds: 420)),
                   curve: Curves.easeOutCubic,
                   builder: (context, height, _) => Container(
                     height: height,

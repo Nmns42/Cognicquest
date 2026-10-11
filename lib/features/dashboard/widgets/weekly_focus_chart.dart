@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/dashboard_stats_provider.dart';
@@ -174,7 +175,7 @@ class _Bar extends StatelessWidget {
               const SizedBox(height: 4),
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: height),
-                duration: const Duration(milliseconds: 450),
+                duration: Motion.duration(context, const Duration(milliseconds: 450)),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, _) => Container(
                   height: value,

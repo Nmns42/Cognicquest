@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
@@ -212,7 +213,7 @@ class _TypeBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: share),
-              duration: const Duration(milliseconds: 420),
+              duration: Motion.duration(context, const Duration(milliseconds: 420)),
               curve: Curves.easeOutCubic,
               builder: (context, value, _) => LinearProgressIndicator(
                 value: value,
