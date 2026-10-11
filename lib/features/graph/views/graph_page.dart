@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show mapEquals;
+import 'package:flutter/foundation.dart' show mapEquals, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -91,6 +91,14 @@ class _GraphPageState extends ConsumerState<GraphPage> {
 ///
 /// La disposition n'est recalculée que si l'ensemble des fiches ou des liens
 /// change — sélectionner un nœud ne fait donc pas bouger la carte.
+/// Calcul asynchrone de la disposition utilisé par la carte.
+///
+/// Remplaçable uniquement par les tests, pour maîtriser l'ordre dans lequel
+/// deux calculs concurrents se terminent.
+@visibleForTesting
+Future<GraphLayout> Function(List<String>, List<(String, String)>)
+    graphLayoutAsync = GraphLayout.computeAsync;
+
 class _GraphCanvas extends StatefulWidget {
   const _GraphCanvas({
     required this.nodes,
@@ -165,7 +173,7 @@ class _GraphCanvasState extends State<_GraphCanvas> {
     // Grand carnet : plusieurs centaines de millisecondes de calcul, hors du
     // thread UI (isolate, ou tranches sur le web).
     _isComputing = true;
-    GraphLayout.computeAsync(ids, edgePairs).then((layout) {
+    graphLayoutAsync(ids, edgePairs).then((layout) {
       if (!mounted || generation != _generation) return;
       setState(() {
         _isComputing = false;
