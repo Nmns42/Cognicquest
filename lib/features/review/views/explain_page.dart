@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../notes/data/note_repository.dart';
@@ -215,7 +216,7 @@ class _ConfidencePicker extends StatelessWidget {
                 onTap: () => onChanged(level),
                 borderRadius: BorderRadius.circular(10),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
+                  duration: Motion.duration(context, const Duration(milliseconds: 160)),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: level <= value

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../providers/habit_provider.dart';
@@ -268,7 +269,7 @@ class _HabitTile extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(2),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
+                      duration: Motion.duration(context, const Duration(milliseconds: 200)),
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
@@ -396,7 +397,7 @@ class _DayCell extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: Motion.duration(context, const Duration(milliseconds: 180)),
           width: 26,
           height: 26,
           alignment: Alignment.center,

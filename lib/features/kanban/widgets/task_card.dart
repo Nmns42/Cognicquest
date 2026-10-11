@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
 
@@ -142,7 +143,7 @@ class _Checkbox extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(2),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+            duration: Motion.duration(context, const Duration(milliseconds: 180)),
             width: 20,
             height: 20,
             decoration: BoxDecoration(

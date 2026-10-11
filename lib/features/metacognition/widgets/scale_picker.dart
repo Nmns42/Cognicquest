@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// Sélecteur sur une échelle de 1 à [max].
@@ -73,7 +74,7 @@ class ScalePicker extends StatelessWidget {
                     onTap: () => onChanged(level),
                     borderRadius: BorderRadius.circular(8),
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
+                      duration: Motion.duration(context, const Duration(milliseconds: 150)),
                       // Hauteur confortable au doigt même à 10 crans.
                       height: 38,
                       alignment: Alignment.center,

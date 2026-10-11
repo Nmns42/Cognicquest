@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
 import '../providers/task_provider.dart';
@@ -230,7 +231,7 @@ class _KanbanColumn extends ConsumerWidget {
         final isHovered = candidate.isNotEmpty;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: Motion.duration(context, const Duration(milliseconds: 160)),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -507,7 +508,7 @@ class _QuadrantTile extends ConsumerWidget {
         final isHovered = candidate.isNotEmpty;
 
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: Motion.duration(context, const Duration(milliseconds: 160)),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,

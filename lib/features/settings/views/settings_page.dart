@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../data/ambient_sound_engine.dart';
 import '../domain/user_settings.dart';
@@ -187,7 +188,7 @@ class _ThemePicker extends StatelessWidget {
               onTap: () => onSelect(variant),
               borderRadius: BorderRadius.circular(14),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
+                duration: Motion.duration(context, const Duration(milliseconds: 150)),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: variant == selected

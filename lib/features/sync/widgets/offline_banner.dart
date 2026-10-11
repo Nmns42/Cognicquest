@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/sync_coordinator.dart';
 
@@ -22,10 +23,7 @@ class OfflineBanner extends ConsumerWidget {
         : 'Hors ligne — $pending modification${pending > 1 ? 's' : ''} '
             'en attente, envoyée${pending > 1 ? 's' : ''} au retour du réseau.';
 
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-      child: !visible
+    final banner = !visible
           ? const SizedBox(width: double.infinity)
           : Material(
               color: context.cq.beigeDark,
@@ -65,7 +63,16 @@ class OfflineBanner extends ConsumerWidget {
                   ),
                 ),
               ),
-            ),
+            );
+
+    // Animations réduites : la bannière apparaît d'un coup. AnimatedSize n'est
+    // pas réglé à une durée nulle (assertion de layout dans Flutter), il est
+    // simplement retiré.
+    if (Motion.reduced(context)) return banner;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: banner,
     );
   }
 }

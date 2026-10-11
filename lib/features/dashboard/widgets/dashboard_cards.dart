@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../../../shared/models/task_model.dart';
@@ -344,7 +345,7 @@ class HabitPreviewRow extends StatelessWidget {
           child: Row(
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: Motion.duration(context, const Duration(milliseconds: 200)),
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
