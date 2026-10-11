@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
+import 'core/motion/reduce_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dev/demo_seed.dart';
 import 'features/settings/data/ambient_sound_engine.dart';
@@ -63,6 +64,10 @@ class CognicQuestApp extends ConsumerWidget {
         ref.watch(settingsProvider.select((s) => s.textScale.scale));
     final shortcutsEnabled = ref
         .watch(settingsProvider.select((s) => s.keyboardShortcutsEnabled));
+    // Animations réduites : réglage de l'app ou réglage système. Désactivé,
+    // rien ci-dessous ne change (même thème, styles par défaut).
+    final reduceMotion = ref.watch(effectiveReduceMotionProvider);
+    final theme = ref.watch(appThemeProvider);
 
     // Garde le coordinateur de synchronisation en vie pendant toute la vie de
     // l'app, sans reconstruire l'arbre à chaque changement de son état.
@@ -82,7 +87,8 @@ class CognicQuestApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: AppConfig.appName,
-      theme: ref.watch(appThemeProvider),
+      theme: reduceMotion ? Motion.reducedTheme(theme) : theme,
+      themeAnimationStyle: reduceMotion ? AnimationStyle.noAnimation : null,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       shortcuts: shortcutsEnabled ? _appShortcuts : null,
@@ -101,12 +107,16 @@ class CognicQuestApp extends ConsumerWidget {
         // Material qui ne lisent pas notre thème. On compose avec le réglage
         // système au lieu de l'écraser — un utilisateur qui a déjà agrandi le
         // texte de son téléphone ne doit pas le voir rétrécir ici.
+        //
+        // La valeur effective des animations réduites est réinjectée ici :
+        // chaque widget la lit au même endroit, via [Motion].
         final media = MediaQuery.of(context);
         return MediaQuery(
           data: media.copyWith(
             textScaler: TextScaler.linear(
               textScale * media.textScaler.scale(1),
             ),
+            disableAnimations: reduceMotion,
           ),
           child: child ?? const SizedBox.shrink(),
         );

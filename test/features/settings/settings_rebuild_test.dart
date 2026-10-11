@@ -96,11 +96,19 @@ void main() {
     });
   });
 
-  testWidgets('activer les animations réduites ne reconstruit pas l\'app',
+  // « Animations réduites » s'applique désormais à la racine (thème,
+  // transitions) et reconstruit donc l'app : voir reduce_motion_test.dart.
+  // Ce témoin négatif porte sur un réglage réellement sans rapport.
+  testWidgets('modifier la routine du matin ne reconstruit pas l\'app',
       (tester) async {
     await withApp(tester, () async {
-      final rebuilt =
-          await rebuiltDuring(tester, (n) => n.toggleReduceMotion());
+      final rebuilt = await rebuiltDuring(
+        tester,
+        (n) => n.setMorningRoutine(container
+            .read(settingsProvider)
+            .morningRoutine
+            .copyWith(hour: 6, minute: 45)),
+      );
 
       expect(rebuilt, isNot(contains(CognicQuestApp)));
       expect(rebuilt, isNot(contains(MaterialApp)));
