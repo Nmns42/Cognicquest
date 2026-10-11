@@ -100,3 +100,20 @@ d'origine**. Le test des animations tolère uniquement ces erreurs.
 **À faire** : vérifier sur appareil (bande jaune et noire en debug) ;
 corriger la hauteur réservée aux étiquettes du graphique. Change
 l'affichage : à valider avant.
+
+---
+
+## 5. Réordonner les tâches à l'intérieur d'un quadrant d'Eisenhower
+
+**Décision (R3)** : non pour l'instant. Ce serait un second ordre manuel, en
+concurrence avec celui du Kanban (`tasks.position` est par colonne de statut,
+alors qu'un quadrant mélange les statuts).
+
+**Si on y revient** : une colonne dédiée (ex. `tasks.quadrant_position`),
+donc une modification du schéma Supabase, ≈ 1 j.
+
+**À noter** : le réordonnancement du Kanban renumérote aujourd'hui toute la
+colonne à chaque déplacement (`moveTask` réécrit `position = 0..n-1`, puis
+`saveOrder` envoie toutes les tâches) : un déplacement produit autant
+d'écritures synchronisées que la colonne compte de tâches. Le principe retenu
+pour les fiches et les habitudes (R1, R2) pourra lui être appliqué ensuite.
