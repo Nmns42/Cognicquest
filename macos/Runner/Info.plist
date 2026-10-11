@@ -28,5 +28,18 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>io.cognicquest.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.cognicquest.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

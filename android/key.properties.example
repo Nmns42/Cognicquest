@@ -1,0 +1,8 @@
+# Copier en android/key.properties (ignoré par git) pour signer les builds
+# release. Générer la clé une seule fois et la sauvegarder hors du dépôt :
+#   keytool -genkey -v -keystore ~/cognicquest-upload.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias upload
+storeFile=C:/chemin/vers/cognicquest-upload.jks
+storePassword=
+keyAlias=upload
+keyPassword=
