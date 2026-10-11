@@ -49,6 +49,16 @@ class LocalNotes extends Table {
   /// `false` tant que la version locale n'a pas été poussée vers Supabase.
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
+  /// Compteur des écritures sur les blocs de la fiche, **local uniquement**
+  /// (jamais envoyé à Supabase ni attendu au pull).
+  ///
+  /// Incrémenté par les triggers de `note_triggers.drift` à chaque insertion,
+  /// modification ou suppression de bloc : aucun chemin d'écriture ne peut
+  /// l'oublier. La liste des fiches ne recharge que les blocs des fiches dont
+  /// le compteur a bougé. Une date ne suffirait pas : Drift la tronque à la
+  /// seconde, et la sauvegarde automatique peut écrire deux fois dans la même.
+  IntColumn get revision => integer().withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -615,7 +625,7 @@ class SyncCursors extends Table {
   LocalPomodoroSessions,
   SyncQueueEntries,
   SyncCursors,
-])
+], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
   /// mémoire. Le code applicatif laisse [_open] choisir selon la plateforme.
@@ -629,8 +639,9 @@ class AppDatabase extends _$AppDatabase {
   /// v6 : tâches, habitudes et sessions Pomodoro hors ligne (Lot 10).
   /// v7 : curseurs du pull incrémental.
   /// v8 : index sur les filtres et tris réellement utilisés (cf. [_v8Indexes]).
+  /// v9 : compteur de révision des blocs (LocalNotes.revision + triggers).
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -666,6 +677,13 @@ class AppDatabase extends _$AppDatabase {
         localHabitsUserCreated,
         localPomodoroSessionsUserStarted,
         syncQueueEntriesEntity,
+      ];
+
+  /// Triggers ajoutés en v9 (cf. note_triggers.drift).
+  List<Trigger> get _v9Triggers => [
+        localNoteBlocksRevisionInsert,
+        localNoteBlocksRevisionUpdate,
+        localNoteBlocksRevisionDelete,
       ];
 
   /// Efface toutes les données locales, file de synchronisation comprise.
@@ -726,6 +744,25 @@ class AppDatabase extends _$AppDatabase {
               await customStatement(create.replaceFirst(
                 'CREATE INDEX ',
                 'CREATE INDEX IF NOT EXISTS ',
+              ));
+            }
+          }
+          if (from < 9) {
+            // Rejouable comme la v8 : la colonne n'est ajoutée que si elle
+            // manque, les triggers ne sont créés que s'ils manquent. Aucune
+            // donnée n'est réécrite : les fiches existantes démarrent à 0.
+            final columns = await customSelect(
+              "SELECT name FROM pragma_table_info('local_notes')",
+            ).map((row) => row.read<String>('name')).get();
+            if (!columns.contains('revision')) {
+              await m.addColumn(localNotes, localNotes.revision);
+            }
+            for (final trigger in _v9Triggers) {
+              final create =
+                  trigger.createStatementsByDialect[SqlDialect.sqlite]!;
+              await customStatement(create.replaceFirst(
+                'CREATE TRIGGER ',
+                'CREATE TRIGGER IF NOT EXISTS ',
               ));
             }
           }

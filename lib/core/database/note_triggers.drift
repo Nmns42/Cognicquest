@@ -1,0 +1,27 @@
+-- Compteur de révision des blocs d'une fiche (cf. LocalNotes.revision).
+--
+-- Déclarés ici plutôt qu'en SQL brut : drift_dev analyse ces triggers et en
+-- déduit qu'une écriture sur local_note_blocks modifie aussi local_notes. Les
+-- streams qui surveillent local_notes (la liste des fiches) sont donc
+-- invalidés par une simple écriture de bloc.
+
+import 'app_database.dart';
+
+CREATE TRIGGER local_note_blocks_revision_insert
+AFTER INSERT ON local_note_blocks
+BEGIN
+  UPDATE local_notes SET revision = revision + 1 WHERE id = new.note_id;
+END;
+
+CREATE TRIGGER local_note_blocks_revision_update
+AFTER UPDATE ON local_note_blocks
+BEGIN
+  UPDATE local_notes SET revision = revision + 1
+    WHERE id = new.note_id OR id = old.note_id;
+END;
+
+CREATE TRIGGER local_note_blocks_revision_delete
+AFTER DELETE ON local_note_blocks
+BEGIN
+  UPDATE local_notes SET revision = revision + 1 WHERE id = old.note_id;
+END;

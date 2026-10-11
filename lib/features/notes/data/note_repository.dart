@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -70,33 +71,76 @@ class LocalFirstNoteRepository implements NoteRepository {
 
   // ── Lecture ──────────────────────────────────────────────────────────────
 
+  /// Blocs déjà chargés, par fiche, avec la révision à laquelle ils ont été
+  /// lus (cf. [LocalNotes.revision]).
+  final Map<String, (int, List<NoteBlock>)> _blockCache = {};
+
+  /// Nombre total de blocs lus en base par [watchAll] depuis la création du
+  /// repository. Sert uniquement aux tests et aux mesures.
+  @visibleForTesting
+  int blocksLoaded = 0;
+
+  /// Fiches dont les blocs sont en cache. Sert uniquement aux tests.
+  @visibleForTesting
+  Iterable<String> get cachedNoteIds => _blockCache.keys;
+
   @override
   Stream<List<Note>> watchAll() {
     final notesQuery = _db.select(_db.localNotes)
       ..where((t) => t.userId.equals(_userId) & t.isDeleted.equals(false))
       ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
 
-    // Les blocs sont chargés en une requête puis regroupés en mémoire : une
-    // requête par fiche ferait un N+1 sur la liste.
+    // Chaque émission de la liste (une sauvegarde, un pull…) rechargeait les
+    // blocs de toutes les fiches. Seules celles dont la révision a bougé sont
+    // désormais relues ; les autres viennent du cache.
     return notesQuery.watch().asyncMap((rows) async {
-      if (rows.isEmpty) return <Note>[];
+      final ids = {for (final row in rows) row.id};
+      // Fiche supprimée (ou sortie de la liste) : elle quitte le cache.
+      _blockCache.removeWhere((id, _) => !ids.contains(id));
 
-      final ids = rows.map((r) => r.id).toList();
-      final blockRows = await (_db.select(_db.localNoteBlocks)
-            ..where((t) => t.noteId.isIn(ids))
-            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
-          .get();
-
-      final blocksByNote = <String, List<NoteBlock>>{};
-      for (final row in blockRows) {
-        blocksByNote.putIfAbsent(row.noteId, () => []).add(_toBlock(row));
-      }
+      final stale = [
+        for (final row in rows)
+          if (_blockCache[row.id]?.$1 != row.revision) row.id,
+      ];
+      if (stale.isNotEmpty) await _loadBlocks(stale);
 
       return rows
-          .map((row) => _toNote(row, blocksByNote[row.id] ?? const []))
+          .map((row) => _toNote(row, _blockCache[row.id]?.$2 ?? const []))
           .toList();
     });
   }
+
+  /// Relit les blocs de [noteIds] et les met en cache.
+  ///
+  /// La révision est relue **dans la même transaction** que les blocs : lue
+  /// avant (dans l'émission), une sauvegarde intercalée aurait figé dans le
+  /// cache un contenu plus récent sous une révision périmée — sans gravité —
+  /// ou, lue après, un contenu périmé sous une révision à jour, qui ne serait
+  /// plus jamais relu.
+  Future<void> _loadBlocks(List<String> noteIds) => _db.transaction(() async {
+        final revisions = {
+          for (final row in await (_db.select(_db.localNotes)
+                ..where((t) => t.id.isIn(noteIds)))
+              .get())
+            row.id: row.revision,
+        };
+        final blockRows = await (_db.select(_db.localNoteBlocks)
+              ..where((t) => t.noteId.isIn(noteIds))
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
+        blocksLoaded += blockRows.length;
+
+        // Regroupés en mémoire : une requête par fiche ferait un N+1.
+        final blocksByNote = <String, List<NoteBlock>>{};
+        for (final row in blockRows) {
+          blocksByNote.putIfAbsent(row.noteId, () => []).add(_toBlock(row));
+        }
+        for (final id in noteIds) {
+          final revision = revisions[id];
+          if (revision == null) continue; // supprimée entre-temps
+          _blockCache[id] = (revision, blocksByNote[id] ?? const []);
+        }
+      });
 
   // ── Écriture ─────────────────────────────────────────────────────────────
 
