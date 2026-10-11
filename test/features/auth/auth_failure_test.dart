@@ -78,11 +78,10 @@ void main() {
   });
 
   group('AppConfig.devBypassAuth', () {
-    // Mise en place des tests : actif par défaut en debug (les tests tournent
-    // en debug), désactivable par `--dart-define=DEV_BYPASS_AUTH=false`.
-    // Le verrou `kDebugMode` garantit qu'il reste éteint en release.
-    test('est actif par défaut en debug', () {
-      expect(AppConfig.devBypassAuth, isTrue);
+    // Opt-in explicite par `--dart-define=DEV_BYPASS_AUTH=true` ; le verrou
+    // `kDebugMode` garantit qu'il reste éteint en release.
+    test('est inactif par défaut, même en debug', () {
+      expect(AppConfig.devBypassAuth, isFalse);
     });
   });
 }

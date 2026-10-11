@@ -9,10 +9,11 @@ import 'package:flutter/foundation.dart';
 /// ```
 ///
 /// `env.json` est ignoré par git ; `env.example.json` sert de modèle.
-/// Les valeurs par défaut ci-dessous correspondent au projet Supabase de dev,
-/// afin que l'app reste lançable sans configuration. La clé `anon` /
-/// `publishable` est publique par conception : la protection réelle des données
-/// vient des politiques RLS (cf. `supabase/schema.sql`), pas du secret de la clé.
+/// Aucune valeur par défaut : un binaire compilé sans `env.json` visait
+/// auparavant le projet Supabase de dev en silence. Sans configuration, `main`
+/// affiche désormais un écran d'erreur explicite au lieu de démarrer. La clé
+/// `anon` / `publishable` est publique par conception : la protection réelle
+/// des données vient des politiques RLS (cf. `supabase/schema.sql`).
 class AppConfig {
   AppConfig._();
 
@@ -21,15 +22,10 @@ class AppConfig {
 
   // ── Supabase ───────────────────────────────────────────────────────────────
 
-  static const String supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://lnsncmsxpshqokwchxls.supabase.co',
-  );
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'sb_publishable_h6Gn0x_pSZy_LuNMJ8f9Tw_CCYjKhVN',
-  );
+  static const String supabaseAnonKey =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
 
   static bool get isSupabaseConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
@@ -53,12 +49,12 @@ class AppConfig {
 
   // ── Bypass d'authentification (développement uniquement) ───────────────────
 
-  /// Actif par défaut en debug, le temps de la mise en place des tests : un
-  /// simple `flutter run` ouvre l'app sans écran de connexion, remplie des
-  /// données de test. Pour retrouver la vraie authentification :
-  /// `flutter run --dart-define=DEV_BYPASS_AUTH=false`.
-  static const bool _devBypassAuthFlag =
-      bool.fromEnvironment('DEV_BYPASS_AUTH', defaultValue: true);
+  /// Inactif par défaut : actif, il masquait au quotidien les bugs du vrai
+  /// parcours d'authentification. Pour ouvrir l'app sans compte, remplie des
+  /// données de démo : `flutter run --dart-define-from-file=env.json
+  /// --dart-define=DEV_BYPASS_AUTH=true`, ou la configuration VS Code
+  /// « CognicQuest (démo sans compte) ».
+  static const bool _devBypassAuthFlag = bool.fromEnvironment('DEV_BYPASS_AUTH');
 
   /// Permet d'entrer dans l'app sans compte Supabase, pour travailler l'UI
   /// hors-ligne.

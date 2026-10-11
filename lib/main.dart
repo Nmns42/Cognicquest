@@ -14,6 +14,17 @@ import 'router/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Sans `--dart-define-from-file=env.json`, l'URL et la clé sont vides :
+  // mieux vaut le dire clairement que d'échouer plus loin sur une URL invalide.
+  if (!AppConfig.isSupabaseConfigured) {
+    runApp(const _StartupErrorApp(
+      explanation: 'Configuration Supabase absente. Lance l\'application avec '
+          '--dart-define-from-file=env.json (modèle : env.example.json).',
+      message: 'SUPABASE_URL / SUPABASE_ANON_KEY non définis',
+    ));
+    return;
+  }
+
   try {
     // `Supabase.initialize` restaure la session persistée avant de rendre la
     // main : `currentSession` est donc déjà correct au premier build du routeur.
@@ -27,7 +38,11 @@ Future<void> main() async {
   } catch (error) {
     // Sans ce garde-fou, une URL invalide ou une coupure réseau au démarrage
     // faisait planter l'app sur un écran noir, sans aucun message.
-    runApp(_StartupErrorApp(message: error.toString()));
+    runApp(_StartupErrorApp(
+      explanation: 'La connexion au serveur a échoué. Vérifie ta connexion '
+          'internet, puis relance l\'application.',
+      message: error.toString(),
+    ));
     return;
   }
 
@@ -122,10 +137,15 @@ final Map<ShortcutActivator, Intent> _navigationShortcuts = {
   },
 };
 
-/// Écran affiché quand l'initialisation Supabase échoue au démarrage.
+/// Écran affiché quand Supabase n'est pas configuré ou que son initialisation
+/// échoue au démarrage.
 class _StartupErrorApp extends StatelessWidget {
-  const _StartupErrorApp({required this.message});
+  const _StartupErrorApp({required this.explanation, required this.message});
 
+  /// Phrase destinée à l'utilisateur : quoi faire.
+  final String explanation;
+
+  /// Détail technique, affiché en petit.
   final String message;
 
   @override
@@ -152,8 +172,7 @@ class _StartupErrorApp extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'La connexion au serveur a échoué. Vérifie ta connexion '
-                    'internet, puis relance l\'application.',
+                    explanation,
                     style:
                         TextStyle(color: context.cq.textMuted, fontSize: 14),
                     textAlign: TextAlign.center,
