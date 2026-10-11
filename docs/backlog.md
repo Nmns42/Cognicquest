@@ -61,7 +61,12 @@ dénormalisés dans `local_notes`), fiche complète chargée à la demande
 
 ---
 
-## 3. `ThemeData` jamais égaux
+## 3. `ThemeData` jamais égaux — ✅ résolu (`5e393ad`)
+
+> Résolu : `==` et `hashCode` sur `CognicColors`, et second coupable trouvé
+> en route — la barre de navigation utilisait `WidgetStateProperty.resolveWith`
+> (closure comparée par identité), remplacé par `fromMap`. Deux thèmes
+> construits pour la même variante sont désormais égaux.
 
 **Constat** : deux `ThemeData` construits séparément pour le même thème ne
 sont jamais égaux (`==`).
@@ -81,7 +86,12 @@ reconstruction du thème (ex. `Motion.reducedTheme`) produit un thème
 
 ---
 
-## 4. Graphique d'humeur : débordement de 1,5 à 3 px
+## 4. Graphique d'humeur : débordement — ✅ résolu (`6da25ab`)
+
+> Résolu : reproduit avec la police réelle (0,9 px à 100 %, 8,9 px à 200 %
+> sur 320 px) ; hauteur fixe remplacée par une zone fixe pour la barre,
+> l'initiale du jour prenant la hauteur dont elle a besoin. Échelle et
+> couleurs inchangées.
 
 **Constat** (chantier 12, animations réduites) : `MoodTrendChart` déborde
 verticalement de 1,5 à 3 px dans les tests de widgets, **avec le code
