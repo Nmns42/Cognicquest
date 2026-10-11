@@ -17,6 +17,7 @@ part 'app_database.g.dart';
 
 /// Fiches de connaissance — « Création de pages ou fiches (ex : Chapitre 3 –
 /// Mécanique Quantique) » (CdC).
+@TableIndex(name: 'local_notes_user_updated', columns: {#userId, #updatedAt})
 class LocalNotes extends Table {
   /// UUID généré côté client : une fiche créée hors ligne a déjà son identité
   /// définitive, ce qui évite tout remapping à la synchronisation.
@@ -54,6 +55,7 @@ class LocalNotes extends Table {
 
 /// Blocs composant une fiche — « Blocs de texte, listes, cases à cocher,
 /// citations, fichiers, images, liens » (CdC).
+@TableIndex(name: 'local_note_blocks_note_position', columns: {#noteId, #position})
 class LocalNoteBlocks extends Table {
   TextColumn get id => text()();
   /// `onDelete: cascade` est indispensable : sans lui, Drift génère une
@@ -81,6 +83,8 @@ class LocalNoteBlocks extends Table {
 /// Une arête est orientée et typée : « vu », « à revoir », « lié à ».
 /// La contrainte d'unicité empêche de créer deux fois la même arête, ce que
 /// l'interface ne peut pas garantir seule en mode hors ligne.
+@TableIndex(name: 'local_note_links_user_created', columns: {#userId, #createdAt})
+@TableIndex(name: 'local_note_links_target', columns: {#targetId})
 class LocalNoteLinks extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -112,6 +116,8 @@ class LocalNoteLinks extends Table {
 ///
 /// L'état de répétition espacée vit sur la même ligne que la carte : une carte
 /// n'a qu'un seul planning, une table séparée n'apporterait qu'une jointure.
+@TableIndex(name: 'local_flashcards_user_due', columns: {#userId, #dueAt})
+@TableIndex(name: 'local_flashcards_note', columns: {#noteId})
 class LocalFlashcards extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -143,6 +149,8 @@ class LocalFlashcards extends Table {
 }
 
 /// Historique des révisions, pour les statistiques de progression.
+@TableIndex(name: 'local_review_logs_user_reviewed', columns: {#userId, #reviewedAt})
+@TableIndex(name: 'local_review_logs_card', columns: {#cardId})
 class LocalReviewLogs extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -192,6 +200,8 @@ class LocalSq3rSessions extends Table {
 
 /// Auto-explications — mode « Explique-moi » (CdC) : reformuler avec ses
 /// propres mots, principe de la technique Feynman.
+@TableIndex(name: 'local_explanations_user_created', columns: {#userId, #createdAt})
+@TableIndex(name: 'local_explanations_note', columns: {#noteId})
 class LocalExplanations extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -216,6 +226,8 @@ class LocalExplanations extends Table {
 /// Les trois vivent sur la même ligne à dessein : le CdC veut « comprendre
 /// comment une émotion impacte la mémorisation ». Séparer humeur, effort et
 /// bilan en trois tables rendrait la corrélation coûteuse à calculer.
+@TableIndex(name: 'local_journal_entries_user_created', columns: {#userId, #createdAt})
+@TableIndex(name: 'local_journal_entries_note', columns: {#noteId})
 class LocalJournalEntries extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -249,6 +261,7 @@ class LocalJournalEntries extends Table {
 
 /// Recadrage cognitif — « identifier et transformer les pensées bloquantes
 /// (ex : "Je suis nul en maths") en objectifs de croissance » (CdC).
+@TableIndex(name: 'local_reframes_user_created', columns: {#userId, #createdAt})
 class LocalReframes extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -271,6 +284,7 @@ class LocalReframes extends Table {
 ///
 /// Sa sortie alimente l'exigence du CdC : « un module pour identifier si le
 /// frein est cognitif, émotionnel, sensoriel ou environnemental ».
+@TableIndex(name: 'local_why_chains_user_created', columns: {#userId, #createdAt})
 class LocalWhyChains extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -292,6 +306,8 @@ class LocalWhyChains extends Table {
 
 /// Analyse des erreurs — « regroupe les types d'erreurs commises par l'élève
 /// (erreurs d'inattention vs erreurs de compréhension) » (CdC).
+@TableIndex(name: 'local_error_logs_user_created', columns: {#userId, #createdAt})
+@TableIndex(name: 'local_error_logs_note', columns: {#noteId})
 class LocalErrorLogs extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -335,6 +351,7 @@ class LocalLearningProfiles extends Table {
 
 /// Objectif SMART — « définir des objectifs précis, atteignables et
 /// mesurables » (CdC), décliné sur les cinq critères.
+@TableIndex(name: 'local_study_goals_user_deadline', columns: {#userId, #deadline})
 class LocalStudyGoals extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -367,6 +384,9 @@ class LocalStudyGoals extends Table {
 
 /// Barre du diagramme de Gantt — « vue chronologique horizontale avec barres
 /// ajustables », « affichage des dépendances (tâche A → tâche B) » (CdC).
+@TableIndex(name: 'local_plan_items_user_start', columns: {#userId, #startDate})
+@TableIndex(name: 'local_plan_items_goal', columns: {#goalId})
+@TableIndex(name: 'local_plan_items_depends_on', columns: {#dependsOnId})
 class LocalPlanItems extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -400,6 +420,7 @@ class LocalPlanItems extends Table {
 
 /// Mesure de vitesse — « estimation/pronostic de la vitesse de
 /// lecture/rédaction/rétention/compréhension » (CdC).
+@TableIndex(name: 'local_speed_samples_user_created', columns: {#userId, #createdAt})
 class LocalSpeedSamples extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -424,6 +445,8 @@ class LocalSpeedSamples extends Table {
 /// CdC : « viser là où il y a le plus de points en examen, comparaison note
 /// actuelle → note atteignable, longueur du cours, difficulté ⇒ ordre de
 /// révision ».
+@TableIndex(name: 'local_exam_targets_user_exam', columns: {#userId, #examDate})
+@TableIndex(name: 'local_exam_targets_note', columns: {#noteId})
 class LocalExamTargets extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -457,6 +480,7 @@ class LocalExamTargets extends Table {
 /// Rapatriée en local au Lot 10 : le CdC exige un « mode offline avec
 /// synchronisation automatique dès qu'internet est disponible », et la to-do
 /// était jusque-là inutilisable sans réseau.
+@TableIndex(name: 'local_tasks_user_position', columns: {#userId, #position, #createdAt})
 class LocalTasks extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -482,6 +506,7 @@ class LocalTasks extends Table {
 }
 
 /// Habitude suivie — « Habit Tracker » (CdC).
+@TableIndex(name: 'local_habits_user_created', columns: {#userId, #createdAt})
 class LocalHabits extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -514,6 +539,7 @@ class LocalHabitLogs extends Table {
 
 /// Session Pomodoro terminée — « sessions terminées, temps total d'étude »
 /// (CdC).
+@TableIndex(name: 'local_pomodoro_sessions_user_started', columns: {#userId, #startedAt})
 class LocalPomodoroSessions extends Table {
   TextColumn get id => text()();
   TextColumn get userId => text()();
@@ -537,6 +563,7 @@ class LocalPomodoroSessions extends Table {
 /// Elle est générique (table + identifiant + opération) afin que les Lots
 /// suivants — et la reprise des tâches/habitudes — s'y branchent sans
 /// nouvelle structure.
+@TableIndex(name: 'sync_queue_entries_entity', columns: {#entityTable, #entityId})
 class SyncQueueEntries extends Table {
   IntColumn get id => integer().autoIncrement()();
 
@@ -601,8 +628,45 @@ class AppDatabase extends _$AppDatabase {
   /// v5 : objectifs SMART, Gantt, vitesse de travail, cibles d'examen (Lot 8).
   /// v6 : tâches, habitudes et sessions Pomodoro hors ligne (Lot 10).
   /// v7 : curseurs du pull incrémental.
+  /// v8 : index sur les filtres et tris réellement utilisés (cf. [_v8Indexes]).
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
+
+  /// Index ajoutés en v8. Liste explicite (et non « tous les index du
+  /// schéma ») : un index ajouté plus tard aura son propre palier de
+  /// migration, il ne doit pas être créé deux fois.
+  ///
+  /// Sans eux, chaque écran (filtré par utilisateur, trié par date) et
+  /// chaque suppression en cascade parcourait sa table en entier.
+  List<Index> get _v8Indexes => [
+        localNotesUserUpdated,
+        localNoteBlocksNotePosition,
+        localNoteLinksUserCreated,
+        localNoteLinksTarget,
+        localFlashcardsUserDue,
+        localFlashcardsNote,
+        localReviewLogsUserReviewed,
+        localReviewLogsCard,
+        localExplanationsUserCreated,
+        localExplanationsNote,
+        localJournalEntriesUserCreated,
+        localJournalEntriesNote,
+        localReframesUserCreated,
+        localWhyChainsUserCreated,
+        localErrorLogsUserCreated,
+        localErrorLogsNote,
+        localStudyGoalsUserDeadline,
+        localPlanItemsUserStart,
+        localPlanItemsGoal,
+        localPlanItemsDependsOn,
+        localSpeedSamplesUserCreated,
+        localExamTargetsUserExam,
+        localExamTargetsNote,
+        localTasksUserPosition,
+        localHabitsUserCreated,
+        localPomodoroSessionsUserStarted,
+        syncQueueEntriesEntity,
+      ];
 
   /// Efface toutes les données locales, file de synchronisation comprise.
   ///
@@ -652,6 +716,18 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.createTable(syncCursors);
+          }
+          if (from < 8) {
+            // `IF NOT EXISTS` : la montée reste rejouable si elle a été
+            // interrompue après une partie des index.
+            for (final index in _v8Indexes) {
+              final create =
+                  index.createStatementsByDialect[SqlDialect.sqlite]!;
+              await customStatement(create.replaceFirst(
+                'CREATE INDEX ',
+                'CREATE INDEX IF NOT EXISTS ',
+              ));
+            }
           }
         },
         beforeOpen: (details) async {

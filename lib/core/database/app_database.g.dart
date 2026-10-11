@@ -10608,6 +10608,74 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncQueueEntriesTable syncQueueEntries =
       $SyncQueueEntriesTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
+  late final Index localNotesUserUpdated = Index('local_notes_user_updated',
+      'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
+  late final Index localNoteBlocksNotePosition = Index(
+      'local_note_blocks_note_position',
+      'CREATE INDEX local_note_blocks_note_position ON local_note_blocks (note_id, position)');
+  late final Index localNoteLinksUserCreated = Index(
+      'local_note_links_user_created',
+      'CREATE INDEX local_note_links_user_created ON local_note_links (user_id, created_at)');
+  late final Index localNoteLinksTarget = Index('local_note_links_target',
+      'CREATE INDEX local_note_links_target ON local_note_links (target_id)');
+  late final Index localFlashcardsUserDue = Index('local_flashcards_user_due',
+      'CREATE INDEX local_flashcards_user_due ON local_flashcards (user_id, due_at)');
+  late final Index localFlashcardsNote = Index('local_flashcards_note',
+      'CREATE INDEX local_flashcards_note ON local_flashcards (note_id)');
+  late final Index localReviewLogsUserReviewed = Index(
+      'local_review_logs_user_reviewed',
+      'CREATE INDEX local_review_logs_user_reviewed ON local_review_logs (user_id, reviewed_at)');
+  late final Index localReviewLogsCard = Index('local_review_logs_card',
+      'CREATE INDEX local_review_logs_card ON local_review_logs (card_id)');
+  late final Index localExplanationsUserCreated = Index(
+      'local_explanations_user_created',
+      'CREATE INDEX local_explanations_user_created ON local_explanations (user_id, created_at)');
+  late final Index localExplanationsNote = Index('local_explanations_note',
+      'CREATE INDEX local_explanations_note ON local_explanations (note_id)');
+  late final Index localJournalEntriesUserCreated = Index(
+      'local_journal_entries_user_created',
+      'CREATE INDEX local_journal_entries_user_created ON local_journal_entries (user_id, created_at)');
+  late final Index localJournalEntriesNote = Index('local_journal_entries_note',
+      'CREATE INDEX local_journal_entries_note ON local_journal_entries (note_id)');
+  late final Index localReframesUserCreated = Index(
+      'local_reframes_user_created',
+      'CREATE INDEX local_reframes_user_created ON local_reframes (user_id, created_at)');
+  late final Index localWhyChainsUserCreated = Index(
+      'local_why_chains_user_created',
+      'CREATE INDEX local_why_chains_user_created ON local_why_chains (user_id, created_at)');
+  late final Index localErrorLogsUserCreated = Index(
+      'local_error_logs_user_created',
+      'CREATE INDEX local_error_logs_user_created ON local_error_logs (user_id, created_at)');
+  late final Index localErrorLogsNote = Index('local_error_logs_note',
+      'CREATE INDEX local_error_logs_note ON local_error_logs (note_id)');
+  late final Index localStudyGoalsUserDeadline = Index(
+      'local_study_goals_user_deadline',
+      'CREATE INDEX local_study_goals_user_deadline ON local_study_goals (user_id, deadline)');
+  late final Index localPlanItemsUserStart = Index(
+      'local_plan_items_user_start',
+      'CREATE INDEX local_plan_items_user_start ON local_plan_items (user_id, start_date)');
+  late final Index localPlanItemsGoal = Index('local_plan_items_goal',
+      'CREATE INDEX local_plan_items_goal ON local_plan_items (goal_id)');
+  late final Index localPlanItemsDependsOn = Index(
+      'local_plan_items_depends_on',
+      'CREATE INDEX local_plan_items_depends_on ON local_plan_items (depends_on_id)');
+  late final Index localSpeedSamplesUserCreated = Index(
+      'local_speed_samples_user_created',
+      'CREATE INDEX local_speed_samples_user_created ON local_speed_samples (user_id, created_at)');
+  late final Index localExamTargetsUserExam = Index(
+      'local_exam_targets_user_exam',
+      'CREATE INDEX local_exam_targets_user_exam ON local_exam_targets (user_id, exam_date)');
+  late final Index localExamTargetsNote = Index('local_exam_targets_note',
+      'CREATE INDEX local_exam_targets_note ON local_exam_targets (note_id)');
+  late final Index localTasksUserPosition = Index('local_tasks_user_position',
+      'CREATE INDEX local_tasks_user_position ON local_tasks (user_id, position, created_at)');
+  late final Index localHabitsUserCreated = Index('local_habits_user_created',
+      'CREATE INDEX local_habits_user_created ON local_habits (user_id, created_at)');
+  late final Index localPomodoroSessionsUserStarted = Index(
+      'local_pomodoro_sessions_user_started',
+      'CREATE INDEX local_pomodoro_sessions_user_started ON local_pomodoro_sessions (user_id, started_at)');
+  late final Index syncQueueEntriesEntity = Index('sync_queue_entries_entity',
+      'CREATE INDEX sync_queue_entries_entity ON sync_queue_entries (entity_table, entity_id)');
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10634,7 +10702,34 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localHabitLogs,
         localPomodoroSessions,
         syncQueueEntries,
-        syncCursors
+        syncCursors,
+        localNotesUserUpdated,
+        localNoteBlocksNotePosition,
+        localNoteLinksUserCreated,
+        localNoteLinksTarget,
+        localFlashcardsUserDue,
+        localFlashcardsNote,
+        localReviewLogsUserReviewed,
+        localReviewLogsCard,
+        localExplanationsUserCreated,
+        localExplanationsNote,
+        localJournalEntriesUserCreated,
+        localJournalEntriesNote,
+        localReframesUserCreated,
+        localWhyChainsUserCreated,
+        localErrorLogsUserCreated,
+        localErrorLogsNote,
+        localStudyGoalsUserDeadline,
+        localPlanItemsUserStart,
+        localPlanItemsGoal,
+        localPlanItemsDependsOn,
+        localSpeedSamplesUserCreated,
+        localExamTargetsUserExam,
+        localExamTargetsNote,
+        localTasksUserPosition,
+        localHabitsUserCreated,
+        localPomodoroSessionsUserStarted,
+        syncQueueEntriesEntity
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
