@@ -141,17 +141,22 @@ final settingsProvider =
     NotifierProvider<SettingsNotifier, UserSettings>(SettingsNotifier.new);
 
 /// Thème dérivé des préférences.
+///
+/// `select` : un `ThemeData` complet n'est reconstruit que si le thème change,
+/// pas à chaque réglage (volume, routines…).
 final appThemeProvider = Provider<ThemeData>(
-  (ref) => AppTheme.build(ref.watch(settingsProvider).themeVariant),
+  (ref) => AppTheme.build(
+    ref.watch(settingsProvider.select((s) => s.themeVariant)),
+  ),
 );
 
 /// Facteur d'échelle du texte, appliqué à la racine de l'application.
 final textScaleProvider = Provider<double>(
-  (ref) => ref.watch(settingsProvider).textScale.scale,
+  (ref) => ref.watch(settingsProvider.select((s) => s.textScale.scale)),
 );
 
 /// Animations réduites : les widgets consultent ce drapeau pour raccourcir
 /// ou supprimer leurs transitions.
 final reduceMotionProvider = Provider<bool>(
-  (ref) => ref.watch(settingsProvider).reduceMotion,
+  (ref) => ref.watch(settingsProvider.select((s) => s.reduceMotion)),
 );

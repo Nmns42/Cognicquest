@@ -55,7 +55,14 @@ class CognicQuestApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    final settings = ref.watch(settingsProvider);
+    // Seuls les réglages appliqués à la racine sont suivis. Suivre l'objet
+    // entier reconstruisait l'app, ses raccourcis, ses actions et l'enveloppe
+    // de l'écran courant à chaque réglage — y compris en faisant glisser le
+    // curseur du volume d'ambiance.
+    final textScale =
+        ref.watch(settingsProvider.select((s) => s.textScale.scale));
+    final shortcutsEnabled = ref
+        .watch(settingsProvider.select((s) => s.keyboardShortcutsEnabled));
 
     // Garde le coordinateur de synchronisation en vie pendant toute la vie de
     // l'app, sans reconstruire l'arbre à chaque changement de son état.
@@ -78,14 +85,12 @@ class CognicQuestApp extends ConsumerWidget {
       theme: ref.watch(appThemeProvider),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
-      shortcuts: settings.keyboardShortcutsEnabled
-          ? {...WidgetsApp.defaultShortcuts, ..._navigationShortcuts}
-          : null,
+      shortcuts: shortcutsEnabled ? _appShortcuts : null,
       actions: {
         ...WidgetsApp.defaultActions,
         GoRouteIntent: CallbackAction<GoRouteIntent>(
           onInvoke: (intent) {
-            if (settings.keyboardShortcutsEnabled) router.go(intent.route);
+            if (shortcutsEnabled) router.go(intent.route);
             return null;
           },
         ),
@@ -100,7 +105,7 @@ class CognicQuestApp extends ConsumerWidget {
         return MediaQuery(
           data: media.copyWith(
             textScaler: TextScaler.linear(
-              settings.textScale.scale * media.textScaler.scale(1),
+              textScale * media.textScaler.scale(1),
             ),
           ),
           child: child ?? const SizedBox.shrink(),
@@ -135,6 +140,13 @@ final Map<ShortcutActivator, Intent> _navigationShortcuts = {
     SingleActivator(entry.key, control: true): GoRouteIntent(entry.value),
     SingleActivator(entry.key, meta: true): GoRouteIntent(entry.value),
   },
+};
+
+/// Raccourcis de l'app, construits une seule fois : une map neuve à chaque
+/// build faisait reconstruire le `Shortcuts` racine.
+final Map<ShortcutActivator, Intent> _appShortcuts = {
+  ...WidgetsApp.defaultShortcuts,
+  ..._navigationShortcuts,
 };
 
 /// Écran affiché quand Supabase n'est pas configuré ou que son initialisation
