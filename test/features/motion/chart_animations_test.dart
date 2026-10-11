@@ -45,23 +45,11 @@ void main() {
     WidgetTester tester,
     Widget widget,
   ) async {
-    // Le graphique d'humeur déborde déjà de 1,5 à 3 px avec le code d'origine
-    // (constaté, hors périmètre, signalé au backlog). Seules ces erreurs de
-    // débordement sont tolérées ici ; toute autre erreur fait échouer le test.
-    final original = FlutterError.onError;
-    FlutterError.onError = (details) {
-      if (details.exceptionAsString().contains('overflowed')) return;
-      original?.call(details);
-    };
-    try {
-      await tester.pumpWidget(widget);
-      await tester.pump(const Duration(milliseconds: 16));
-      final first = heights(tester);
-      await tester.pumpAndSettle();
-      return (first, heights(tester));
-    } finally {
-      FlutterError.onError = original;
-    }
+    await tester.pumpWidget(widget);
+    await tester.pump(const Duration(milliseconds: 16));
+    final first = heights(tester);
+    await tester.pumpAndSettle();
+    return (first, heights(tester));
   }
 
   final now = DateTime.now();

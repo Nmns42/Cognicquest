@@ -46,30 +46,31 @@ class MoodTrendChart extends StatelessWidget {
             Text(
               '${logged.length} jour${logged.length > 1 ? 's' : ''} noté'
               '${logged.length > 1 ? 's' : ''} sur 7',
-              style:  TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: _plotHeight + 38,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < trend.length; i++)
-                    Expanded(
-                      child: _MoodBar(
-                        value: trend[i],
-                        isBest: trend[i] != null && trend[i] == best,
-                        isToday: i == trend.length - 1,
-                        initial: _dayInitials[
-                            today
-                                    .subtract(Duration(days: trend.length - 1 - i))
-                                    .weekday -
-                                1],
-                        plotHeight: _plotHeight,
-                      ),
+            // Pas de hauteur fixe pour l'ensemble : elle ne laissait pas de
+            // place à l'initiale du jour dès que le texte est plus grand
+            // (police réelle, taille de texte du système), et le graphique
+            // débordait. Chaque colonne réserve une zone fixe pour la valeur
+            // et la barre ; l'initiale prend la hauteur dont elle a besoin.
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (var i = 0; i < trend.length; i++)
+                  Expanded(
+                    child: _MoodBar(
+                      value: trend[i],
+                      isBest: trend[i] != null && trend[i] == best,
+                      isToday: i == trend.length - 1,
+                      initial: _dayInitials[today
+                              .subtract(Duration(days: trend.length - 1 - i))
+                              .weekday -
+                          1],
+                      plotHeight: _plotHeight,
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -111,55 +112,66 @@ class _MoodBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
             children: [
+              // Zone fixe : valeur + barre, alignées en bas comme avant. Sa
+              // hauteur ne dépend que de l'échelle du graphique.
               SizedBox(
-                height: 15,
-                child: showsLabel
-                    ? FittedBox(
-                        child: Text(
-                          mood.toStringAsFixed(1),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: isToday
-                                ? context.cq.textPrimary
-                                : context.cq.textMuted,
-                          ),
+                height: 15 + 4 + plotHeight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      height: 15,
+                      child: showsLabel
+                          ? FittedBox(
+                              child: Text(
+                                mood.toStringAsFixed(1),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: isToday
+                                      ? context.cq.textPrimary
+                                      : context.cq.textMuted,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 4),
+                    if (mood == null)
+                      // Jour non renseigné : un creux discret, pas une barre à zéro.
+                      Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: context.cq.beigeDark,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       )
-                    : null,
-              ),
-              const SizedBox(height: 4),
-              if (mood == null)
-                // Jour non renseigné : un creux discret, pas une barre à zéro.
-                Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.cq.beigeDark,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                )
-              else
-                TweenAnimationBuilder<double>(
-                  tween: Tween(
-                    begin: 0,
-                    end: (mood / MoodTrendChart.maxMood * plotHeight)
-                        .clamp(6.0, plotHeight),
-                  ),
-                  duration: Motion.duration(context, const Duration(milliseconds: 420)),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, height, _) => Container(
-                    height: height,
-                    decoration: BoxDecoration(
-                      color: context.cq.vertDark
-                          .withValues(alpha: isToday ? 1 : 0.75),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(4),
+                    else
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(
+                          begin: 0,
+                          end: (mood / MoodTrendChart.maxMood * plotHeight)
+                              .clamp(6.0, plotHeight),
+                        ),
+                        duration: Motion.duration(
+                            context, const Duration(milliseconds: 420)),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, height, _) => Container(
+                          height: height,
+                          decoration: BoxDecoration(
+                            color: context.cq.vertDark
+                                .withValues(alpha: isToday ? 1 : 0.75),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(4),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                  ],
                 ),
+              ),
               Container(height: 1, color: context.cq.beigeDark),
               const SizedBox(height: 5),
               Text(
