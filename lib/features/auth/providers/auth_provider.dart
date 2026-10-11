@@ -45,6 +45,39 @@ final currentUserIdProvider = Provider<String?>(
       (AppConfig.devBypassAuth ? AppConfig.devUserId : null),
 );
 
+/// `true` entre l'ouverture d'un lien « mot de passe oublié » et l'enregistrement
+/// du nouveau mot de passe.
+///
+/// Le lien ouvre une vraie session : sans ce drapeau, le routeur envoyait
+/// l'utilisateur sur l'accueil, connecté, sans jamais lui demander de choisir
+/// un nouveau mot de passe. `onAuthStateChange` rejoue son dernier évènement
+/// aux abonnés tardifs : un `passwordRecovery` reçu au démarrage (deep link)
+/// n'est donc pas perdu.
+class PasswordRecoveryNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.listen(authStateChangesProvider, (_, next) {
+      switch (next.valueOrNull?.event) {
+        case AuthChangeEvent.passwordRecovery:
+          state = true;
+        case AuthChangeEvent.signedOut:
+          state = false;
+        default:
+          break;
+      }
+    }, fireImmediately: true);
+    return false;
+  }
+
+  /// Le nouveau mot de passe est enregistré : retour au parcours normal.
+  void complete() => state = false;
+}
+
+final passwordRecoveryProvider =
+    NotifierProvider<PasswordRecoveryNotifier, bool>(
+  PasswordRecoveryNotifier.new,
+);
+
 /// Résultat d'une inscription : distingue le cas « connecté immédiatement » du
 /// cas « il faut confirmer l'email », que l'ancien code confondait.
 enum SignUpOutcome { signedIn, emailConfirmationRequired }
@@ -133,6 +166,20 @@ class AuthController extends AsyncNotifier<void> {
     }
   }
 
+  /// Enregistre le nouveau mot de passe choisi après un lien de réinitialisation.
+  Future<bool> updatePassword(String password) async {
+    state = const AsyncValue.loading();
+    try {
+      await _client.auth.updateUser(UserAttributes(password: password));
+      ref.read(passwordRecoveryProvider.notifier).complete();
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(AuthFailure.from(error), stackTrace);
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     try {
@@ -194,6 +241,9 @@ class AuthFailure implements Exception {
     if (code == 'weak_password' || raw.contains('password should be at least')) {
       return 'Mot de passe trop court '
           '(${AppConfig.minPasswordLength} caractères minimum).';
+    }
+    if (code == 'same_password') {
+      return 'Choisis un mot de passe différent de l\'ancien.';
     }
     if (code == 'over_email_send_rate_limit' ||
         raw.contains('rate limit') ||
