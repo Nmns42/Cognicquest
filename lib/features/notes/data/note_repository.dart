@@ -1,0 +1,408 @@
+import 'dart:math';
+
+import 'package:drift/drift.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/database/app_database.dart';
+import '../../../core/database/remote_pagination.dart';
+import '../../../core/errors/data_failure.dart';
+import '../../../shared/models/note_model.dart';
+import '../../auth/providers/auth_provider.dart';
+
+/// Contrat de persistance des fiches.
+abstract interface class NoteRepository {
+  /// Flux des fiches locales : l'UI se met à jour dès l'écriture SQLite, sans
+  /// attendre le réseau.
+  Stream<List<Note>> watchAll();
+
+  Future<Note> create({String title, String? subject});
+  Future<void> save(Note note);
+  Future<void> delete(String id);
+
+  /// Pousse la file d'attente vers Supabase et récupère les changements
+  /// distants. Sans réseau, échoue silencieusement : la file est conservée.
+  Future<void> sync();
+}
+
+/// Implémentation **local-first** : SQLite est la source de vérité, Supabase
+/// la copie de sauvegarde synchronisée.
+///
+/// C'est la réponse à la dette « offline » signalée depuis le Lot 2 : les
+/// écritures n'attendent jamais le réseau, et une coupure ne perd rien.
+class LocalFirstNoteRepository implements NoteRepository {
+  LocalFirstNoteRepository({
+    required AppDatabase database,
+    required SupabaseClient client,
+    required String userId,
+  })  : _db = database,
+        _client = client,
+        _userId = userId;
+
+  final AppDatabase _db;
+  final SupabaseClient _client;
+  final String _userId;
+
+  static const String _notesTable = 'notes';
+  static const String _blocksTable = 'note_blocks';
+
+  static final _random = Random();
+
+  /// Identifiant unique généré côté client, au format UUID v4.
+  ///
+  /// Indispensable au mode hors ligne : une fiche créée sans réseau doit déjà
+  /// porter son identifiant définitif, sinon il faudrait réécrire toutes ses
+  /// références à la synchronisation.
+  static String newId() {
+    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant RFC 4122
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+  }
+
+  // ── Lecture ──────────────────────────────────────────────────────────────
+
+  @override
+  Stream<List<Note>> watchAll() {
+    final notesQuery = _db.select(_db.localNotes)
+      ..where((t) => t.userId.equals(_userId) & t.isDeleted.equals(false))
+      ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+
+    // Les blocs sont chargés en une requête puis regroupés en mémoire : une
+    // requête par fiche ferait un N+1 sur la liste.
+    return notesQuery.watch().asyncMap((rows) async {
+      if (rows.isEmpty) return <Note>[];
+
+      final ids = rows.map((r) => r.id).toList();
+      final blockRows = await (_db.select(_db.localNoteBlocks)
+            ..where((t) => t.noteId.isIn(ids))
+            ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+          .get();
+
+      final blocksByNote = <String, List<NoteBlock>>{};
+      for (final row in blockRows) {
+        blocksByNote.putIfAbsent(row.noteId, () => []).add(_toBlock(row));
+      }
+
+      return rows
+          .map((row) => _toNote(row, blocksByNote[row.id] ?? const []))
+          .toList();
+    });
+  }
+
+  // ── Écriture ─────────────────────────────────────────────────────────────
+
+  @override
+  Future<Note> create({String title = '', String? subject}) async {
+    final now = DateTime.now();
+    final note = Note(
+      id: newId(),
+      userId: _userId,
+      title: title,
+      content: '',
+      subject: subject,
+      createdAt: now,
+      updatedAt: now,
+      isSynced: false,
+    );
+
+    await save(note);
+    return note;
+  }
+
+  @override
+  Future<void> save(Note note) async {
+    final stamped = note.copyWith(updatedAt: DateTime.now(), isSynced: false);
+
+    await _db.transaction(() async {
+      await _db.into(_db.localNotes).insertOnConflictUpdate(
+            LocalNotesCompanion.insert(
+              id: stamped.id,
+              userId: _userId,
+              title: stamped.title,
+              content: Value(stamped.content),
+              subject: Value(stamped.subject),
+              tags: Value(Note.encodeTags(stamped.tags)),
+              importance: Value(stamped.importance),
+              isFavorite: Value(stamped.isFavorite),
+              isArchived: Value(stamped.isArchived),
+              createdAt: stamped.createdAt,
+              updatedAt: stamped.updatedAt,
+              isSynced: const Value(false),
+            ),
+          );
+
+      // Les blocs sont remplacés en bloc : diffuser un diff coûterait plus
+      // cher que la réécriture, à ce volume.
+      await (_db.delete(_db.localNoteBlocks)
+            ..where((t) => t.noteId.equals(stamped.id)))
+          .go();
+
+      for (var i = 0; i < stamped.blocks.length; i++) {
+        final block = stamped.blocks[i];
+        await _db.into(_db.localNoteBlocks).insert(
+              LocalNoteBlocksCompanion.insert(
+                id: block.id,
+                noteId: stamped.id,
+                type: block.type.value,
+                content: Value(block.content),
+                isChecked: Value(block.isChecked),
+                position: i,
+              ),
+            );
+      }
+
+      await _enqueue(stamped.id, 'upsert');
+    });
+
+    unawaitedSync();
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    await _db.transaction(() async {
+      // Suppression logique : la fiche doit survivre localement jusqu'à ce que
+      // la suppression ait été propagée au serveur.
+      await (_db.update(_db.localNotes)..where((t) => t.id.equals(id))).write(
+        LocalNotesCompanion(
+          isDeleted: const Value(true),
+          isSynced: const Value(false),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+      await _enqueue(id, 'delete');
+    });
+
+    unawaitedSync();
+  }
+
+  Future<void> _enqueue(String entityId, String operation) async {
+    // Une seule entrée en attente par fiche : dix modifications successives
+    // hors ligne ne doivent pas produire dix envois.
+    await (_db.delete(_db.syncQueueEntries)
+          ..where((t) =>
+              t.entityTable.equals(_notesTable) & t.entityId.equals(entityId)))
+        .go();
+
+    await _db.into(_db.syncQueueEntries).insert(
+          SyncQueueEntriesCompanion.insert(
+            entityTable: _notesTable,
+            entityId: entityId,
+            operation: operation,
+            queuedAt: DateTime.now(),
+          ),
+        );
+  }
+
+  /// Déclenche une synchronisation sans bloquer l'appelant ni propager
+  /// l'erreur : l'écriture locale, elle, a déjà réussi.
+  void unawaitedSync() {
+    sync().catchError((_) {});
+  }
+
+  // ── Synchronisation ──────────────────────────────────────────────────────
+
+  @override
+  Future<void> sync() async {
+    await _pushQueue();
+    await _pullRemote();
+  }
+
+  Future<void> _pushQueue() async {
+    final pending = await (_db.select(_db.syncQueueEntries)
+          ..where((t) => t.entityTable.equals(_notesTable))
+          ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
+        .get();
+
+    for (final entry in pending) {
+      try {
+        if (entry.operation == 'delete') {
+          await _client.from(_notesTable).delete().eq('id', entry.entityId);
+          await (_db.delete(_db.localNotes)
+                ..where((t) => t.id.equals(entry.entityId)))
+              .go();
+        } else {
+          final row = await (_db.select(_db.localNotes)
+                ..where((t) => t.id.equals(entry.entityId)))
+              .getSingleOrNull();
+          if (row == null) {
+            await _dequeue(entry.id);
+            continue;
+          }
+
+          final blocks = await (_db.select(_db.localNoteBlocks)
+                ..where((t) => t.noteId.equals(row.id))
+                ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+              .get();
+
+          await _client.from(_notesTable).upsert(_toRemoteJson(row));
+
+          await _client.from(_blocksTable).delete().eq('note_id', row.id);
+          if (blocks.isNotEmpty) {
+            await _client.from(_blocksTable).insert([
+              for (final block in blocks)
+                {
+                  'id': block.id,
+                  'note_id': block.noteId,
+                  'type': block.type,
+                  'content': block.content,
+                  'is_checked': block.isChecked,
+                  'position': block.position,
+                },
+            ]);
+          }
+
+          await (_db.update(_db.localNotes)..where((t) => t.id.equals(row.id)))
+              .write(const LocalNotesCompanion(isSynced: Value(true)));
+        }
+
+        await _dequeue(entry.id);
+      } catch (error) {
+        // On conserve l'entrée et on note l'échec : la prochaine tentative
+        // reprendra là où on s'est arrêté.
+        await (_db.update(_db.syncQueueEntries)
+              ..where((t) => t.id.equals(entry.id)))
+            .write(
+          SyncQueueEntriesCompanion(
+            attempts: Value(entry.attempts + 1),
+            lastError: Value(DataFailure.from(error).message),
+          ),
+        );
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _dequeue(int id) =>
+      (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
+
+  Future<void> _pullRemote() async {
+    final remoteNotes = await fetchAllPages(
+      () => _client.from(_notesTable).select().eq('user_id', _userId),
+    );
+    if (remoteNotes.isEmpty) return;
+
+    final ids = remoteNotes.map((r) => r['id'] as String).toList();
+    final remoteBlocks = await fetchAllPagesIn(
+      () => _client.from(_blocksTable).select(),
+      column: 'note_id',
+      ids: ids,
+    );
+
+    final blocksByNote = <String, List<Map<String, dynamic>>>{};
+    for (final block in remoteBlocks) {
+      blocksByNote.putIfAbsent(block['note_id'] as String, () => []).add(block);
+    }
+
+    await _db.transaction(() async {
+      for (final remote in remoteNotes) {
+        final id = remote['id'] as String;
+
+        final local = await (_db.select(_db.localNotes)
+              ..where((t) => t.id.equals(id)))
+            .getSingleOrNull();
+
+        // Résolution de conflit : le plus récemment modifié gagne. Une version
+        // locale non synchronisée n'est jamais écrasée par une version
+        // distante plus ancienne.
+        final remoteUpdatedAt =
+            DateTime.parse(remote['updated_at'] as String).toLocal();
+        if (local != null) {
+          if (!local.isSynced && !remoteUpdatedAt.isAfter(local.updatedAt)) {
+            continue;
+          }
+          if (local.isSynced && !remoteUpdatedAt.isAfter(local.updatedAt)) {
+            continue;
+          }
+        }
+
+        await _db.into(_db.localNotes).insertOnConflictUpdate(
+              LocalNotesCompanion.insert(
+                id: id,
+                userId: _userId,
+                title: remote['title'] as String? ?? '',
+                content: Value(remote['content'] as String? ?? ''),
+                subject: Value(remote['subject'] as String?),
+                tags: Value(Note.encodeTags(Note.decodeTags(remote['tags']))),
+                importance: Value((remote['importance'] as num?)?.toInt() ?? 1),
+                isFavorite: Value(remote['is_favorite'] as bool? ?? false),
+                isArchived: Value(remote['is_archived'] as bool? ?? false),
+                createdAt:
+                    DateTime.parse(remote['created_at'] as String).toLocal(),
+                updatedAt: remoteUpdatedAt,
+                isSynced: const Value(true),
+              ),
+            );
+
+        await (_db.delete(_db.localNoteBlocks)
+              ..where((t) => t.noteId.equals(id)))
+            .go();
+
+        for (final block in blocksByNote[id] ?? const []) {
+          await _db.into(_db.localNoteBlocks).insert(
+                LocalNoteBlocksCompanion.insert(
+                  id: block['id'] as String,
+                  noteId: id,
+                  type: block['type'] as String,
+                  content: Value(block['content'] as String? ?? ''),
+                  isChecked: Value(block['is_checked'] as bool? ?? false),
+                  position: (block['position'] as num?)?.toInt() ?? 0,
+                ),
+              );
+        }
+      }
+    });
+  }
+
+  Map<String, dynamic> _toRemoteJson(LocalNote row) => {
+        'id': row.id,
+        'user_id': row.userId,
+        'title': row.title,
+        'content': row.content,
+        'subject': row.subject,
+        'tags': Note.decodeTags(row.tags),
+        'importance': row.importance,
+        'is_favorite': row.isFavorite,
+        'is_archived': row.isArchived,
+        'created_at': row.createdAt.toUtc().toIso8601String(),
+        'updated_at': row.updatedAt.toUtc().toIso8601String(),
+      };
+
+  static Note _toNote(LocalNote row, List<NoteBlock> blocks) => Note(
+        id: row.id,
+        userId: row.userId,
+        title: row.title,
+        content: row.content,
+        subject: row.subject,
+        tags: Note.decodeTags(row.tags),
+        importance: row.importance,
+        isFavorite: row.isFavorite,
+        isArchived: row.isArchived,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        blocks: blocks,
+        isSynced: row.isSynced,
+      );
+
+  static NoteBlock _toBlock(LocalNoteBlock row) => NoteBlock(
+        id: row.id,
+        noteId: row.noteId,
+        type: NoteBlockType.fromValue(row.type),
+        content: row.content,
+        position: row.position,
+        isChecked: row.isChecked,
+      );
+}
+
+final noteRepositoryProvider = Provider<NoteRepository?>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+
+  return LocalFirstNoteRepository(
+    database: ref.watch(appDatabaseProvider),
+    client: ref.watch(supabaseClientProvider),
+    userId: userId,
+  );
+});
