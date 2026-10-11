@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/remote_pagination.dart';
+import '../../../core/database/incremental_pull.dart';
+import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/note_link_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notes/data/note_repository.dart';
@@ -181,11 +182,14 @@ class LocalFirstNoteLinkRepository implements NoteLinkRepository {
     }
   }
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pullRemote() async {
-    final remote = await fetchAllPages(
-      () => _client.from(_table).select().eq('user_id', _userId),
+    final delta = await fetchDelta(
+      rows: () => _client.from(_table).select().eq('user_id', _userId),
+      ids: () => _client.from(_table).select('id').eq('user_id', _userId),
+      since: await _cursors.read(_table),
     );
-    if (remote.isEmpty) return;
 
     // Les fiches référencées doivent exister localement, sinon la contrainte
     // de clé étrangère rejette l'insertion.
@@ -196,10 +200,17 @@ class LocalFirstNoteLinkRepository implements NoteLinkRepository {
         .toSet();
 
     await _db.transaction(() async {
-      for (final row in remote) {
+      // Un lien créé ou supprimé localement et pas encore envoyé n'est jamais
+      // écrasé par la version distante.
+      final pending = await SyncQueue(_db).pendingIds(_table);
+      var skippedUnknownNote = false;
+
+      for (final row in delta.changed) {
+        if (pending.contains(row['id'] as String)) continue;
         final sourceId = row['source_id'] as String;
         final targetId = row['target_id'] as String;
         if (!knownNotes.contains(sourceId) || !knownNotes.contains(targetId)) {
+          skippedUnknownNote = true;
           continue;
         }
 
@@ -217,6 +228,20 @@ class LocalFirstNoteLinkRepository implements NoteLinkRepository {
               ),
             );
       }
+
+      // Lien synchronisé absent du serveur : supprimé depuis un autre
+      // appareil. Ce cas n'était pas traité.
+      await (_db.delete(_db.localNoteLinks)
+            ..where((t) =>
+                t.userId.equals(_userId) &
+                t.isSynced.equals(true) &
+                t.id.isNotIn(delta.remoteIds!) &
+                t.id.isNotIn(pending)))
+          .go();
+
+      // Un lien écarté faute de fiche locale doit être retenté au prochain
+      // pull : avancer le curseur l'aurait fait oublier pour toujours.
+      if (!skippedUnknownNote) await _cursors.write(_table, delta.cursor);
     });
   }
 

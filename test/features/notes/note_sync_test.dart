@@ -20,6 +20,10 @@ class FakeNotesServer {
   final List<Map<String, dynamic>> blocks = [];
   final List<Map<String, dynamic>> upsertBodies = [];
 
+  /// Lignes complètes renvoyées par chaque GET sur `notes` (hors requêtes
+  /// d'identifiants) : mesure ce que le client retélécharge.
+  final List<int> fullRowsServed = [];
+
   late final MockClient client = MockClient(_handle);
 
   Future<http.Response> _handle(http.Request request) async {
@@ -29,7 +33,23 @@ class FakeNotesServer {
     if (path.endsWith('/notes')) {
       switch (request.method) {
         case 'GET':
-          return http.Response(jsonEncode(notes.values.toList()), 200,
+          final params = request.url.queryParameters;
+          var rows = notes.values.toList();
+          final updatedFilter = params['updated_at'];
+          if (updatedFilter != null && updatedFilter.startsWith('gt.')) {
+            final from = DateTime.parse(updatedFilter.substring(3));
+            rows = rows
+                .where((r) =>
+                    DateTime.parse(r['updated_at'] as String).isAfter(from))
+                .toList();
+          }
+          if (params['select'] == 'id') {
+            return http.Response(
+                jsonEncode([for (final r in rows) {'id': r['id']}]), 200,
+                headers: json, request: request);
+          }
+          fullRowsServed.add(rows.length);
+          return http.Response(jsonEncode(rows), 200,
               headers: json, request: request);
         case 'POST':
           final body = jsonDecode(request.body) as Map<String, dynamic>;
@@ -137,15 +157,40 @@ void main() {
     expect((await local(note.id))!.title, 'Cardio (modifiée ailleurs)');
   });
 
-  test('une version distante pas plus récente ne remplace rien', () async {
-    final note = await repository.create(title: 'Cardio');
+  test('après le premier pull, seules les fiches récentes reviennent',
+      () async {
+    final a = await repository.create(title: 'A');
+    final b = await repository.create(title: 'B');
     await repository.sync();
 
-    // Même updated_at : rien n'a changé côté serveur depuis notre envoi.
-    server.notes[note.id] = {...server.notes[note.id]!, 'title': 'Autre'};
+    // Une heure plus tard, seule A est modifiée ailleurs.
+    server.now = server.now.add(const Duration(hours: 1));
+    server.notes[a.id] = {
+      ...server.notes[a.id]!,
+      'title': 'A (modifiée ailleurs)',
+      'updated_at': server.now.toIso8601String(),
+    };
+    await repository.sync();
+    expect((await local(a.id))!.title, 'A (modifiée ailleurs)');
+
+    // Pull suivant, sans changement : B (une heure plus vieille) ne revient
+    // plus. Seule A, dans la marge de recouvrement du curseur, est relue —
+    // c'est le prix de la protection contre les validations tardives.
+    server.fullRowsServed.clear();
     await repository.sync();
 
-    expect((await local(note.id))!.title, 'Cardio');
+    expect(server.fullRowsServed, [1]);
+    expect((await local(b.id))!.title, 'B');
+  });
+
+  test('le curseur est conservé dans la base locale', () async {
+    await repository.create(title: 'A');
+    await repository.sync();
+
+    final cursor = await db.select(db.syncCursors).getSingle();
+    expect(cursor.userId, 'u1');
+    expect(cursor.remoteTable, 'notes');
+    expect(DateTime.parse(cursor.pulledUntil), server.now);
   });
 
   test('une modification locale en attente n\'est jamais écrasée', () async {

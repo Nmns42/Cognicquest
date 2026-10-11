@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/remote_pagination.dart';
+import '../../../core/database/incremental_pull.dart';
+import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -391,11 +392,16 @@ class LocalFirstReviewRepository implements ReviewRepository {
   Future<void> _dequeue(int id) =>
       (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pullRemote() async {
-    final remote = await fetchAllPages(
-      () => _client.from(_cardsTable).select().eq('user_id', _userId),
+    final delta = await fetchDelta(
+      rows: () => _client.from(_cardsTable).select().eq('user_id', _userId),
+      ids: () => _client.from(_cardsTable).select('id').eq('user_id', _userId),
+      since: await _cursors.read(_cardsTable),
     );
-    if (remote.isEmpty) return;
+    // Pas de retour anticipé sur une liste vide : la purge plus bas doit
+    // avoir lieu même si toutes les cartes ont été supprimées ailleurs.
 
     // Les cartes rattachées à une fiche absente localement gardent leur
     // contenu mais perdent le lien : la contrainte de clé étrangère les
@@ -407,11 +413,18 @@ class LocalFirstReviewRepository implements ReviewRepository {
         .toSet();
 
     await _db.transaction(() async {
-      for (final row in remote) {
+      final pending = await SyncQueue(_db).pendingIds(_cardsTable);
+      var detachedFromUnknownNote = false;
+
+      for (final row in delta.changed) {
         final card = Flashcard.fromJson(row);
+        if (pending.contains(card.id)) continue;
         final noteId = card.noteId != null && knownNotes.contains(card.noteId)
             ? card.noteId
             : null;
+        if (card.noteId != null && noteId == null) {
+          detachedFromUnknownNote = true;
+        }
 
         final local = await (_db.select(_db.localFlashcards)
               ..where((t) => t.id.equals(card.id)))
@@ -438,6 +451,22 @@ class LocalFirstReviewRepository implements ReviewRepository {
                 isSynced: const Value(true),
               ),
             );
+      }
+
+      // Carte synchronisée absente du serveur : supprimée depuis un autre
+      // appareil. Son historique local de révision part avec (cascade).
+      await (_db.delete(_db.localFlashcards)
+            ..where((t) =>
+                t.userId.equals(_userId) &
+                t.isSynced.equals(true) &
+                t.id.isNotIn(delta.remoteIds!) &
+                t.id.isNotIn(pending)))
+          .go();
+
+      // Une carte détachée faute de fiche locale sera rattachée au prochain
+      // pull, une fois la fiche arrivée : on n'avance pas le curseur.
+      if (!detachedFromUnknownNote) {
+        await _cursors.write(_cardsTable, delta.cursor);
       }
     });
   }

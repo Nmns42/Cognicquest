@@ -894,3 +894,62 @@ drop trigger if exists learning_profiles_set_updated_at on public.learning_profi
 create trigger learning_profiles_set_updated_at
   before insert or update on public.learning_profiles
   for each row execute function public.set_updated_at();
+
+-- ============================================================================
+-- Pull incrémental
+-- ============================================================================
+-- Le client ne rapatrie plus que les lignes modifiées depuis sa dernière
+-- synchronisation (`updated_at > curseur`), au lieu de toute la table toutes
+-- les 5 minutes. Les suppressions sont détectées par comparaison des seuls
+-- identifiants (`select id`), sans suppression logique.
+--
+-- Il faut donc un updated_at posé par le serveur sur chaque table tirée de
+-- façon incrémentale, et un index pour que le filtre reste rapide.
+
+alter table public.habits
+  add column if not exists updated_at timestamptz not null default now();
+alter table public.note_links
+  add column if not exists updated_at timestamptz not null default now();
+alter table public.flashcards
+  add column if not exists updated_at timestamptz not null default now();
+alter table public.pomodoro_sessions
+  add column if not exists updated_at timestamptz not null default now();
+
+drop trigger if exists habits_set_updated_at on public.habits;
+create trigger habits_set_updated_at
+  before insert or update on public.habits
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists note_links_set_updated_at on public.note_links;
+create trigger note_links_set_updated_at
+  before insert or update on public.note_links
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists flashcards_set_updated_at on public.flashcards;
+create trigger flashcards_set_updated_at
+  before insert or update on public.flashcards
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists pomodoro_sessions_set_updated_at on public.pomodoro_sessions;
+create trigger pomodoro_sessions_set_updated_at
+  before insert or update on public.pomodoro_sessions
+  for each row execute function public.set_updated_at();
+
+-- tasks n'avait le trigger qu'en `before update` : un upsert qui crée la
+-- ligne garderait sinon une éventuelle heure client.
+drop trigger if exists tasks_set_updated_at on public.tasks;
+create trigger tasks_set_updated_at
+  before insert or update on public.tasks
+  for each row execute function public.set_updated_at();
+
+create index if not exists tasks_user_updated_idx
+  on public.tasks (user_id, updated_at);
+create index if not exists habits_user_updated_idx
+  on public.habits (user_id, updated_at);
+create index if not exists note_links_user_updated_idx
+  on public.note_links (user_id, updated_at);
+create index if not exists flashcards_user_updated_idx
+  on public.flashcards (user_id, updated_at);
+create index if not exists pomodoro_sessions_user_updated_idx
+  on public.pomodoro_sessions (user_id, updated_at);
+-- notes : couvert par notes_user_updated_idx (user_id, updated_at desc).

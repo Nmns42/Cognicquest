@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/remote_pagination.dart';
+import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/task_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -168,20 +168,26 @@ class LocalFirstTaskRepository implements TaskRepository {
         .write(const LocalTasksCompanion(isSynced: Value(true)));
   }
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pull() async {
-    final remoteRows = await fetchAllPages(
-      () => _client.from(table).select().eq('user_id', _userId),
+    // Incrémental : seules les tâches modifiées depuis le dernier pull
+    // reviennent en entier, plus la liste légère des identifiants pour
+    // repérer les suppressions.
+    final delta = await fetchDelta(
+      rows: () => _client.from(table).select().eq('user_id', _userId),
+      ids: () => _client.from(table).select('id').eq('user_id', _userId),
+      since: await _cursors.read(table),
     );
+    final remoteIds = delta.remoteIds!;
 
     await _db.transaction(() async {
       // Relu dans la transaction : une écriture survenue pendant la requête
       // réseau ne doit pas être écrasée.
       final pending = await _queue.pendingIds(table);
-      final remoteIds = <String>{};
 
-      for (final remote in remoteRows) {
+      for (final remote in delta.changed) {
         final task = Task.fromJson(remote);
-        remoteIds.add(task.id);
         if (pending.contains(task.id)) continue;
 
         await _db.into(_db.localTasks).insertOnConflictUpdate(
@@ -214,6 +220,8 @@ class LocalFirstTaskRepository implements TaskRepository {
                 t.id.isNotIn(remoteIds) &
                 t.id.isNotIn(pending)))
           .go();
+
+      await _cursors.write(table, delta.cursor);
     });
   }
 

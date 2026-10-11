@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../core/errors/data_failure.dart';
@@ -300,10 +301,19 @@ class LocalFirstNoteRepository implements NoteRepository {
   Future<void> _dequeue(int id) =>
       (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pullRemote() async {
-    final remoteNotes = await fetchAllPages(
-      () => _client.from(_notesTable).select().eq('user_id', _userId),
+    // Incrémental : seules les fiches modifiées depuis le dernier pull
+    // reviennent, avec leurs blocs. Auparavant, tout le carnet (contenu et
+    // blocs compris) était retéléchargé toutes les 5 minutes.
+    final delta = await fetchDelta(
+      rows: () => _client.from(_notesTable).select().eq('user_id', _userId),
+      ids: () => _client.from(_notesTable).select('id').eq('user_id', _userId),
+      since: await _cursors.read(_notesTable),
     );
+    final remoteNotes = delta.changed;
+    final remoteIds = delta.remoteIds!;
     // Pas de retour anticipé sur une liste vide : toutes les fiches ont pu
     // être supprimées depuis un autre appareil, et la purge plus bas doit
     // quand même avoir lieu.
@@ -324,30 +334,26 @@ class LocalFirstNoteRepository implements NoteRepository {
       // Relu dans la transaction : une écriture survenue pendant la requête
       // réseau ne doit pas être écrasée.
       final pending = await SyncQueue(_db).pendingIds(_notesTable);
-      final remoteIds = <String>{};
 
       for (final remote in remoteNotes) {
         final id = remote['id'] as String;
-        remoteIds.add(id);
 
-        // Résolution de conflit :
-        // - une modification locale pas encore envoyée gagne toujours : elle
-        //   partira au prochain push (même règle que les tâches) ;
-        // - sinon, la version distante ne remplace la locale que si elle est
-        //   plus récente. Les deux dates viennent du serveur (trigger
-        //   set_updated_at, relu après chaque push) : aucune horloge
-        //   d'appareil n'entre dans la comparaison.
+        // Résolution de conflit : une modification locale pas encore envoyée
+        // gagne toujours, elle partira au prochain push (même règle que les
+        // tâches). Sinon, la copie locale synchronisée est exactement ce que
+        // le serveur avait : la version reçue, modifiée depuis, la remplace.
+        //
+        // Pas de comparaison de dates : Drift stocke les `DateTime` à la
+        // seconde, une heure serveur (microsecondes) paraissait donc toujours
+        // plus récente que sa propre copie locale.
         if (pending.contains(id)) continue;
 
         final local = await (_db.select(_db.localNotes)
               ..where((t) => t.id.equals(id)))
             .getSingleOrNull();
+        if (local != null && !local.isSynced) continue;
         final remoteUpdatedAt =
             DateTime.parse(remote['updated_at'] as String).toLocal();
-        if (local != null &&
-            (!local.isSynced || !remoteUpdatedAt.isAfter(local.updatedAt))) {
-          continue;
-        }
 
         await _db.into(_db.localNotes).insertOnConflictUpdate(
               LocalNotesCompanion.insert(
@@ -397,6 +403,8 @@ class LocalFirstNoteRepository implements NoteRepository {
                 t.id.isNotIn(remoteIds) &
                 t.id.isNotIn(pending)))
           .go();
+
+      await _cursors.write(_notesTable, delta.cursor);
     });
   }
 

@@ -551,6 +551,20 @@ class SyncQueueEntries extends Table {
   TextColumn get lastError => text().nullable()();
 }
 
+/// Curseur du pull incrémental : jusqu'où une table distante a déjà été
+/// rapatriée pour un utilisateur.
+///
+/// [pulledUntil] est un `updated_at` **serveur**, gardé tel quel au format
+/// ISO 8601 : une colonne `dateTime` le tronquerait à la seconde.
+class SyncCursors extends Table {
+  TextColumn get userId => text()();
+  TextColumn get remoteTable => text()();
+  TextColumn get pulledUntil => text()();
+
+  @override
+  Set<Column> get primaryKey => {userId, remoteTable};
+}
+
 @DriftDatabase(tables: [
   LocalNotes,
   LocalNoteBlocks,
@@ -573,6 +587,7 @@ class SyncQueueEntries extends Table {
   LocalHabitLogs,
   LocalPomodoroSessions,
   SyncQueueEntries,
+  SyncCursors,
 ])
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -585,8 +600,9 @@ class AppDatabase extends _$AppDatabase {
   /// v4 : journal métacognitif, recadrage, 5 Pourquoi, erreurs, profil (Lot 7).
   /// v5 : objectifs SMART, Gantt, vitesse de travail, cibles d'examen (Lot 8).
   /// v6 : tâches, habitudes et sessions Pomodoro hors ligne (Lot 10).
+  /// v7 : curseurs du pull incrémental.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   /// Efface toutes les données locales, file de synchronisation comprise.
   ///
@@ -633,6 +649,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(localHabits);
             await m.createTable(localHabitLogs);
             await m.createTable(localPomodoroSessions);
+          }
+          if (from < 7) {
+            await m.createTable(syncCursors);
           }
         },
         beforeOpen: (details) async {

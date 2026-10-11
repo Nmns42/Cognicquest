@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/database/remote_pagination.dart';
+import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -141,19 +141,26 @@ class LocalFirstPomodoroRepository implements PomodoroRepository {
         .write(const LocalPomodoroSessionsCompanion(isSynced: Value(true)));
   }
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pull() async {
-    final since = DateTime.now()
+    final windowStart = DateTime.now()
         .toUtc()
         .subtract(const Duration(days: pullWindowDays))
         .toIso8601String();
 
-    final rows = await fetchAllPages(
-      () => _client
+    // Incrémental dans la fenêtre : seules les sessions enregistrées depuis
+    // le dernier pull reviennent. Pas de liste d'identifiants : une session
+    // n'est jamais supprimée.
+    final delta = await fetchDelta(
+      rows: () => _client
           .from(table)
           .select()
           .eq('user_id', _userId)
-          .gte('started_at', since),
+          .gte('started_at', windowStart),
+      since: await _cursors.read(table),
     );
+    final rows = delta.changed;
 
     // Les sessions sont immuables une fois terminées : un simple ajout de
     // celles qui manquent suffit, sans résolution de conflit.
@@ -170,6 +177,7 @@ class LocalFirstPomodoroRepository implements PomodoroRepository {
           ),
       ]);
     });
+    await _cursors.write(table, delta.cursor);
   }
 
   static PomodoroSession _toSession(LocalPomodoroSession row) =>

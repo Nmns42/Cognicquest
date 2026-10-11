@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/habit_model.dart';
@@ -239,11 +240,17 @@ class LocalFirstHabitRepository implements HabitRepository {
     }
   }
 
+  late final PullCursors _cursors = PullCursors(_db, _userId);
+
   Future<void> _pull() async {
-    final habitRows = await fetchAllPages(
-      () => _client.from(habitsTable).select().eq('user_id', _userId),
+    // Habitudes : incrémental. Jours cochés : toujours en entier — deux
+    // colonnes par ligne, et c'est la seule façon de voir un jour décoché.
+    final delta = await fetchDelta(
+      rows: () => _client.from(habitsTable).select().eq('user_id', _userId),
+      ids: () => _client.from(habitsTable).select('id').eq('user_id', _userId),
+      since: await _cursors.read(habitsTable),
     );
-    final habitIds = [for (final row in habitRows) row['id'] as String];
+    final habitIds = delta.remoteIds!.toList();
     final logRows = habitIds.isEmpty
         ? const <Map<String, dynamic>>[]
         : await fetchAllPagesIn(
@@ -256,7 +263,7 @@ class LocalFirstHabitRepository implements HabitRepository {
       final pendingHabits = await _queue.pendingIds(habitsTable);
       final pendingLogs = await _queue.pendingIds(logsTable);
 
-      for (final remote in habitRows) {
+      for (final remote in delta.changed) {
         final id = remote['id'] as String;
         if (pendingHabits.contains(id)) continue;
         await _db.into(_db.localHabits).insertOnConflictUpdate(
@@ -320,11 +327,23 @@ class LocalFirstHabitRepository implements HabitRepository {
             .go();
       }
 
+      // Le pull étant incrémental, une habitude inchangée n'est pas réinsérée
+      // ci-dessus : on vérifie qu'elle existe localement plutôt que de laisser
+      // la clé étrangère faire échouer toute la transaction.
+      final knownHabits = {
+        for (final habit in await (_db.select(_db.localHabits)
+              ..where((t) => t.userId.equals(_userId)))
+            .get())
+          habit.id,
+      };
+
       for (final key in remoteKeys.difference(localKeys)) {
         if (pendingLogs.contains(key)) continue;
         final separator = key.lastIndexOf('|');
         final habitId = key.substring(0, separator);
-        if (pendingHabits.contains(habitId)) continue;
+        if (pendingHabits.contains(habitId) || !knownHabits.contains(habitId)) {
+          continue;
+        }
         await _db.into(_db.localHabitLogs).insertOnConflictUpdate(
               LocalHabitLogsCompanion.insert(
                 habitId: habitId,
@@ -332,6 +351,8 @@ class LocalFirstHabitRepository implements HabitRepository {
               ),
             );
       }
+
+      await _cursors.write(habitsTable, delta.cursor);
     });
   }
 

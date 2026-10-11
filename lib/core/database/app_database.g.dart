@@ -10332,6 +10332,245 @@ class SyncQueueEntriesCompanion extends UpdateCompanion<SyncQueueEntry> {
   }
 }
 
+class $SyncCursorsTable extends SyncCursors
+    with TableInfo<$SyncCursorsTable, SyncCursor> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncCursorsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _remoteTableMeta =
+      const VerificationMeta('remoteTable');
+  @override
+  late final GeneratedColumn<String> remoteTable = GeneratedColumn<String>(
+      'remote_table', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _pulledUntilMeta =
+      const VerificationMeta('pulledUntil');
+  @override
+  late final GeneratedColumn<String> pulledUntil = GeneratedColumn<String>(
+      'pulled_until', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [userId, remoteTable, pulledUntil];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_cursors';
+  @override
+  VerificationContext validateIntegrity(Insertable<SyncCursor> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('remote_table')) {
+      context.handle(
+          _remoteTableMeta,
+          remoteTable.isAcceptableOrUnknown(
+              data['remote_table']!, _remoteTableMeta));
+    } else if (isInserting) {
+      context.missing(_remoteTableMeta);
+    }
+    if (data.containsKey('pulled_until')) {
+      context.handle(
+          _pulledUntilMeta,
+          pulledUntil.isAcceptableOrUnknown(
+              data['pulled_until']!, _pulledUntilMeta));
+    } else if (isInserting) {
+      context.missing(_pulledUntilMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {userId, remoteTable};
+  @override
+  SyncCursor map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncCursor(
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      remoteTable: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}remote_table'])!,
+      pulledUntil: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}pulled_until'])!,
+    );
+  }
+
+  @override
+  $SyncCursorsTable createAlias(String alias) {
+    return $SyncCursorsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncCursor extends DataClass implements Insertable<SyncCursor> {
+  final String userId;
+  final String remoteTable;
+  final String pulledUntil;
+  const SyncCursor(
+      {required this.userId,
+      required this.remoteTable,
+      required this.pulledUntil});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['user_id'] = Variable<String>(userId);
+    map['remote_table'] = Variable<String>(remoteTable);
+    map['pulled_until'] = Variable<String>(pulledUntil);
+    return map;
+  }
+
+  SyncCursorsCompanion toCompanion(bool nullToAbsent) {
+    return SyncCursorsCompanion(
+      userId: Value(userId),
+      remoteTable: Value(remoteTable),
+      pulledUntil: Value(pulledUntil),
+    );
+  }
+
+  factory SyncCursor.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncCursor(
+      userId: serializer.fromJson<String>(json['userId']),
+      remoteTable: serializer.fromJson<String>(json['remoteTable']),
+      pulledUntil: serializer.fromJson<String>(json['pulledUntil']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'userId': serializer.toJson<String>(userId),
+      'remoteTable': serializer.toJson<String>(remoteTable),
+      'pulledUntil': serializer.toJson<String>(pulledUntil),
+    };
+  }
+
+  SyncCursor copyWith(
+          {String? userId, String? remoteTable, String? pulledUntil}) =>
+      SyncCursor(
+        userId: userId ?? this.userId,
+        remoteTable: remoteTable ?? this.remoteTable,
+        pulledUntil: pulledUntil ?? this.pulledUntil,
+      );
+  SyncCursor copyWithCompanion(SyncCursorsCompanion data) {
+    return SyncCursor(
+      userId: data.userId.present ? data.userId.value : this.userId,
+      remoteTable:
+          data.remoteTable.present ? data.remoteTable.value : this.remoteTable,
+      pulledUntil:
+          data.pulledUntil.present ? data.pulledUntil.value : this.pulledUntil,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncCursor(')
+          ..write('userId: $userId, ')
+          ..write('remoteTable: $remoteTable, ')
+          ..write('pulledUntil: $pulledUntil')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(userId, remoteTable, pulledUntil);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncCursor &&
+          other.userId == this.userId &&
+          other.remoteTable == this.remoteTable &&
+          other.pulledUntil == this.pulledUntil);
+}
+
+class SyncCursorsCompanion extends UpdateCompanion<SyncCursor> {
+  final Value<String> userId;
+  final Value<String> remoteTable;
+  final Value<String> pulledUntil;
+  final Value<int> rowid;
+  const SyncCursorsCompanion({
+    this.userId = const Value.absent(),
+    this.remoteTable = const Value.absent(),
+    this.pulledUntil = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncCursorsCompanion.insert({
+    required String userId,
+    required String remoteTable,
+    required String pulledUntil,
+    this.rowid = const Value.absent(),
+  })  : userId = Value(userId),
+        remoteTable = Value(remoteTable),
+        pulledUntil = Value(pulledUntil);
+  static Insertable<SyncCursor> custom({
+    Expression<String>? userId,
+    Expression<String>? remoteTable,
+    Expression<String>? pulledUntil,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (userId != null) 'user_id': userId,
+      if (remoteTable != null) 'remote_table': remoteTable,
+      if (pulledUntil != null) 'pulled_until': pulledUntil,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncCursorsCompanion copyWith(
+      {Value<String>? userId,
+      Value<String>? remoteTable,
+      Value<String>? pulledUntil,
+      Value<int>? rowid}) {
+    return SyncCursorsCompanion(
+      userId: userId ?? this.userId,
+      remoteTable: remoteTable ?? this.remoteTable,
+      pulledUntil: pulledUntil ?? this.pulledUntil,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (remoteTable.present) {
+      map['remote_table'] = Variable<String>(remoteTable.value);
+    }
+    if (pulledUntil.present) {
+      map['pulled_until'] = Variable<String>(pulledUntil.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncCursorsCompanion(')
+          ..write('userId: $userId, ')
+          ..write('remoteTable: $remoteTable, ')
+          ..write('pulledUntil: $pulledUntil, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10368,6 +10607,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LocalPomodoroSessionsTable(this);
   late final $SyncQueueEntriesTable syncQueueEntries =
       $SyncQueueEntriesTable(this);
+  late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10393,7 +10633,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localHabits,
         localHabitLogs,
         localPomodoroSessions,
-        syncQueueEntries
+        syncQueueEntries,
+        syncCursors
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
@@ -17528,6 +17769,147 @@ typedef $$SyncQueueEntriesTableProcessedTableManager = ProcessedTableManager<
     ),
     SyncQueueEntry,
     PrefetchHooks Function()>;
+typedef $$SyncCursorsTableCreateCompanionBuilder = SyncCursorsCompanion
+    Function({
+  required String userId,
+  required String remoteTable,
+  required String pulledUntil,
+  Value<int> rowid,
+});
+typedef $$SyncCursorsTableUpdateCompanionBuilder = SyncCursorsCompanion
+    Function({
+  Value<String> userId,
+  Value<String> remoteTable,
+  Value<String> pulledUntil,
+  Value<int> rowid,
+});
+
+class $$SyncCursorsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
+  $$SyncCursorsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pulledUntil => $composableBuilder(
+      column: $table.pulledUntil, builder: (column) => ColumnFilters(column));
+}
+
+class $$SyncCursorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
+  $$SyncCursorsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pulledUntil => $composableBuilder(
+      column: $table.pulledUntil, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SyncCursorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
+  $$SyncCursorsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => column);
+
+  GeneratedColumn<String> get pulledUntil => $composableBuilder(
+      column: $table.pulledUntil, builder: (column) => column);
+}
+
+class $$SyncCursorsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SyncCursorsTable,
+    SyncCursor,
+    $$SyncCursorsTableFilterComposer,
+    $$SyncCursorsTableOrderingComposer,
+    $$SyncCursorsTableAnnotationComposer,
+    $$SyncCursorsTableCreateCompanionBuilder,
+    $$SyncCursorsTableUpdateCompanionBuilder,
+    (SyncCursor, BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>),
+    SyncCursor,
+    PrefetchHooks Function()> {
+  $$SyncCursorsTableTableManager(_$AppDatabase db, $SyncCursorsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncCursorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncCursorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncCursorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> userId = const Value.absent(),
+            Value<String> remoteTable = const Value.absent(),
+            Value<String> pulledUntil = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncCursorsCompanion(
+            userId: userId,
+            remoteTable: remoteTable,
+            pulledUntil: pulledUntil,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String userId,
+            required String remoteTable,
+            required String pulledUntil,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncCursorsCompanion.insert(
+            userId: userId,
+            remoteTable: remoteTable,
+            pulledUntil: pulledUntil,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$SyncCursorsTable, SyncCursor>(table),
+                    BaseReferences<_$AppDatabase, $SyncCursorsTable,
+                        SyncCursor>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SyncCursorsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SyncCursorsTable,
+    SyncCursor,
+    $$SyncCursorsTableFilterComposer,
+    $$SyncCursorsTableOrderingComposer,
+    $$SyncCursorsTableAnnotationComposer,
+    $$SyncCursorsTableCreateCompanionBuilder,
+    $$SyncCursorsTableUpdateCompanionBuilder,
+    (SyncCursor, BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>),
+    SyncCursor,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -17574,4 +17956,6 @@ class $AppDatabaseManager {
       $$LocalPomodoroSessionsTableTableManager(_db, _db.localPomodoroSessions);
   $$SyncQueueEntriesTableTableManager get syncQueueEntries =>
       $$SyncQueueEntriesTableTableManager(_db, _db.syncQueueEntries);
+  $$SyncCursorsTableTableManager get syncCursors =>
+      $$SyncCursorsTableTableManager(_db, _db.syncCursors);
 }
