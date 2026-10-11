@@ -30,6 +30,74 @@ begin
 end;
 $$;
 
+-- ─── Utilitaires : propriété des lignes référencées (anti-IDOR) ─────────────
+-- Une politique `with check (auth.uid() = user_id)` ne vérifie que la ligne
+-- écrite, pas celles qu'elle référence : on pouvait rattacher une carte, un
+-- lien ou une session à la fiche / tâche d'un autre compte, et l'erreur de
+-- clé étrangère servait d'oracle d'existence. Ces fonctions sont appelées
+-- depuis les `with check` : évaluées avant la contrainte FK, elles refusent
+-- (42501) toute référence étrangère, qu'elle existe ou non.
+--
+-- plpgsql plutôt que sql : le corps n'est pas validé à la création, les
+-- tables visées pouvant être créées plus bas dans ce script.
+-- NULL est accepté : les références facultatives restent facultatives.
+
+create or replace function public.owns_note(target uuid)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  return target is null or exists (
+    select 1 from public.notes n
+    where n.id = target and n.user_id = auth.uid()
+  );
+end;
+$$;
+
+create or replace function public.owns_task(target uuid)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  return target is null or exists (
+    select 1 from public.tasks t
+    where t.id = target and t.user_id = auth.uid()
+  );
+end;
+$$;
+
+create or replace function public.owns_study_goal(target uuid)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  return target is null or exists (
+    select 1 from public.study_goals g
+    where g.id = target and g.user_id = auth.uid()
+  );
+end;
+$$;
+
+create or replace function public.owns_plan_item(target uuid)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  return target is null or exists (
+    select 1 from public.plan_items i
+    where i.id = target and i.user_id = auth.uid()
+  );
+end;
+$$;
+
 -- ============================================================================
 -- profiles
 -- ============================================================================
@@ -277,7 +345,11 @@ alter table public.pomodoro_sessions enable row level security;
 
 drop policy if exists "pomodoro_sessions_all_own" on public.pomodoro_sessions;
 create policy "pomodoro_sessions_all_own" on public.pomodoro_sessions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_task(task_id)
+  );
 
 -- ============================================================================
 -- Lot 3 — Dashboard « centre de contrôle »
@@ -414,7 +486,12 @@ alter table public.note_links enable row level security;
 
 drop policy if exists "note_links_all_own" on public.note_links;
 create policy "note_links_all_own" on public.note_links
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(source_id)
+    and public.owns_note(target_id)
+  );
 
 -- ============================================================================
 -- Lot 6 — Révision active
@@ -452,7 +529,11 @@ alter table public.flashcards enable row level security;
 
 drop policy if exists "flashcards_all_own" on public.flashcards;
 create policy "flashcards_all_own" on public.flashcards
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ─── Auto-explications (mode « Explique-moi ») ──────────────────────────────
 
@@ -472,7 +553,11 @@ alter table public.explanations enable row level security;
 
 drop policy if exists "explanations_all_own" on public.explanations;
 create policy "explanations_all_own" on public.explanations
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ─── Sessions de lecture guidée SQ3R ────────────────────────────────────────
 
@@ -498,7 +583,11 @@ alter table public.sq3r_sessions enable row level security;
 
 drop policy if exists "sq3r_sessions_all_own" on public.sq3r_sessions;
 create policy "sq3r_sessions_all_own" on public.sq3r_sessions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ============================================================================
 -- Lot 7 — Métacognition
@@ -529,7 +618,11 @@ alter table public.journal_entries enable row level security;
 
 drop policy if exists "journal_entries_all_own" on public.journal_entries;
 create policy "journal_entries_all_own" on public.journal_entries
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ─── Recadrage cognitif ─────────────────────────────────────────────────────
 
@@ -603,7 +696,11 @@ alter table public.error_logs enable row level security;
 
 drop policy if exists "error_logs_all_own" on public.error_logs;
 create policy "error_logs_all_own" on public.error_logs
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ─── Profil d'apprentissage ─────────────────────────────────────────────────
 
@@ -693,7 +790,12 @@ alter table public.plan_items enable row level security;
 
 drop policy if exists "plan_items_all_own" on public.plan_items;
 create policy "plan_items_all_own" on public.plan_items
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_study_goal(goal_id)
+    and public.owns_plan_item(depends_on_id)
+  );
 
 -- ─── Mesures de vitesse ─────────────────────────────────────────────────────
 
@@ -747,7 +849,11 @@ alter table public.exam_targets enable row level security;
 
 drop policy if exists "exam_targets_all_own" on public.exam_targets;
 create policy "exam_targets_all_own" on public.exam_targets
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+  );
 
 -- ============================================================================
 -- Lot 9 — Ambiance, bien-être & accessibilité
