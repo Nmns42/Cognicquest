@@ -55,9 +55,45 @@ drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Pas d'insertion côté client : le profil est créé par `handle_new_user`
+-- (security definer). L'ancienne politique permettait d'insérer une ligne
+-- avec `plan = 'premium'`.
 drop policy if exists "profiles_insert_own" on public.profiles;
-create policy "profiles_insert_own" on public.profiles
-  for insert with check (auth.uid() = id);
+
+-- `plan` porte le modèle économique : seul le serveur (service_role, webhooks
+-- de paiement) peut l'écrire. Avec une politique `for update` seule,
+-- l'utilisateur pouvait s'auto-promouvoir via la clé anon. Les droits par
+-- colonne limitent ce que PostgREST accepte de mettre à jour.
+revoke insert, update on public.profiles from anon, authenticated;
+grant update (full_name, avatar_url) on public.profiles to authenticated;
+
+-- Seconde barrière, au cas où un `grant all` (ex. réinitialisation des
+-- privilèges par défaut) rouvrirait la colonne : toute requête portée par un
+-- JWT utilisateur qui touche à `plan` est refusée. Le SQL Editor (postgres)
+-- et service_role ne sont pas concernés.
+create or replace function public.protect_profile_plan()
+returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(auth.role(), '') in ('anon', 'authenticated') then
+    if tg_op = 'INSERT' and new.plan <> 'free' then
+      raise exception 'profiles.plan ne peut pas être choisi par le client'
+        using errcode = '42501';
+    end if;
+    if tg_op = 'UPDATE' and new.plan is distinct from old.plan then
+      raise exception 'profiles.plan ne peut pas être modifié par le client'
+        using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_protect_plan on public.profiles;
+create trigger profiles_protect_plan
+  before insert or update on public.profiles
+  for each row execute function public.protect_profile_plan();
 
 drop trigger if exists profiles_set_updated_at on public.profiles;
 create trigger profiles_set_updated_at
