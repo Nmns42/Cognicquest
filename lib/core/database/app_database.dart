@@ -588,6 +588,19 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 6;
 
+  /// Efface toutes les données locales, file de synchronisation comprise.
+  ///
+  /// Appelé à la déconnexion explicite : sans ça, les fiches, le journal et
+  /// les tâches du compte précédent restaient lisibles sur l'appareil.
+  /// `defer_foreign_keys` reporte la vérification des clés étrangères à la fin
+  /// de la transaction : l'ordre de suppression des tables n'importe plus.
+  Future<void> wipeAll() => transaction(() async {
+        await customStatement('PRAGMA defer_foreign_keys = ON');
+        for (final table in allTables) {
+          await delete(table).go();
+        }
+      });
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {

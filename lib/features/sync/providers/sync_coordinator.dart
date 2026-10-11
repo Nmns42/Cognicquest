@@ -73,6 +73,7 @@ class SyncCoordinator extends Notifier<SyncStatus> {
   static const int _maxBackoffExponent = 3;
 
   Timer? _retryTimer;
+  Future<void>? _inFlight;
   int _consecutiveFailures = 0;
   bool _disposed = false;
 
@@ -125,9 +126,17 @@ class SyncCoordinator extends Notifier<SyncStatus> {
         ref.read(planningRepositoryProvider)?.sync,
       ];
 
-  Future<void> syncNow() async {
-    if (_disposed || state.isSyncing) return;
-    if (ref.read(currentUserProvider) == null) return;
+  /// Lance une synchronisation complète. Si une synchronisation est déjà en
+  /// cours, renvoie celle-ci : l'appelant (ex. la déconnexion) peut ainsi
+  /// attendre qu'aucune écriture ne soit plus en vol.
+  Future<void> syncNow() {
+    if (_disposed) return Future.value();
+    if (state.isSyncing) return _inFlight ?? Future.value();
+    if (ref.read(currentUserProvider) == null) return Future.value();
+    return _inFlight = _syncAll().whenComplete(() => _inFlight = null);
+  }
+
+  Future<void> _syncAll() async {
 
     _retryTimer?.cancel();
     state = state.copyWith(isSyncing: true);

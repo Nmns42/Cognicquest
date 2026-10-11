@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/database/app_database.dart';
+import '../../../core/database/sync_queue.dart';
+import '../../sync/providers/sync_coordinator.dart';
 
 /// Client Supabase exposé via Riverpod plutôt que via le singleton global :
 /// les couches métier n'ont ainsi jamais besoin d'importer `Supabase.instance`
@@ -180,13 +183,44 @@ class AuthController extends AsyncNotifier<void> {
     }
   }
 
+  /// Tente d'envoyer les écritures locales en attente, puis renvoie le nombre
+  /// de celles qui restent (hors ligne, refus serveur…). À appeler avant
+  /// [signOut] : ces écritures-là seront perdues par la purge locale.
+  Future<int> flushPendingWrites() async {
+    await ref.read(syncCoordinatorProvider.notifier).syncNow();
+    return SyncQueue(ref.read(appDatabaseProvider)).pendingCount();
+  }
+
+  /// Ferme la session puis efface toutes les données locales de l'appareil.
+  ///
+  /// La purge n'a lieu qu'une fois la session locale fermée : si elle est
+  /// toujours là, l'utilisateur reste connecté et ne perd rien.
   Future<void> signOut() async {
     state = const AsyncValue.loading();
+    Object? signOutError;
+    StackTrace? signOutStack;
     try {
       await _client.auth.signOut();
+    } catch (error, stackTrace) {
+      // gotrue retire la session locale *avant* de prévenir le serveur : hors
+      // ligne, cet appel échoue alors que l'utilisateur est bien déconnecté.
+      signOutError = error;
+      signOutStack = stackTrace;
+    }
+
+    if (_client.auth.currentSession != null) {
+      state = AsyncValue.error(
+        AuthFailure.from(signOutError ?? 'session toujours ouverte'),
+        signOutStack ?? StackTrace.current,
+      );
+      return;
+    }
+
+    try {
+      await ref.read(appDatabaseProvider).wipeAll();
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
-      state = AsyncValue.error(AuthFailure.from(error), stackTrace);
+      state = AsyncValue.error(error, stackTrace);
     }
   }
 

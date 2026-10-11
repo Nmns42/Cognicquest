@@ -45,24 +45,61 @@ class DashboardPage extends ConsumerWidget {
       '${_weekdays[d.weekday - 1]} ${d.day} ${_months[d.month - 1]}';
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    // La déconnexion efface les données de l'appareil : on envoie d'abord ce
+    // qui peut l'être, puis on prévient de ce qui serait perdu.
+    final remaining =
+        ref.read(authControllerProvider.notifier).flushPendingWrites();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Se déconnecter ?'),
-        content: const Text(
-          'Tes données restent synchronisées sur ton compte.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child:  Text('Se déconnecter',
-                style: TextStyle(color: context.cq.errorColor)),
-          ),
-        ],
+      builder: (context) => FutureBuilder<int>(
+        future: remaining,
+        builder: (context, snapshot) {
+          final isFlushing =
+              snapshot.connectionState != ConnectionState.done;
+          final pending = snapshot.data ?? 0;
+          return AlertDialog(
+            title: const Text('Se déconnecter ?'),
+            content: isFlushing
+                ? const Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(child: Text('Synchronisation en cours…')),
+                    ],
+                  )
+                : Text(
+                    pending == 0
+                        ? 'Tes données sont synchronisées sur ton compte. '
+                            'Elles seront effacées de cet appareil.'
+                        : '$pending modification${pending > 1 ? 's' : ''} '
+                            'n\'${pending > 1 ? 'ont' : 'a'} pas pu être '
+                            'envoyée${pending > 1 ? 's' : ''} (hors ligne ?). '
+                            'Te déconnecter maintenant '
+                            '${pending > 1 ? 'les' : 'la'} perdra '
+                            'définitivement.',
+                  ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed:
+                    isFlushing ? null : () => Navigator.pop(context, true),
+                child: Text(
+                  pending == 0 ? 'Se déconnecter' : 'Se déconnecter quand même',
+                  style: TextStyle(
+                    color: isFlushing ? null : context.cq.errorColor,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (confirmed ?? false) {

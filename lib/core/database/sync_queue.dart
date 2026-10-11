@@ -80,11 +80,15 @@ class SyncQueue {
   }
 
   /// Nombre total d'écritures en attente, toutes tables confondues.
-  Stream<int> watchPendingCount() {
+  Stream<int> watchPendingCount() => _pendingCountQuery().watchSingle();
+
+  /// Valeur ponctuelle de [watchPendingCount].
+  Future<int> pendingCount() => _pendingCountQuery().getSingle();
+
+  Selectable<int> _pendingCountQuery() {
     final count = _db.syncQueueEntries.id.count();
     return (_db.selectOnly(_db.syncQueueEntries)..addColumns([count]))
-        .map((row) => row.read(count) ?? 0)
-        .watchSingle();
+        .map((row) => row.read(count) ?? 0);
   }
 
   /// Envoie, dans l'ordre d'arrivée, les entrées de [table] via [push].
