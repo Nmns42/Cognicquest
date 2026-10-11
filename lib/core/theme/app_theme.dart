@@ -119,6 +119,41 @@ class CognicColors extends ThemeExtension<CognicColors> {
       cardColor: Color.lerp(cardColor, other.cardColor, t)!,
     );
   }
+
+  // Égalité par valeur : `ThemeData.==` compare ses extensions. Sans ces deux
+  // redéfinitions, la comparaison se faisait par identité, et deux thèmes
+  // construits séparément pour la même variante n'étaient jamais égaux —
+  // chaque reconstruction du thème notifiait tous les widgets qui le lisent.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CognicColors &&
+          other.vert == vert &&
+          other.vertDark == vertDark &&
+          other.beige == beige &&
+          other.beigeDark == beigeDark &&
+          other.textPrimary == textPrimary &&
+          other.textMuted == textMuted &&
+          other.textHint == textHint &&
+          other.errorColor == errorColor &&
+          other.onVertMuted == onVertMuted &&
+          other.warning == warning &&
+          other.cardColor == cardColor;
+
+  @override
+  int get hashCode => Object.hash(
+        vert,
+        vertDark,
+        beige,
+        beigeDark,
+        textPrimary,
+        textMuted,
+        textHint,
+        errorColor,
+        onVertMuted,
+        warning,
+        cardColor,
+      );
 }
 
 /// Accès court aux jetons de marque : `context.cq.textMuted`.
@@ -356,25 +391,25 @@ class AppTheme {
         backgroundColor: cq.cardColor,
         indicatorColor: cq.vert.withValues(alpha: 0.18),
         elevation: 3,
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => TextStyle(
+        // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
+        // par valeur (une closure ne l'est que par identité, ce qui rendait
+        // deux thèmes identiques différents). Première clé satisfaite gagnante.
+        labelTextStyle: WidgetStateProperty.fromMap({
+          WidgetState.selected: TextStyle(
             fontSize: 11,
-            fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w600
-                : FontWeight.w500,
-            color: states.contains(WidgetState.selected)
-                ? cq.vertDark
-                : cq.textMuted,
+            fontWeight: FontWeight.w600,
+            color: cq.vertDark,
           ),
-        ),
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            size: 22,
-            color: states.contains(WidgetState.selected)
-                ? cq.vertDark
-                : cq.textMuted,
+          WidgetState.any: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: cq.textMuted,
           ),
-        ),
+        }),
+        iconTheme: WidgetStateProperty.fromMap({
+          WidgetState.selected: IconThemeData(size: 22, color: cq.vertDark),
+          WidgetState.any: IconThemeData(size: 22, color: cq.textMuted),
+        }),
       ),
 
       navigationRailTheme: NavigationRailThemeData(
