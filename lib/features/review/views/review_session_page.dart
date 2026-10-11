@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/micro_animations.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../domain/spaced_repetition.dart';
@@ -98,12 +99,19 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                       isEmphasised: true,
                     ),
                     const SizedBox(height: 16),
-                    if (_isRevealed)
-                      _Face(label: 'Réponse', content: card.back)
-                    else
-                      _HiddenAnswer(
+                    // Micro-animation n° 6 : la carte se retourne, le
+                    // « moment de vérité » du rappel actif. Une clé par
+                    // position dans la file : passer à la carte suivante ne
+                    // la retourne pas à l'envers (la réponse suivante ne
+                    // doit jamais apparaître, même une frame).
+                    FlipReveal(
+                      key: ValueKey('carte-$_index'),
+                      revealed: _isRevealed,
+                      front: _HiddenAnswer(
                         onReveal: () => setState(() => _isRevealed = true),
                       ),
+                      back: _Face(label: 'Réponse', content: card.back),
+                    ),
                   ],
                 ),
               ),
