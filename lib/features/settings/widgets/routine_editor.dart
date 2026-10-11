@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/user_settings.dart';
 
@@ -37,6 +38,7 @@ class RoutineEditor extends StatelessWidget {
   Future<void> _editSteps(BuildContext context) async {
     final steps = await showModalBottomSheet<List<String>>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _StepsSheet(title: title, steps: routine.steps),

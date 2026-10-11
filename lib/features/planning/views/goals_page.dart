@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
@@ -244,6 +245,7 @@ class _GoalSheet extends ConsumerStatefulWidget {
   static Future<StudyGoal?> show(BuildContext context, {StudyGoal? goal}) {
     return showModalBottomSheet<StudyGoal>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _GoalSheet(goal: goal),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
 
@@ -42,6 +43,7 @@ class TaskEditorSheet extends StatefulWidget {
   }) {
     return showModalBottomSheet<TaskDraft>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => TaskEditorSheet(task: task, initialStatus: initialStatus),

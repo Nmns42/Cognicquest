@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
@@ -51,6 +52,7 @@ class DashboardPage extends ConsumerWidget {
         ref.read(authControllerProvider.notifier).flushPendingWrites();
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: Motion.style(context),
       builder: (context) => FutureBuilder<int>(
         future: remaining,
         builder: (context, snapshot) {

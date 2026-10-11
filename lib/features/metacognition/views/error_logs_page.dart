@@ -23,6 +23,7 @@ class _ErrorLogsPageState extends ConsumerState<ErrorLogsPage> {
   Future<void> _addError() async {
     await showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const _ErrorEditorSheet(),

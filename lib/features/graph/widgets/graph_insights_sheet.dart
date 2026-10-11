@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_link_model.dart';
 import '../../notes/providers/note_provider.dart';
@@ -16,6 +17,7 @@ class GraphInsightsSheet extends ConsumerWidget {
 
   static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
         context: context,
+        sheetAnimationStyle: Motion.style(context),
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (_) => const GraphInsightsSheet(),

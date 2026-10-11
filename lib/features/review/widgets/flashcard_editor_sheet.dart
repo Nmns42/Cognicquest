@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 
@@ -25,6 +26,7 @@ class FlashcardEditorSheet extends StatefulWidget {
   }) {
     return showModalBottomSheet<FlashcardDraft>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) =>

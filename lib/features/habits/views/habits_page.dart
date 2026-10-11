@@ -17,6 +17,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
   Future<void> _openEditor({Habit? habit}) async {
     final result = await showModalBottomSheet<_HabitDraft>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _HabitEditorSheet(habit: habit),
@@ -34,6 +35,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
   Future<void> _delete(Habit habit) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
         title: const Text('Supprimer cette habitude ?'),
         content: Text(
@@ -70,7 +72,10 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       if (error != null && next.hasValue) {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(error.toString())));
+          ..showSnackBar(
+            SnackBar(content: Text(error.toString())),
+            snackBarAnimationStyle: Motion.style(context),
+          );
       }
     });
 
@@ -323,6 +328,7 @@ class _HabitTile extends StatelessWidget {
                     ),
                   ),
                 PopupMenuButton<String>(
+                  popUpAnimationStyle: Motion.style(context),
                   tooltip: 'Options',
                   icon:  Icon(Icons.more_vert,
                       size: 18, color: context.cq.textMuted),

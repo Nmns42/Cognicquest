@@ -5,6 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 import '../data/note_repository.dart';
@@ -100,6 +101,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Future<void> _confirmDelete(Note note) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
         title: const Text('Supprimer cette fiche ?'),
         content: Text(
@@ -170,6 +172,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             onPressed: () => setState(() => _isPreview = !_isPreview),
           ),
           PopupMenuButton<String>(
+            popUpAnimationStyle: Motion.style(context),
             tooltip: 'Options',
             onSelected: (value) async {
               switch (value) {

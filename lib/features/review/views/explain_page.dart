@@ -59,6 +59,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
     _controller.clear();
     setState(() => _confidence = 3);
     ScaffoldMessenger.of(context).showSnackBar(
+      snackBarAnimationStyle: Motion.style(context),
       const SnackBar(content: Text('Explication enregistrée.')),
     );
   }

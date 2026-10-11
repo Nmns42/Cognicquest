@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 
@@ -15,6 +16,7 @@ class NoteMetaSheet extends StatefulWidget {
   static Future<Note?> show(BuildContext context, {required Note note}) {
     return showModalBottomSheet<Note>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => NoteMetaSheet(note: note),

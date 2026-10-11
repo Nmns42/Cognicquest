@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/note_link_model.dart';
@@ -19,6 +20,7 @@ class NodePreviewSheet extends ConsumerWidget {
   static Future<void> show(BuildContext context, {required String noteId}) {
     return showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => NodePreviewSheet(noteId: noteId),
@@ -165,6 +167,7 @@ class NodePreviewSheet extends ConsumerWidget {
 
     if (candidates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
+        snackBarAnimationStyle: Motion.style(context),
         const SnackBar(
             content: Text('Aucune autre fiche disponible à relier.')),
       );
@@ -173,6 +176,7 @@ class NodePreviewSheet extends ConsumerWidget {
 
     await showModalBottomSheet<void>(
       context: context,
+      sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _LinkPickerSheet(source: note, candidates: candidates),

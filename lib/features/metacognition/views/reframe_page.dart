@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
@@ -81,6 +82,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
     if (!mounted) return;
     _reset();
     ScaffoldMessenger.of(context).showSnackBar(
+      snackBarAnimationStyle: Motion.style(context),
       const SnackBar(content: Text('Recadrage enregistré.')),
     );
   }

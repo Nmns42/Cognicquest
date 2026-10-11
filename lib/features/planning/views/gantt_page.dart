@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/planning_model.dart';
 import '../domain/gantt_timeline.dart';
@@ -24,6 +25,7 @@ class GanttPage extends ConsumerWidget {
         title: const Text('Planning'),
         actions: [
           PopupMenuButton<GanttZoom>(
+            popUpAnimationStyle: Motion.style(context),
             tooltip: 'Zoom',
             icon: const Icon(Icons.zoom_in),
             initialValue: zoom,

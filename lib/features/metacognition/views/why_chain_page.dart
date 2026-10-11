@@ -105,6 +105,7 @@ class _WhyChainPageState extends ConsumerState<WhyChainPage> {
     if (!mounted) return;
     _reset();
     ScaffoldMessenger.of(context).showSnackBar(
+      snackBarAnimationStyle: Motion.style(context),
       const SnackBar(content: Text('Analyse enregistrée.')),
     );
   }

@@ -141,6 +141,7 @@ class SettingsPage extends ConsumerWidget {
             onPressed: () async {
               final confirmed = await showDialog<bool>(
                 context: context,
+                animationStyle: Motion.style(context),
                 builder: (context) => AlertDialog(
                   title: const Text('Rétablir les réglages ?'),
                   content: const Text(

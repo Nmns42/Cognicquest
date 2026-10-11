@@ -56,6 +56,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
   Future<void> _deleteTask(Task task) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
         title: const Text('Supprimer cette tâche ?'),
         content: Text(task.title),
@@ -90,7 +91,10 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
       if (error != null && next.hasValue) {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
-          ..showSnackBar(SnackBar(content: Text(error.toString())));
+          ..showSnackBar(
+            SnackBar(content: Text(error.toString())),
+            snackBarAnimationStyle: Motion.style(context),
+          );
       }
     });
 

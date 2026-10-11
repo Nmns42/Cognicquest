@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/planning_model.dart';
@@ -220,6 +221,7 @@ class _PlanSummaryCard extends ConsumerWidget {
                     await ref.read(planningActionsProvider).materialisePlan();
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
+                  snackBarAnimationStyle: Motion.style(context),
                   SnackBar(
                     content: Text(count == 0
                         ? 'Rien à placer dans le planning.'
