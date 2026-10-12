@@ -117,3 +117,17 @@ colonne à chaque déplacement (`moveTask` réécrit `position = 0..n-1`, puis
 `saveOrder` envoie toutes les tâches) : un déplacement produit autant
 d'écritures synchronisées que la colonne compte de tâches. Le principe retenu
 pour les fiches et les habitudes (R1, R2) pourra lui être appliqué ensuite.
+
+---
+
+## 6. `UserSettings` : l'égalité ignore les routines
+
+**Constat** (chantier 12, ajout de `manualNoteOrder`) : `operator ==` et
+`hashCode` de `UserSettings` ne comparent pas `morningRoutine` ni
+`eveningRoutine`. Deux réglages qui ne diffèrent que par une routine sont
+donc « égaux » : un `select` ou un `==` sur les réglages ne voit pas le
+changement.
+
+**Correction estimée** : `==` et `hashCode` sur `Routine` (heure, minute,
+activation, étapes) puis inclusion dans `UserSettings`, avec un test champ
+par champ comme pour `CognicColors`. Risque faible, ≈ 30 min.
