@@ -29,9 +29,13 @@ void main() {
         sessionAt(startOfToday.subtract(const Duration(days: 40))),
       ]);
 
-      expect(stats.sessionsToday, 2);
+      // Le lundi, la session « lundi 9 h » tombe aussi aujourd'hui : le test
+      // échouait chaque lundi en attendant 2 sessions du jour.
+      final mondayIsToday = monday == startOfToday;
+      final expectedToday = mondayIsToday ? 3 : 2;
+      expect(stats.sessionsToday, expectedToday);
       expect(stats.sessionsAllTime, 4);
-      expect(stats.focusToday, const Duration(minutes: 50));
+      expect(stats.focusToday, Duration(minutes: 25 * expectedToday));
       expect(stats.focusAllTime, const Duration(minutes: 100));
       expect(stats.sessionsThisWeek, greaterThanOrEqualTo(2));
       expect(stats.sessionsThisWeek, lessThanOrEqualTo(3));
