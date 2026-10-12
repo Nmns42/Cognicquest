@@ -25,6 +25,7 @@ class Habit {
     required this.createdAt,
     required this.completedDates,
     this.frequency = HabitFrequency.daily,
+    this.position,
   });
 
   final String id;
@@ -35,6 +36,29 @@ class Habit {
 
   /// Dates cochées, au format 'yyyy-MM-dd' (heure locale).
   final List<String> completedDates;
+
+  /// Clé d'ordre manuel (cf. `FractionalKey`), `null` tant que l'habitude
+  /// n'a jamais été placée à la main. Écrite uniquement par le
+  /// réordonnancement : [copyWith] la conserve.
+  final String? position;
+
+  /// Ordre de la liste : habitudes placées à la main (clé, puis id), puis
+  /// celles jamais placées — dont toute nouvelle habitude — dans l'ordre de
+  /// création (date synchronisée, puis id). Sans aucune clé, c'est l'ordre
+  /// de création d'avant l'ordre manuel.
+  static List<Habit> manualOrder(Iterable<Habit> habits) {
+    final placed = habits.where((h) => h.position != null).toList()
+      ..sort((a, b) {
+        final byKey = a.position!.compareTo(b.position!);
+        return byKey != 0 ? byKey : a.id.compareTo(b.id);
+      });
+    final unplaced = habits.where((h) => h.position == null).toList()
+      ..sort((a, b) {
+        final byDate = a.createdAt.compareTo(b.createdAt);
+        return byDate != 0 ? byDate : a.id.compareTo(b.id);
+      });
+    return [...placed, ...unplaced];
+  }
 
   static String toDateKey(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
@@ -178,6 +202,7 @@ class Habit {
       createdAt: createdAt,
       frequency: frequency ?? this.frequency,
       completedDates: completedDates ?? this.completedDates,
+      position: position,
     );
   }
 

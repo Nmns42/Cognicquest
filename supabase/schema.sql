@@ -967,3 +967,6 @@ create index if not exists pomodoro_sessions_user_updated_idx
 
 alter table public.notes
   add column if not exists position text collate "C";
+
+alter table public.habits
+  add column if not exists position text collate "C";

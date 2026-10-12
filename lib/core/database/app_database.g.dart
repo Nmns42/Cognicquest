@@ -9191,9 +9191,15 @@ class $LocalHabitsTable extends LocalHabits
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<String> position = GeneratedColumn<String>(
+      'position', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, userId, name, frequency, createdAt, isSynced];
+      [id, userId, name, frequency, createdAt, isSynced, position];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -9235,6 +9241,10 @@ class $LocalHabitsTable extends LocalHabits
       context.handle(_isSyncedMeta,
           isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
     }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
     return context;
   }
 
@@ -9256,6 +9266,8 @@ class $LocalHabitsTable extends LocalHabits
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       isSynced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}position']),
     );
   }
 
@@ -9274,13 +9286,17 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
   final String frequency;
   final DateTime createdAt;
   final bool isSynced;
+
+  /// Clé d'ordre manuel, synchronisée (cf. LocalNotes.position).
+  final String? position;
   const LocalHabit(
       {required this.id,
       required this.userId,
       required this.name,
       required this.frequency,
       required this.createdAt,
-      required this.isSynced});
+      required this.isSynced,
+      this.position});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -9290,6 +9306,9 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
     map['frequency'] = Variable<String>(frequency);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || position != null) {
+      map['position'] = Variable<String>(position);
+    }
     return map;
   }
 
@@ -9301,6 +9320,9 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
       frequency: Value(frequency),
       createdAt: Value(createdAt),
       isSynced: Value(isSynced),
+      position: position == null && nullToAbsent
+          ? const Value.absent()
+          : Value(position),
     );
   }
 
@@ -9314,6 +9336,7 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
       frequency: serializer.fromJson<String>(json['frequency']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      position: serializer.fromJson<String?>(json['position']),
     );
   }
   @override
@@ -9326,6 +9349,7 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
       'frequency': serializer.toJson<String>(frequency),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'position': serializer.toJson<String?>(position),
     };
   }
 
@@ -9335,7 +9359,8 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
           String? name,
           String? frequency,
           DateTime? createdAt,
-          bool? isSynced}) =>
+          bool? isSynced,
+          Value<String?> position = const Value.absent()}) =>
       LocalHabit(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -9343,6 +9368,7 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
         frequency: frequency ?? this.frequency,
         createdAt: createdAt ?? this.createdAt,
         isSynced: isSynced ?? this.isSynced,
+        position: position.present ? position.value : this.position,
       );
   LocalHabit copyWithCompanion(LocalHabitsCompanion data) {
     return LocalHabit(
@@ -9352,6 +9378,7 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
       frequency: data.frequency.present ? data.frequency.value : this.frequency,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -9363,14 +9390,15 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
           ..write('name: $name, ')
           ..write('frequency: $frequency, ')
           ..write('createdAt: $createdAt, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, userId, name, frequency, createdAt, isSynced);
+      Object.hash(id, userId, name, frequency, createdAt, isSynced, position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -9380,7 +9408,8 @@ class LocalHabit extends DataClass implements Insertable<LocalHabit> {
           other.name == this.name &&
           other.frequency == this.frequency &&
           other.createdAt == this.createdAt &&
-          other.isSynced == this.isSynced);
+          other.isSynced == this.isSynced &&
+          other.position == this.position);
 }
 
 class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
@@ -9390,6 +9419,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
   final Value<String> frequency;
   final Value<DateTime> createdAt;
   final Value<bool> isSynced;
+  final Value<String?> position;
   final Value<int> rowid;
   const LocalHabitsCompanion({
     this.id = const Value.absent(),
@@ -9398,6 +9428,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
     this.frequency = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocalHabitsCompanion.insert({
@@ -9407,6 +9438,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
     this.frequency = const Value.absent(),
     required DateTime createdAt,
     this.isSynced = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         userId = Value(userId),
@@ -9419,6 +9451,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
     Expression<String>? frequency,
     Expression<DateTime>? createdAt,
     Expression<bool>? isSynced,
+    Expression<String>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9428,6 +9461,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
       if (frequency != null) 'frequency': frequency,
       if (createdAt != null) 'created_at': createdAt,
       if (isSynced != null) 'is_synced': isSynced,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9439,6 +9473,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
       Value<String>? frequency,
       Value<DateTime>? createdAt,
       Value<bool>? isSynced,
+      Value<String?>? position,
       Value<int>? rowid}) {
     return LocalHabitsCompanion(
       id: id ?? this.id,
@@ -9447,6 +9482,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
       frequency: frequency ?? this.frequency,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9472,6 +9508,9 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (position.present) {
+      map['position'] = Variable<String>(position.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -9487,6 +9526,7 @@ class LocalHabitsCompanion extends UpdateCompanion<LocalHabit> {
           ..write('frequency: $frequency, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -17121,6 +17161,7 @@ typedef $$LocalHabitsTableCreateCompanionBuilder = LocalHabitsCompanion
   Value<String> frequency,
   required DateTime createdAt,
   Value<bool> isSynced,
+  Value<String?> position,
   Value<int> rowid,
 });
 typedef $$LocalHabitsTableUpdateCompanionBuilder = LocalHabitsCompanion
@@ -17131,6 +17172,7 @@ typedef $$LocalHabitsTableUpdateCompanionBuilder = LocalHabitsCompanion
   Value<String> frequency,
   Value<DateTime> createdAt,
   Value<bool> isSynced,
+  Value<String?> position,
   Value<int> rowid,
 });
 
@@ -17180,6 +17222,9 @@ class $$LocalHabitsTableFilterComposer
   ColumnFilters<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
   Expression<bool> localHabitLogsRefs(
       Expression<bool> Function($$LocalHabitLogsTableFilterComposer f) f) {
     final $$LocalHabitLogsTableFilterComposer composer = $composerBuilder(
@@ -17228,6 +17273,9 @@ class $$LocalHabitsTableOrderingComposer
 
   ColumnOrderings<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
 }
 
 class $$LocalHabitsTableAnnotationComposer
@@ -17256,6 +17304,9 @@ class $$LocalHabitsTableAnnotationComposer
 
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 
   Expression<T> localHabitLogsRefs<T extends Object>(
       Expression<T> Function($$LocalHabitLogsTableAnnotationComposer a) f) {
@@ -17308,6 +17359,7 @@ class $$LocalHabitsTableTableManager extends RootTableManager<
             Value<String> frequency = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
+            Value<String?> position = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalHabitsCompanion(
@@ -17317,6 +17369,7 @@ class $$LocalHabitsTableTableManager extends RootTableManager<
             frequency: frequency,
             createdAt: createdAt,
             isSynced: isSynced,
+            position: position,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -17326,6 +17379,7 @@ class $$LocalHabitsTableTableManager extends RootTableManager<
             Value<String> frequency = const Value.absent(),
             required DateTime createdAt,
             Value<bool> isSynced = const Value.absent(),
+            Value<String?> position = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalHabitsCompanion.insert(
@@ -17335,6 +17389,7 @@ class $$LocalHabitsTableTableManager extends RootTableManager<
             frequency: frequency,
             createdAt: createdAt,
             isSynced: isSynced,
+            position: position,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

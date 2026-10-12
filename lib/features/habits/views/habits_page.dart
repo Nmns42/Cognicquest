@@ -117,14 +117,23 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
           onRefresh: () => ref.read(habitProvider.notifier).refresh(),
           child: habits.isEmpty
               ? const _EmptyHabits()
-              : ListView(
+              // Glisser-déposer pour réordonner (R2), synchronisé.
+              : ReorderableListView(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
                   physics: const AlwaysScrollableScrollPhysics(),
+                  header: Column(
+                    children: [
+                      _SummaryHeader(habits: habits),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                  onReorderItem: (from, to) => ref
+                      .read(habitProvider.notifier)
+                      .move(habits[from].id, to),
                   children: [
-                    _SummaryHeader(habits: habits),
-                    const SizedBox(height: 20),
                     for (final habit in habits)
                       _HabitTile(
+                        key: ValueKey(habit.id),
                         habit: habit,
                         onToggle: () =>
                             ref.read(habitProvider.notifier).toggleToday(habit),
@@ -240,6 +249,7 @@ class _MiniStat extends StatelessWidget {
 
 class _HabitTile extends StatelessWidget {
   const _HabitTile({
+    super.key,
     required this.habit,
     required this.onToggle,
     required this.onToggleDay,

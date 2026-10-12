@@ -534,6 +534,9 @@ class LocalHabits extends Table {
   DateTimeColumn get createdAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
+  /// Clé d'ordre manuel, synchronisée (cf. LocalNotes.position).
+  TextColumn get position => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -647,8 +650,9 @@ class AppDatabase extends _$AppDatabase {
   /// v8 : index sur les filtres et tris réellement utilisés (cf. [_v8Indexes]).
   /// v9 : compteur de révision des blocs (LocalNotes.revision + triggers).
   /// v10 : ordre manuel des fiches (LocalNotes.position).
+  /// v11 : ordre manuel des habitudes (LocalHabits.position).
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -784,6 +788,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 10) {
             if (!await _hasColumn('local_notes', 'position')) {
               await m.addColumn(localNotes, localNotes.position);
+            }
+          }
+          if (from < 11) {
+            if (!await _hasColumn('local_habits', 'position')) {
+              await m.addColumn(localHabits, localHabits.position);
             }
           }
         },

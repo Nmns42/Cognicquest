@@ -25,6 +25,9 @@ values ('00000000-0000-4000-8000-0000000000f1',
 insert into public.tasks (id, user_id, title)
 values ('00000000-0000-4000-8000-0000000000f2',
         '00000000-0000-4000-8000-00000000000b', 'Tâche de V');
+insert into public.habits (id, user_id, name)
+values ('00000000-0000-4000-8000-0000000000f3',
+        '00000000-0000-4000-8000-00000000000b', 'Habitude de V');
 
 -- À partir d'ici, on agit comme l'utilisateur A via PostgREST.
 set local role authenticated;
@@ -36,6 +39,7 @@ declare
   me constant uuid := '00000000-0000-4000-8000-00000000000a';
   victim_note constant uuid := '00000000-0000-4000-8000-0000000000f1';
   victim_task constant uuid := '00000000-0000-4000-8000-0000000000f2';
+  victim_habit constant uuid := '00000000-0000-4000-8000-0000000000f3';
   missing constant uuid := '00000000-0000-4000-8000-0000000000ff';
   own_note uuid := gen_random_uuid();
   touched integer;
@@ -100,6 +104,13 @@ begin
   get diagnostics touched = row_count;
   if touched <> 1 then
     raise exception 'ÉCHEC : position non modifiable sur sa propre fiche';
+  end if;
+
+  -- 10. Position d'une habitude de V : aucune ligne touchée.
+  update public.habits set position = 'V' where id = victim_habit;
+  get diagnostics touched = row_count;
+  if touched <> 0 then
+    raise exception 'ÉCHEC : position modifiable sur l''habitude d''un autre compte';
   end if;
 
   raise notice 'RLS : toutes les vérifications passent';

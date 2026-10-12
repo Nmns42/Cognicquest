@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/errors/data_failure.dart';
+import '../../../core/ordering/manual_order.dart';
 import '../../../shared/models/habit_model.dart';
 import '../data/habit_repository.dart';
 
@@ -66,6 +67,25 @@ class HabitNotifier extends StreamNotifier<List<Habit>> {
         day,
         done: updated.isCompletedOn(day),
       ),
+    );
+  }
+
+  /// Déplace [habitId] à [newIndex] de la liste affichée (glisser-déposer).
+  /// Une seule écriture dans le cas courant (cf. `ManualOrder.planMove`).
+  Future<void> move(String habitId, int newIndex) {
+    final current = state.valueOrNull ?? const <Habit>[];
+    final updates = ManualOrder.planMove(
+      [for (final habit in current) OrderedItem(habit.id, habit.position)],
+      habitId,
+      newIndex,
+    );
+    return _mutate(
+      optimistic: (habits) {
+        final moved = habits.firstWhere((h) => h.id == habitId);
+        return [...habits.where((h) => h.id != habitId)]
+          ..insert(newIndex.clamp(0, habits.length - 1), moved);
+      },
+      action: (repository) => repository.applyPositions(updates),
     );
   }
 

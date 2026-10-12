@@ -6,6 +6,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
+import '../../../core/ordering/manual_order.dart';
 import '../../../shared/models/habit_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notes/data/note_repository.dart';
@@ -18,6 +19,11 @@ abstract interface class HabitRepository {
       {required String name, required HabitFrequency frequency});
   Future<void> update(Habit habit);
   Future<void> delete(String id);
+
+  /// Enregistre des clés d'ordre manuel (cf. `ManualOrder.planMove`). Une
+  /// écriture par habitude concernée — une seule lors d'un déplacement
+  /// courant.
+  Future<void> applyPositions(List<KeyUpdate> updates);
   Future<void> setCompletion(String habitId, DateTime day,
       {required bool done});
 
@@ -77,9 +83,9 @@ class LocalFirstHabitRepository implements HabitRepository {
         completions.putIfAbsent(log.habitId, () => []).add(log.date);
       }
       final habits = await habitsQuery.get();
-      return [
+      return Habit.manualOrder([
         for (final habit in habits) _toHabit(habit, completions[habit.id]),
-      ];
+      ]);
     });
   }
 
@@ -112,6 +118,25 @@ class LocalFirstHabitRepository implements HabitRepository {
     });
     _syncQuietly();
     return habit;
+  }
+
+  @override
+  Future<void> applyPositions(List<KeyUpdate> updates) async {
+    if (updates.isEmpty) return;
+    await _db.transaction(() async {
+      final pending = await _queue.pendingIds(habitsTable);
+      for (final update in updates) {
+        await (_db.update(_db.localHabits)
+              ..where((t) => t.id.equals(update.id) & t.userId.equals(_userId)))
+            .write(LocalHabitsCompanion(position: Value(update.key)));
+        // Envoi léger de la seule position ; une sauvegarde ou une
+        // suppression déjà en file l'emporte.
+        if (!pending.contains(update.id)) {
+          await _queue.enqueue(habitsTable, update.id, 'position');
+        }
+      }
+    });
+    _syncQuietly();
   }
 
   @override
@@ -203,12 +228,21 @@ class LocalFirstHabitRepository implements HabitRepository {
     if (row == null) return;
     if (row.userId != _userId) throw const SkipEntry();
 
+    if (entry.operation == 'position') {
+      // Une seule colonne : déplacer une habitude ne renvoie rien d'autre.
+      await _client
+          .from(habitsTable)
+          .update({'position': row.position}).eq('id', row.id);
+      return;
+    }
+
     await _client.from(habitsTable).upsert({
       'id': row.id,
       'user_id': _userId,
       'name': row.name,
       'frequency': row.frequency,
       'created_at': row.createdAt.toUtc().toIso8601String(),
+      'position': row.position,
     });
     await (_db.update(_db.localHabits)..where((t) => t.id.equals(row.id)))
         .write(const LocalHabitsCompanion(isSynced: Value(true)));
@@ -274,6 +308,7 @@ class LocalFirstHabitRepository implements HabitRepository {
                 frequency: Value(remote['frequency'] as String? ?? 'daily'),
                 createdAt:
                     DateTime.parse(remote['created_at'] as String).toLocal(),
+                position: Value(remote['position'] as String?),
                 isSynced: const Value(true),
               ),
             );
@@ -363,6 +398,7 @@ class LocalFirstHabitRepository implements HabitRepository {
         createdAt: row.createdAt,
         frequency: HabitFrequency.fromValue(row.frequency),
         completedDates: completions ?? const [],
+        position: row.position,
       );
 }
 
