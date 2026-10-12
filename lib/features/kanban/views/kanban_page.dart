@@ -192,12 +192,20 @@ class _KanbanBoard extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
+    // Pas de liste paresseuse : la carte saisie doit rester montée pendant
+    // que le défilement automatique emmène la liste vers une autre colonne.
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
       physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: columns.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (_, index) => columns[index],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < columns.length; i++) ...[
+            if (i > 0) const SizedBox(height: 16),
+            columns[i],
+          ],
+        ],
+      ),
     );
   }
 }
@@ -289,6 +297,7 @@ class _KanbanColumn extends ConsumerWidget {
                   _DraggableTask(
                     task: tasks[i],
                     index: i,
+                    count: tasks.length,
                     onEdit: onEdit,
                     onDelete: onDelete,
                   ),
@@ -302,32 +311,95 @@ class _KanbanColumn extends ConsumerWidget {
 
 /// Carte déplaçable, avec une zone de dépôt au-dessus d'elle pour permettre le
 /// réordonnancement fin à l'intérieur d'une colonne.
-class _DraggableTask extends ConsumerWidget {
+///
+/// Pendant le glisser, la liste défile d'elle-même quand le doigt approche du
+/// bord : sur téléphone, les colonnes empilées hors de l'écran deviennent
+/// atteignables. Comme le glisser lui-même, ce défilement reste actif en mode
+/// « Animations réduites » (décision D3).
+class _DraggableTask extends ConsumerStatefulWidget {
   const _DraggableTask({
     required this.task,
     required this.index,
+    required this.count,
     required this.onEdit,
     required this.onDelete,
   });
 
   final Task task;
   final int index;
+  final int count;
   final ValueChanged<Task> onEdit;
   final ValueChanged<Task> onDelete;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_DraggableTask> createState() => _DraggableTaskState();
+}
+
+class _DraggableTaskState extends ConsumerState<_DraggableTask> {
+  /// Hauteur de la zone, centrée sur le doigt, qui déclenche le défilement
+  /// dès qu'elle dépasse le bord de la liste.
+  static const double _edgeZone = 96;
+
+  EdgeDraggingAutoScroller? _autoScroller;
+  Offset? _pointer;
+
+  Rect get _dragRect =>
+      Rect.fromCenter(center: _pointer!, width: 1, height: _edgeZone);
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable == null) return;
+    _pointer = details.globalPosition;
+    if (_autoScroller?.scrollable != scrollable) {
+      _autoScroller?.stopAutoScroll();
+      _autoScroller = EdgeDraggingAutoScroller(
+        scrollable,
+        velocityScalar: 50,
+        // Le doigt reste immobile au bord pendant que la liste défile : on
+        // redonne sa position après chaque pas pour que le défilement
+        // continue jusqu'au bout.
+        onScrollViewScrolled: () {
+          if (_pointer != null) {
+            _autoScroller?.startAutoScrollIfNecessary(_dragRect);
+          }
+        },
+      );
+    }
+    _autoScroller!.startAutoScrollIfNecessary(_dragRect);
+  }
+
+  void _stopAutoScroll() {
+    _autoScroller?.stopAutoScroll();
+    _autoScroller = null;
+    _pointer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopAutoScroll();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final task = widget.task;
+    final onDelete = widget.onDelete;
     final card = TaskCard(
       task: task,
-      onTap: () => onEdit(task),
+      onTap: () => widget.onEdit(task),
       onToggleDone: () => ref.read(taskProvider.notifier).toggleDone(task.id),
+      trailing: _MoveMenu(
+        task: task,
+        index: widget.index,
+        count: widget.count,
+      ),
     );
 
     return DragTarget<Task>(
       onWillAcceptWithDetails: (details) => details.data.id != task.id,
       onAcceptWithDetails: (details) => ref
           .read(taskProvider.notifier)
-          .moveTask(details.data.id, task.status, targetIndex: index),
+          .moveTask(details.data.id, task.status, beforeTaskId: task.id),
       builder: (context, candidate, __) {
         return Column(
           children: [
@@ -343,6 +415,8 @@ class _DraggableTask extends ConsumerWidget {
             LongPressDraggable<Task>(
               data: task,
               delay: const Duration(milliseconds: 180),
+              onDragUpdate: _onDragUpdate,
+              onDragEnd: (_) => _stopAutoScroll(),
               feedback: Material(
                 color: Colors.transparent,
                 child: SizedBox(
@@ -383,6 +457,58 @@ class _DraggableTask extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// Alternative au glisser-déposer pour un seul pointeur (WCAG 2.2, critère
+/// 2.5.7) : changer de colonne ou de rang sans glisser.
+class _MoveMenu extends ConsumerWidget {
+  const _MoveMenu({
+    required this.task,
+    required this.index,
+    required this.count,
+  });
+
+  final Task task;
+  final int index;
+  final int count;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(taskProvider.notifier);
+
+    return PopupMenuButton<VoidCallback>(
+      tooltip: 'Déplacer vers…',
+      popUpAnimationStyle: Motion.style(context),
+      padding: EdgeInsets.zero,
+      iconSize: 18,
+      style: IconButton.styleFrom(
+        minimumSize: const Size(32, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(Icons.more_vert, color: context.cq.textMuted),
+      onSelected: (action) => action(),
+      itemBuilder: (context) => [
+        for (final status in TaskStatus.values)
+          if (status != task.status)
+            PopupMenuItem(
+              value: () => notifier.moveTask(task.id, status),
+              child: Text('Déplacer vers « ${status.label} »'),
+            ),
+        if (index > 0)
+          PopupMenuItem(
+            value: () =>
+                notifier.moveTask(task.id, task.status, targetIndex: index - 1),
+            child: const Text('Monter'),
+          ),
+        if (index < count - 1)
+          PopupMenuItem(
+            value: () =>
+                notifier.moveTask(task.id, task.status, targetIndex: index + 1),
+            child: const Text('Descendre'),
+          ),
+      ],
     );
   }
 }

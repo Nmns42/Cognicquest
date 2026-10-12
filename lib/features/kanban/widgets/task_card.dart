@@ -19,12 +19,16 @@ class TaskCard extends StatelessWidget {
     required this.onTap,
     required this.onToggleDone,
     this.isDragging = false,
+    this.trailing,
   });
 
   final Task task;
   final VoidCallback onTap;
   final VoidCallback onToggleDone;
   final bool isDragging;
+
+  /// Commande affichée à droite de la carte (menu « Déplacer vers… »).
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +102,7 @@ class TaskCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
+                if (trailing != null) trailing!,
               ],
             ),
           ),
@@ -186,12 +191,18 @@ class _Badge extends StatelessWidget {
             Icon(icon, size: 11, color: color),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w500,
+          // En très grand texte sur petit écran, le badge est plus large que
+          // la carte : il s'abrège au lieu de déborder.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],

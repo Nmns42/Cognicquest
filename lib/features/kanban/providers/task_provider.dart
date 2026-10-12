@@ -100,11 +100,14 @@ class TaskNotifier extends StreamNotifier<List<Task>> {
       );
 
   /// Déplace une tâche vers [targetStatus] à l'index [targetIndex] de cette
-  /// colonne, puis persiste l'ordre de la colonne en une seule requête.
+  /// colonne, ou juste avant la tâche [beforeTaskId], puis persiste l'ordre
+  /// de la colonne en une seule requête. Sans l'un ni l'autre, la tâche va en
+  /// fin de colonne.
   Future<void> moveTask(
     String taskId,
     TaskStatus targetStatus, {
     int? targetIndex,
+    String? beforeTaskId,
   }) async {
     final repository = _repository;
     if (repository == null) return;
@@ -119,7 +122,13 @@ class TaskNotifier extends StreamNotifier<List<Task>> {
         .toList()
       ..sort((a, b) => a.position.compareTo(b.position));
 
-    final index = (targetIndex ?? column.length).clamp(0, column.length);
+    // L'index est compté sans la tâche déplacée : en descendant dans sa
+    // propre colonne, la carte visée a déjà remonté d'un cran.
+    final before = beforeTaskId == null
+        ? -1
+        : column.indexWhere((t) => t.id == beforeTaskId);
+    final index = (before >= 0 ? before : targetIndex ?? column.length)
+        .clamp(0, column.length);
     column.insert(index, task.copyWith(status: targetStatus));
 
     // Réindexation dense : évite la dérive des positions après N déplacements.
