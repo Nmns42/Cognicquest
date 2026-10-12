@@ -109,11 +109,17 @@ class Note {
     this.isArchived = false,
     this.blocks = const [],
     this.isSynced = true,
+    this.position,
   });
 
   final String id;
   final String userId;
   final String title;
+
+  /// Clé d'ordre manuel (cf. `FractionalKey`), `null` tant que la fiche n'a
+  /// jamais été placée à la main. Écrite uniquement par le réordonnancement :
+  /// [copyWith] la conserve, une sauvegarde ne la touche jamais.
+  final String? position;
 
   /// Corps libre en Markdown. Coexiste avec [blocks] : le texte long reste
   /// confortable à saisir d'un bloc, les blocs structurés servent aux
@@ -198,6 +204,7 @@ class Note {
         updatedAt: updatedAt ?? this.updatedAt,
         blocks: blocks ?? this.blocks,
         isSynced: isSynced ?? this.isSynced,
+        position: position,
       );
 
   Map<String, dynamic> toJson() => {

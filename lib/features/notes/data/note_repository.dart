@@ -10,6 +10,7 @@ import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../core/errors/data_failure.dart';
+import '../../../core/ordering/manual_order.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -22,6 +23,10 @@ abstract interface class NoteRepository {
   Future<Note> create({String title, String? subject});
   Future<void> save(Note note);
   Future<void> delete(String id);
+
+  /// Enregistre des clés d'ordre manuel (cf. `ManualOrder.planMove`). Une
+  /// écriture par fiche concernée — une seule lors d'un déplacement courant.
+  Future<void> applyPositions(List<KeyUpdate> updates);
 
   /// Pousse la file d'attente vers Supabase et récupère les changements
   /// distants. Sans réseau, échoue silencieusement : la file est conservée.
@@ -228,6 +233,26 @@ class LocalFirstNoteRepository implements NoteRepository {
     unawaitedSync();
   }
 
+  @override
+  Future<void> applyPositions(List<KeyUpdate> updates) async {
+    if (updates.isEmpty) return;
+    await _db.transaction(() async {
+      final pending = await SyncQueue(_db).pendingIds(_notesTable);
+      for (final update in updates) {
+        await (_db.update(_db.localNotes)
+              ..where((t) => t.id.equals(update.id) & t.userId.equals(_userId)))
+            .write(LocalNotesCompanion(position: Value(update.key)));
+        // Envoi léger : seule la colonne `position` part. Une sauvegarde déjà
+        // en file l'emporte (elle contient la position), une suppression
+        // aussi.
+        if (!pending.contains(update.id)) {
+          await _enqueue(update.id, 'position');
+        }
+      }
+    });
+    unawaitedSync();
+  }
+
   Future<void> _enqueue(String entityId, String operation) async {
     // Une seule entrée en attente par fiche : dix modifications successives
     // hors ligne ne doivent pas produire dix envois.
@@ -272,7 +297,18 @@ class LocalFirstNoteRepository implements NoteRepository {
 
     for (final entry in pending) {
       try {
-        if (entry.operation == 'delete') {
+        if (entry.operation == 'position') {
+          final row = await (_db.select(_db.localNotes)
+                ..where((t) => t.id.equals(entry.entityId)))
+              .getSingleOrNull();
+          if (row != null) {
+            // Une seule colonne : déplacer une fiche ne renvoie ni son contenu
+            // ni ses blocs.
+            await _client
+                .from(_notesTable)
+                .update({'position': row.position}).eq('id', row.id);
+          }
+        } else if (entry.operation == 'delete') {
           await _client.from(_notesTable).delete().eq('id', entry.entityId);
           await (_db.delete(_db.localNotes)
                 ..where((t) => t.id.equals(entry.entityId)))
@@ -417,6 +453,7 @@ class LocalFirstNoteRepository implements NoteRepository {
                 createdAt:
                     DateTime.parse(remote['created_at'] as String).toLocal(),
                 updatedAt: remoteUpdatedAt,
+                position: Value(remote['position'] as String?),
                 isSynced: const Value(true),
               ),
             );
@@ -467,6 +504,7 @@ class LocalFirstNoteRepository implements NoteRepository {
         'is_favorite': row.isFavorite,
         'is_archived': row.isArchived,
         'created_at': row.createdAt.toUtc().toIso8601String(),
+        'position': row.position,
         // Pas d'`updated_at` : le serveur le pose lui-même (trigger).
       };
 
@@ -484,6 +522,7 @@ class LocalFirstNoteRepository implements NoteRepository {
         updatedAt: row.updatedAt,
         blocks: blocks,
         isSynced: row.isSynced,
+        position: row.position,
       );
 
   static NoteBlock _toBlock(LocalNoteBlock row) => NoteBlock(

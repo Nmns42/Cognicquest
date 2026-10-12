@@ -75,18 +75,18 @@ class NoteFilter {
 abstract final class NoteSearch {
   /// Applique les facettes, puis classe par pertinence quand une requête
   /// textuelle est présente.
-  static List<Note> apply(List<Note> notes, NoteFilter filter) {
+  static List<Note> apply(
+    List<Note> notes,
+    NoteFilter filter, {
+    bool manualOrder = false,
+  }) {
     final facetted = notes.where((note) => _matchesFacets(note, filter));
 
     final query = filter.query.trim().toLowerCase();
     if (query.isEmpty) {
-      final results = facetted.toList()
-        ..sort((a, b) {
-          // Les favorites remontent, puis la modification la plus récente.
-          if (a.isFavorite != b.isFavorite) return a.isFavorite ? -1 : 1;
-          return b.updatedAt.compareTo(a.updatedAt);
-        });
-      return results;
+      return manualOrder
+          ? NoteSearch.manualOrder(facetted)
+          : (facetted.toList()..sort(compareRecent));
     }
 
     final scored = <(Note, int)>[];
@@ -102,6 +102,29 @@ abstract final class NoteSearch {
     });
 
     return scored.map((entry) => entry.$1).toList();
+  }
+
+  /// Ordre « Récentes » : favorites d'abord, puis modification la plus
+  /// récente, identifiant pour départager. Tous des champs synchronisés :
+  /// deux appareils obtiennent le même ordre, donc les mêmes clés initiales.
+  static int compareRecent(Note a, Note b) {
+    if (a.isFavorite != b.isFavorite) return a.isFavorite ? -1 : 1;
+    final byDate = b.updatedAt.compareTo(a.updatedAt);
+    return byDate != 0 ? byDate : a.id.compareTo(b.id);
+  }
+
+  /// Ordre « Manuel » : d'abord les fiches jamais placées à la main (une
+  /// fiche neuve arrive en tête), dans l'ordre « Récentes » ; puis les
+  /// fiches placées, par clé et identifiant.
+  static List<Note> manualOrder(Iterable<Note> notes) {
+    final unplaced = notes.where((n) => n.position == null).toList()
+      ..sort(compareRecent);
+    final placed = notes.where((n) => n.position != null).toList()
+      ..sort((a, b) {
+        final byKey = a.position!.compareTo(b.position!);
+        return byKey != 0 ? byKey : a.id.compareTo(b.id);
+      });
+    return [...unplaced, ...placed];
   }
 
   static bool _matchesFacets(Note note, NoteFilter filter) {

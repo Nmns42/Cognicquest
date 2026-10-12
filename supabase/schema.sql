@@ -953,3 +953,17 @@ create index if not exists flashcards_user_updated_idx
 create index if not exists pomodoro_sessions_user_updated_idx
   on public.pomodoro_sessions (user_id, updated_at);
 -- notes : couvert par notes_user_updated_idx (user_id, updated_at desc).
+
+-- ============================================================================
+-- Ordre manuel (glisser-déposer) des fiches et des habitudes
+-- ============================================================================
+-- Clé d'ordre fractionnaire (cf. lib/core/ordering/fractional_key.dart) :
+-- déplacer un élément ne réécrit que sa propre clé. Facultative et sans
+-- valeur par défaut : un élément jamais placé à la main garde l'ordre
+-- habituel. `collate "C"` : ordre octet par octet, identique à l'app et à
+-- SQLite, quelle que soit la collation par défaut du serveur si un jour on
+-- trie côté base. Aucun index : les listes sont triées dans l'app.
+-- RLS (`*_all_own`) et trigger updated_at existants couvrent ces colonnes.
+
+alter table public.notes
+  add column if not exists position text collate "C";

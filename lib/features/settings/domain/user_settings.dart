@@ -165,6 +165,7 @@ class UserSettings {
     this.reduceMotion = false,
     this.morningRoutine = Routine.morningDefault,
     this.eveningRoutine = Routine.eveningDefault,
+    this.manualNoteOrder = false,
   });
 
   static const UserSettings defaults = UserSettings();
@@ -184,6 +185,10 @@ class UserSettings {
   final Routine morningRoutine;
   final Routine eveningRoutine;
 
+  /// Liste des fiches en tri « Manuel » (glisser-déposer) plutôt que
+  /// « Récentes ». Mémorisé et synchronisé avec les autres préférences.
+  final bool manualNoteOrder;
+
   UserSettings copyWith({
     AppThemeVariant? themeVariant,
     TextScalePreset? textScale,
@@ -193,6 +198,7 @@ class UserSettings {
     bool? reduceMotion,
     Routine? morningRoutine,
     Routine? eveningRoutine,
+    bool? manualNoteOrder,
   }) =>
       UserSettings(
         themeVariant: themeVariant ?? this.themeVariant,
@@ -204,6 +210,7 @@ class UserSettings {
         reduceMotion: reduceMotion ?? this.reduceMotion,
         morningRoutine: morningRoutine ?? this.morningRoutine,
         eveningRoutine: eveningRoutine ?? this.eveningRoutine,
+        manualNoteOrder: manualNoteOrder ?? this.manualNoteOrder,
       );
 
   Map<String, dynamic> toJson() => {
@@ -215,6 +222,7 @@ class UserSettings {
         'reduce_motion': reduceMotion,
         'morning_routine': morningRoutine.toJson(),
         'evening_routine': eveningRoutine.toJson(),
+        'notes_manual_order': manualNoteOrder,
       };
 
   /// Tolérant par construction : une préférence inconnue ou absente retombe
@@ -241,6 +249,9 @@ class UserSettings {
           json['reduce_motion'] is bool ? json['reduce_motion'] as bool : false,
       morningRoutine: routine('morning_routine', Routine.morningDefault),
       eveningRoutine: routine('evening_routine', Routine.eveningDefault),
+      manualNoteOrder: json['notes_manual_order'] is bool
+          ? json['notes_manual_order'] as bool
+          : false,
     );
   }
 
@@ -252,7 +263,8 @@ class UserSettings {
       other.ambientSound == ambientSound &&
       other.ambientVolume == ambientVolume &&
       other.keyboardShortcutsEnabled == keyboardShortcutsEnabled &&
-      other.reduceMotion == reduceMotion;
+      other.reduceMotion == reduceMotion &&
+      other.manualNoteOrder == manualNoteOrder;
 
   @override
   int get hashCode => Object.hash(
@@ -262,5 +274,6 @@ class UserSettings {
         ambientVolume,
         keyboardShortcutsEnabled,
         reduceMotion,
+        manualNoteOrder,
       );
 }

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/note_model.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../domain/note_search.dart';
 import '../providers/note_provider.dart';
 import '../widgets/note_filter_sheet.dart';
@@ -62,6 +64,8 @@ class _NotesPageState extends ConsumerState<NotesPage> {
     final notes = ref.watch(filteredNotesProvider);
     final filter = ref.watch(noteFilterProvider);
     final pendingSync = ref.watch(unsyncedNotesCountProvider);
+    final manualOrder = ref.watch(manualNoteOrderProvider);
+    final canReorder = ref.watch(canReorderNotesProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,6 +86,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
             icon: const Icon(Icons.hub_outlined),
             onPressed: () => context.push(AppRoute.graph),
           ),
+          _SortButton(manual: manualOrder),
           _FilterButton(activeCount: filter.activeFacetCount),
           const SizedBox(width: 4),
         ],
@@ -126,13 +131,28 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                 return RefreshIndicator(
                   color: context.cq.vert,
                   onRefresh: () => ref.read(noteActionsProvider).sync(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    itemCount: notes.length,
-                    itemBuilder: (context, index) =>
-                        _NoteCard(note: notes[index]),
-                  ),
+                  // Glisser-déposer seulement en tri « Manuel », sans recherche
+                  // ni filtre (cf. canReorderNotesProvider).
+                  child: canReorder
+                      ? ReorderableListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: notes.length,
+                          onReorderItem: (from, to) => ref
+                              .read(noteActionsProvider)
+                              .move(notes, notes[from].id, to),
+                          itemBuilder: (context, index) => KeyedSubtree(
+                            key: ValueKey(notes[index].id),
+                            child: _NoteCard(note: notes[index]),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: notes.length,
+                          itemBuilder: (context, index) =>
+                              _NoteCard(note: notes[index]),
+                        ),
                 );
               },
             ),
@@ -183,6 +203,30 @@ class _SearchField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Choix du tri : « Récentes » (par défaut) ou « Manuel » (glisser-déposer).
+class _SortButton extends ConsumerWidget {
+  const _SortButton({required this.manual});
+
+  final bool manual;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopupMenuButton<bool>(
+      popUpAnimationStyle: Motion.style(context),
+      tooltip: 'Trier les fiches',
+      icon: const Icon(Icons.sort),
+      initialValue: manual,
+      onSelected: ref.read(settingsProvider.notifier).setManualNoteOrder,
+      itemBuilder: (_) => [
+        CheckedPopupMenuItem(
+            value: false, checked: !manual, child: const Text('Récentes')),
+        CheckedPopupMenuItem(
+            value: true, checked: manual, child: const Text('Manuel')),
+      ],
     );
   }
 }

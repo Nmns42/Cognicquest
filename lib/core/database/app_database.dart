@@ -59,6 +59,12 @@ class LocalNotes extends Table {
   /// seconde, et la sauvegarde automatique peut écrire deux fois dans la même.
   IntColumn get revision => integer().withDefault(const Constant(0))();
 
+  /// Clé d'ordre manuel (cf. `FractionalKey`), synchronisée. `null` tant que
+  /// la fiche n'a jamais été placée à la main : elle garde alors l'ordre
+  /// « récentes ». Collation BINARY de SQLite : même ordre que Dart et que
+  /// `collate "C"` côté Postgres.
+  TextColumn get position => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -640,8 +646,9 @@ class AppDatabase extends _$AppDatabase {
   /// v7 : curseurs du pull incrémental.
   /// v8 : index sur les filtres et tris réellement utilisés (cf. [_v8Indexes]).
   /// v9 : compteur de révision des blocs (LocalNotes.revision + triggers).
+  /// v10 : ordre manuel des fiches (LocalNotes.position).
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -678,6 +685,14 @@ class AppDatabase extends _$AppDatabase {
         localPomodoroSessionsUserStarted,
         syncQueueEntriesEntity,
       ];
+
+  /// Migration rejouable : ajouter une colonne qui existe déjà échouerait.
+  Future<bool> _hasColumn(String table, String column) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('$table')",
+    ).map((row) => row.read<String>('name')).get();
+    return columns.contains(column);
+  }
 
   /// Triggers ajoutés en v9 (cf. note_triggers.drift).
   List<Trigger> get _v9Triggers => [
@@ -764,6 +779,11 @@ class AppDatabase extends _$AppDatabase {
                 'CREATE TRIGGER ',
                 'CREATE TRIGGER IF NOT EXISTS ',
               ));
+            }
+          }
+          if (from < 10) {
+            if (!await _hasColumn('local_notes', 'position')) {
+              await m.addColumn(localNotes, localNotes.position);
             }
           }
         },

@@ -20,6 +20,9 @@ class FakeNotesServer {
   final List<Map<String, dynamic>> blocks = [];
   final List<Map<String, dynamic>> upsertBodies = [];
 
+  /// Corps des mises à jour partielles (`PATCH`), ex. un déplacement.
+  final List<Map<String, dynamic>> patchBodies = [];
+
   /// Lignes complètes renvoyées par chaque GET sur `notes` (hors requêtes
   /// d'identifiants) : mesure ce que le client retélécharge.
   final List<int> fullRowsServed = [];
@@ -59,6 +62,15 @@ class FakeNotesServer {
           return http.Response(
               jsonEncode({'updated_at': row['updated_at']}), 201,
               headers: json, request: request);
+        case 'PATCH':
+          final id = request.url.queryParameters['id']!.substring(3);
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          patchBodies.add(body);
+          final row = notes[id];
+          if (row != null) {
+            notes[id] = {...row, ...body, 'updated_at': now.toIso8601String()};
+          }
+          return http.Response('', 204, request: request);
         case 'DELETE':
           final id = request.url.queryParameters['id']!.substring(3);
           notes.remove(id);

@@ -116,6 +116,12 @@ class $LocalNotesTable extends LocalNotes
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<String> position = GeneratedColumn<String>(
+      'position', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -131,7 +137,8 @@ class $LocalNotesTable extends LocalNotes
         updatedAt,
         isDeleted,
         isSynced,
-        revision
+        revision,
+        position
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -214,6 +221,10 @@ class $LocalNotesTable extends LocalNotes
       context.handle(_revisionMeta,
           revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta));
     }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
     return context;
   }
 
@@ -251,6 +262,8 @@ class $LocalNotesTable extends LocalNotes
           .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
       revision: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}revision'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}position']),
     );
   }
 
@@ -297,6 +310,12 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
   /// le compteur a bougé. Une date ne suffirait pas : Drift la tronque à la
   /// seconde, et la sauvegarde automatique peut écrire deux fois dans la même.
   final int revision;
+
+  /// Clé d'ordre manuel (cf. `FractionalKey`), synchronisée. `null` tant que
+  /// la fiche n'a jamais été placée à la main : elle garde alors l'ordre
+  /// « récentes ». Collation BINARY de SQLite : même ordre que Dart et que
+  /// `collate "C"` côté Postgres.
+  final String? position;
   const LocalNote(
       {required this.id,
       required this.userId,
@@ -311,7 +330,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       required this.updatedAt,
       required this.isDeleted,
       required this.isSynced,
-      required this.revision});
+      required this.revision,
+      this.position});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -331,6 +351,9 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     map['revision'] = Variable<int>(revision);
+    if (!nullToAbsent || position != null) {
+      map['position'] = Variable<String>(position);
+    }
     return map;
   }
 
@@ -352,6 +375,9 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
       revision: Value(revision),
+      position: position == null && nullToAbsent
+          ? const Value.absent()
+          : Value(position),
     );
   }
 
@@ -373,6 +399,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       revision: serializer.fromJson<int>(json['revision']),
+      position: serializer.fromJson<String?>(json['position']),
     );
   }
   @override
@@ -393,6 +420,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
       'revision': serializer.toJson<int>(revision),
+      'position': serializer.toJson<String?>(position),
     };
   }
 
@@ -410,7 +438,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           DateTime? updatedAt,
           bool? isDeleted,
           bool? isSynced,
-          int? revision}) =>
+          int? revision,
+          Value<String?> position = const Value.absent()}) =>
       LocalNote(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -426,6 +455,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
         isDeleted: isDeleted ?? this.isDeleted,
         isSynced: isSynced ?? this.isSynced,
         revision: revision ?? this.revision,
+        position: position.present ? position.value : this.position,
       );
   LocalNote copyWithCompanion(LocalNotesCompanion data) {
     return LocalNote(
@@ -446,6 +476,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       revision: data.revision.present ? data.revision.value : this.revision,
+      position: data.position.present ? data.position.value : this.position,
     );
   }
 
@@ -465,7 +496,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
-          ..write('revision: $revision')
+          ..write('revision: $revision, ')
+          ..write('position: $position')
           ..write(')'))
         .toString();
   }
@@ -485,7 +517,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       updatedAt,
       isDeleted,
       isSynced,
-      revision);
+      revision,
+      position);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -503,7 +536,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced &&
-          other.revision == this.revision);
+          other.revision == this.revision &&
+          other.position == this.position);
 }
 
 class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
@@ -521,6 +555,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   final Value<int> revision;
+  final Value<String?> position;
   final Value<int> rowid;
   const LocalNotesCompanion({
     this.id = const Value.absent(),
@@ -537,6 +572,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.revision = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocalNotesCompanion.insert({
@@ -554,6 +590,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.revision = const Value.absent(),
+    this.position = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         userId = Value(userId),
@@ -575,6 +612,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
     Expression<int>? revision,
+    Expression<String>? position,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -592,6 +630,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
       if (revision != null) 'revision': revision,
+      if (position != null) 'position': position,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -611,6 +650,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       Value<bool>? isDeleted,
       Value<bool>? isSynced,
       Value<int>? revision,
+      Value<String?>? position,
       Value<int>? rowid}) {
     return LocalNotesCompanion(
       id: id ?? this.id,
@@ -627,6 +667,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
       revision: revision ?? this.revision,
+      position: position ?? this.position,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -676,6 +717,9 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     if (revision.present) {
       map['revision'] = Variable<int>(revision.value);
     }
+    if (position.present) {
+      map['position'] = Variable<String>(position.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -699,6 +743,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('revision: $revision, ')
+          ..write('position: $position, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10917,6 +10962,7 @@ typedef $$LocalNotesTableCreateCompanionBuilder = LocalNotesCompanion Function({
   Value<bool> isDeleted,
   Value<bool> isSynced,
   Value<int> revision,
+  Value<String?> position,
   Value<int> rowid,
 });
 typedef $$LocalNotesTableUpdateCompanionBuilder = LocalNotesCompanion Function({
@@ -10934,6 +10980,7 @@ typedef $$LocalNotesTableUpdateCompanionBuilder = LocalNotesCompanion Function({
   Value<bool> isDeleted,
   Value<bool> isSynced,
   Value<int> revision,
+  Value<String?> position,
   Value<int> rowid,
 });
 
@@ -11102,6 +11149,9 @@ class $$LocalNotesTableFilterComposer
 
   ColumnFilters<int> get revision => $composableBuilder(
       column: $table.revision, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
 
   Expression<bool> localNoteBlocksRefs(
       Expression<bool> Function($$LocalNoteBlocksTableFilterComposer f) f) {
@@ -11301,6 +11351,9 @@ class $$LocalNotesTableOrderingComposer
 
   ColumnOrderings<int> get revision => $composableBuilder(
       column: $table.revision, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
 }
 
 class $$LocalNotesTableAnnotationComposer
@@ -11353,6 +11406,9 @@ class $$LocalNotesTableAnnotationComposer
 
   GeneratedColumn<int> get revision =>
       $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  GeneratedColumn<String> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 
   Expression<T> localNoteBlocksRefs<T extends Object>(
       Expression<T> Function($$LocalNoteBlocksTableAnnotationComposer a) f) {
@@ -11550,6 +11606,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             Value<bool> isDeleted = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<int> revision = const Value.absent(),
+            Value<String?> position = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalNotesCompanion(
@@ -11567,6 +11624,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             isSynced: isSynced,
             revision: revision,
+            position: position,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -11584,6 +11642,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             Value<bool> isDeleted = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<int> revision = const Value.absent(),
+            Value<String?> position = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalNotesCompanion.insert(
@@ -11601,6 +11660,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             isDeleted: isDeleted,
             isSynced: isSynced,
             revision: revision,
+            position: position,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

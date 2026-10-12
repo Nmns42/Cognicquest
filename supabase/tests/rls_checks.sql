@@ -38,6 +38,7 @@ declare
   victim_task constant uuid := '00000000-0000-4000-8000-0000000000f2';
   missing constant uuid := '00000000-0000-4000-8000-0000000000ff';
   own_note uuid := gen_random_uuid();
+  touched integer;
 begin
   -- 1. profiles.plan : impossible de s'auto-promouvoir.
   begin
@@ -85,6 +86,21 @@ begin
     raise exception 'ÉCHEC : session rattachée à la tâche d''un autre compte';
   exception when insufficient_privilege then null;
   end;
+
+  -- 8. Position (ordre manuel) d'une fiche de V : la RLS la rend invisible,
+  --    la mise à jour ne touche aucune ligne.
+  update public.notes set position = 'V' where id = victim_note;
+  get diagnostics touched = row_count;
+  if touched <> 0 then
+    raise exception 'ÉCHEC : position modifiable sur la fiche d''un autre compte';
+  end if;
+
+  -- 9. Sa propre fiche reste réordonnable.
+  update public.notes set position = 'V' where id = own_note;
+  get diagnostics touched = row_count;
+  if touched <> 1 then
+    raise exception 'ÉCHEC : position non modifiable sur sa propre fiche';
+  end if;
 
   raise notice 'RLS : toutes les vérifications passent';
 end;

@@ -108,6 +108,9 @@ class SettingsNotifier extends Notifier<UserSettings> {
   void toggleReduceMotion() =>
       _update(state.copyWith(reduceMotion: !state.reduceMotion));
 
+  void setManualNoteOrder(bool manual) =>
+      _update(state.copyWith(manualNoteOrder: manual));
+
   void setMorningRoutine(Routine routine) =>
       _update(state.copyWith(morningRoutine: routine));
 
