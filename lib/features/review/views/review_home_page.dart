@@ -276,9 +276,12 @@ class _UpcomingLoad extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-        child: SizedBox(
-          height: _plotHeight + 36,
-          child: Row(
+        // Pas de hauteur fixe pour l'ensemble : 92 px ne laissaient pas de
+        // place au libellé du jour dès que le texte grandit (1 px de
+        // débordement à 100 % avec la vraie police, 14 px à 200 %). Chaque
+        // colonne réserve une zone fixe pour la valeur et la barre ; le
+        // libellé prend la hauteur dont il a besoin.
+        child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < upcoming.length; i++)
@@ -292,8 +295,14 @@ class _UpcomingLoad extends StatelessWidget {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Zone fixe : valeur + barre, alignées en bas.
+                            SizedBox(
+                              height: 14 + 3 + _plotHeight,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
                             SizedBox(
                               height: 14,
                               child: (upcoming[i] > 0 &&
@@ -328,6 +337,9 @@ class _UpcomingLoad extends StatelessWidget {
                                 ),
                               ),
                             ),
+                                ],
+                              ),
+                            ),
                             Container(height: 1, color: context.cq.beigeDark),
                             const SizedBox(height: 5),
                             Text(
@@ -350,7 +362,6 @@ class _UpcomingLoad extends StatelessWidget {
                 ),
             ],
           ),
-        ),
       ),
     );
   }
