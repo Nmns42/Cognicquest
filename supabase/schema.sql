@@ -23,6 +23,7 @@ create extension if not exists "pgcrypto";
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -142,6 +143,7 @@ grant update (full_name, avatar_url) on public.profiles to authenticated;
 create or replace function public.protect_profile_plan()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   if coalesce(auth.role(), '') in ('anon', 'authenticated') then
@@ -197,6 +199,9 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Fonction de trigger SECURITY DEFINER : personne n'a à l'appeler via l'API.
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 
 -- ============================================================================
 -- tasks  (Kanban / to-do)
@@ -970,3 +975,40 @@ alter table public.notes
 
 alter table public.habits
   add column if not exists position text collate "C";
+
+-- ============================================================================
+-- Durcissement issu de l'audit Supabase du 2026-10-13
+-- ============================================================================
+
+-- Politiques ajoutées à la main dans le dashboard, en double avec les
+-- `*_all_own` ; celle de plan_items contournait owns_study_goal.
+drop policy if exists "Secure_Exam_Targets_Policy" on public.exam_targets;
+drop policy if exists "Secure_Flashcards_Policy"   on public.flashcards;
+drop policy if exists "Secure_Note_Links_Policy"   on public.note_links;
+drop policy if exists "Secure_Plan_Items_Policy"   on public.plan_items;
+
+-- Clés étrangères sans index (Performance Advisor) : suppressions en cascade
+-- et `on delete set null` sans parcours complet de la table.
+create index if not exists error_logs_note_id_idx        on public.error_logs (note_id);
+create index if not exists exam_targets_note_id_idx      on public.exam_targets (note_id);
+create index if not exists explanations_user_id_idx      on public.explanations (user_id);
+create index if not exists journal_entries_note_id_idx   on public.journal_entries (note_id);
+create index if not exists note_links_target_id_idx      on public.note_links (target_id);
+create index if not exists plan_items_depends_on_id_idx  on public.plan_items (depends_on_id);
+create index if not exists plan_items_goal_id_idx        on public.plan_items (goal_id);
+create index if not exists pomodoro_sessions_task_id_idx on public.pomodoro_sessions (task_id);
+create index if not exists sq3r_sessions_user_id_idx     on public.sq3r_sessions (user_id);
+
+-- Valeurs par défaut côté serveur. L'app envoie toujours ses propres `id`
+-- (générés hors ligne) et `user_id` : ces défauts ne servent qu'aux
+-- insertions faites sans eux (SQL Editor, futurs clients).
+do $$
+declare t text;
+begin
+  foreach t in array array['error_logs','exam_targets','explanations','flashcards','journal_entries','note_blocks','note_links','notes','plan_items','reframes','speed_samples','sq3r_sessions','study_goals','why_chains'] loop
+    execute format('alter table public.%I alter column id set default gen_random_uuid()', t);
+  end loop;
+  foreach t in array array['error_logs','exam_targets','explanations','flashcards','habits','journal_entries','learning_profiles','note_links','notes','plan_items','pomodoro_sessions','reframes','speed_samples','sq3r_sessions','study_goals','tasks','user_preferences','why_chains'] loop
+    execute format('alter table public.%I alter column user_id set default auth.uid()', t);
+  end loop;
+end $$;
