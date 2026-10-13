@@ -27,39 +27,57 @@ class PomodoroPage extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-          child: Column(
-            children: [
-              _PhaseHeader(state: state, color: color),
-              const SizedBox(height: 32),
-              // Micro-animation n° 7 : la jauge bat une fois à la fin d'une
-              // session de travail. Le son et la vibration de fin de phase
-              // (PomodoroNotifier) restent, animations réduites ou non.
-              PulseOnChange(
-                trigger: ref.watch(pomodoroCompletionsProvider),
-                scale: 1.06,
-                duration: const Duration(milliseconds: 420),
-                child: _TimerDial(state: state, color: color),
+        child: LayoutBuilder(
+          builder: (context, box) {
+            // Taille harmonieuse sur tout écran : le cadran suit la plus
+            // petite des deux dimensions disponibles, sans dépasser 260 px,
+            // et la page tient dans une colonne centrée.
+            final dial = [
+              box.maxWidth * 0.62,
+              box.maxHeight * 0.36,
+              _maxDial,
+            ].reduce((a, b) => a < b ? a : b).clamp(_minDial, _maxDial);
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _maxPageWidth),
+                  child: Column(
+                    children: [
+                      _PhaseHeader(state: state, color: color),
+                      const SizedBox(height: 32),
+                      // Micro-animation n° 7 : la jauge bat une fois à la fin d'une
+                      // session de travail. Le son et la vibration de fin de phase
+                      // (PomodoroNotifier) restent, animations réduites ou non.
+                      PulseOnChange(
+                        trigger: ref.watch(pomodoroCompletionsProvider),
+                        scale: 1.06,
+                        duration: const Duration(milliseconds: 420),
+                        child:
+                            _TimerDial(state: state, color: color, size: dial),
+                      ),
+                      const SizedBox(height: 36),
+                      _Controls(
+                        state: state,
+                        color: color,
+                        onToggle: notifier.toggle,
+                        onReset: notifier.reset,
+                        onSkip: notifier.skip,
+                      ),
+                      const SizedBox(height: 32),
+                      _CycleIndicator(state: state, color: color),
+                      const SizedBox(height: 24),
+                      statsAsync.when(
+                        loading: () => const SizedBox(height: 74),
+                        error: (_, __) => const SizedBox(height: 74),
+                        data: (stats) => _StatsRow(stats: stats),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 36),
-              _Controls(
-                state: state,
-                color: color,
-                onToggle: notifier.toggle,
-                onReset: notifier.reset,
-                onSkip: notifier.skip,
-              ),
-              const SizedBox(height: 32),
-              _CycleIndicator(state: state, color: color),
-              const SizedBox(height: 24),
-              statsAsync.when(
-                loading: () => const SizedBox(height: 74),
-                error: (_, __) => const SizedBox(height: 74),
-                data: (stats) => _StatsRow(stats: stats),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -98,7 +116,8 @@ class _PhaseHeader extends StatelessWidget {
             PomodoroPhase.shortBreak => 'Lève-toi, respire, bouge un peu.',
             PomodoroPhase.longBreak => 'Pause longue : coupe vraiment.',
           },
-          style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
+          style:
+              TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
           textAlign: TextAlign.center,
         ),
       ],
@@ -106,16 +125,23 @@ class _PhaseHeader extends StatelessWidget {
   }
 }
 
+/// Bornes du cadran et largeur de la page du Pomodoro.
+const double _minDial = 180;
+const double _maxDial = 260;
+const double _maxPageWidth = 520;
+
 class _TimerDial extends StatelessWidget {
-  const _TimerDial({required this.state, required this.color});
+  const _TimerDial(
+      {required this.state, required this.color, required this.size});
 
   final PomodoroState state;
   final Color color;
 
+  /// Diamètre, calculé par la page selon la place disponible.
+  final double size;
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context).width.clamp(280.0, 420.0) * 0.68;
-
     return SizedBox(
       width: size,
       height: size,
@@ -126,7 +152,8 @@ class _TimerDial extends StatelessWidget {
           // la jauge descend en continu au lieu de tressauter.
           TweenAnimationBuilder<double>(
             tween: Tween(begin: state.progress, end: state.progress),
-            duration: Motion.duration(context, const Duration(milliseconds: 900)),
+            duration:
+                Motion.duration(context, const Duration(milliseconds: 900)),
             builder: (context, value, _) => SizedBox.expand(
               child: CircularProgressIndicator(
                 value: value,
@@ -156,7 +183,8 @@ class _TimerDial extends StatelessWidget {
                   PomodoroStatus.paused => 'En pause',
                   PomodoroStatus.idle => 'Prêt',
                 },
-                style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
+                style: TextStyle(
+                    color: context.cq.textMuted, fontSize: TypeScale.body),
               ),
             ],
           ),
@@ -189,7 +217,7 @@ class _Controls extends StatelessWidget {
         IconButton(
           onPressed: onReset,
           tooltip: 'Réinitialiser',
-          icon:  Icon(Icons.refresh, size: 30, color: context.cq.textMuted),
+          icon: Icon(Icons.refresh, size: 30, color: context.cq.textMuted),
         ),
         const SizedBox(width: 24),
         SizedBox(
@@ -214,7 +242,7 @@ class _Controls extends StatelessWidget {
           // réellement à la phase suivante, sans valider la session en cours.
           onPressed: onSkip,
           tooltip: 'Phase suivante',
-          icon:  Icon(Icons.skip_next, size: 30, color: context.cq.textMuted),
+          icon: Icon(Icons.skip_next, size: 30, color: context.cq.textMuted),
         ),
       ],
     );
@@ -257,7 +285,8 @@ class _CycleIndicator extends StatelessWidget {
               : 'Plus que ${cycle - done} '
                   'session${cycle - done > 1 ? 's' : ''} '
                   'avant la pause longue',
-          style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.caption),
+          style: TextStyle(
+              color: context.cq.textMuted, fontSize: TypeScale.caption),
         ),
       ],
     );
@@ -324,7 +353,7 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style:  TextStyle(
+              style: TextStyle(
                 fontSize: TypeScale.title,
                 fontWeight: FontWeight.w700,
                 color: context.cq.textPrimary,
@@ -333,7 +362,8 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ],
         ),
