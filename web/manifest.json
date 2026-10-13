@@ -1,12 +1,11 @@
 {
-    "name": "cognicquest",
-    "short_name": "cognicquest",
+    "name": "CognicQuest",
+    "short_name": "CognicQuest",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F9F6F0",
+    "theme_color": "#7A9E7E",
+    "description": "Apprendre mieux grâce à la métacognition : fiches, révision espacée, Pomodoro, habitudes et journal.",
     "prefer_related_applications": false,
     "icons": [
         {
@@ -31,5 +30,6 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "lang": "fr"
 }
