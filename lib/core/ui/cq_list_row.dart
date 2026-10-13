@@ -30,7 +30,9 @@ class CqListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cq = context.cq;
     final text = Theme.of(context).textTheme;
-    final titleColor = selected ? cq.vertDark : cq.textPrimary;
+    // Sur la teinte de sélection, le texte reste en couleur de texte : le
+    // vert le signale par la teinte et l'icône (contraste ≥ 4,5:1).
+    final titleColor = cq.textPrimary;
 
     final row = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Sizes.touchTarget),

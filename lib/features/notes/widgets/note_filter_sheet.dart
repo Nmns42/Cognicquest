@@ -5,6 +5,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 import '../providers/note_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Filtres de la bibliothèque — « Filtres par sujet, date, importance, type de
 /// contenu » (CdC).
@@ -32,7 +33,7 @@ class NoteFilterSheet extends ConsumerWidget {
       ),
       decoration:  BoxDecoration(
         color: context.cq.beige,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: SafeArea(
@@ -47,7 +48,7 @@ class NoteFilterSheet extends ConsumerWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
             ),
@@ -81,7 +82,7 @@ class NoteFilterSheet extends ConsumerWidget {
                           for (final subject in subjects)
                             FilterChip(
                               label: Text(subject,
-                                  style: const TextStyle(fontSize: 12)),
+                                  style: const TextStyle(fontSize: TypeScale.caption)),
                               selected: filter.subject == subject,
                               onSelected: (selected) => notifier
                                   .setSubject(selected ? subject : null),
@@ -97,7 +98,7 @@ class NoteFilterSheet extends ConsumerWidget {
                        Text(
                         'Plusieurs tags : les fiches doivent tous les porter.',
                         style: TextStyle(
-                            fontSize: 11, color: context.cq.textMuted),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -107,7 +108,7 @@ class NoteFilterSheet extends ConsumerWidget {
                           for (final tag in tags.take(24))
                             FilterChip(
                               label: Text('#$tag',
-                                  style: const TextStyle(fontSize: 12)),
+                                  style: const TextStyle(fontSize: TypeScale.caption)),
                               selected: filter.tags.contains(tag),
                               onSelected: (_) => notifier.toggleTag(tag),
                             ),
@@ -124,7 +125,7 @@ class NoteFilterSheet extends ConsumerWidget {
                         for (final importance in NoteImportance.values)
                           FilterChip(
                             label: Text(importance.label,
-                                style: const TextStyle(fontSize: 12)),
+                                style: const TextStyle(fontSize: TypeScale.caption)),
                             selected: filter.importance == importance,
                             onSelected: (selected) => notifier
                                 .setImportance(selected ? importance : null),
@@ -141,7 +142,7 @@ class NoteFilterSheet extends ConsumerWidget {
                         for (final entry in _dateRanges.entries)
                           FilterChip(
                             label: Text(entry.key,
-                                style: const TextStyle(fontSize: 12)),
+                                style: const TextStyle(fontSize: TypeScale.caption)),
                             selected: _isRangeSelected(filter.updatedAfter,
                                 entry.value),
                             onSelected: (selected) => notifier.setUpdatedAfter(
@@ -157,14 +158,14 @@ class NoteFilterSheet extends ConsumerWidget {
                       value: filter.favoritesOnly,
                       onChanged: (_) => notifier.toggleFavoritesOnly(),
                       title: const Text('Favorites uniquement',
-                          style: TextStyle(fontSize: 14)),
+                          style: TextStyle(fontSize: TypeScale.body)),
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
                       value: filter.includeArchived,
                       onChanged: (_) => notifier.toggleIncludeArchived(),
                       title: const Text('Inclure les fiches archivées',
-                          style: TextStyle(fontSize: 14)),
+                          style: TextStyle(fontSize: TypeScale.body)),
                     ),
                   ],
                 ),
@@ -212,7 +213,7 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style:  TextStyle(
-        fontSize: 13,
+        fontSize: TypeScale.body,
         fontWeight: FontWeight.w600,
         color: context.cq.textMuted,
       ),

@@ -30,7 +30,7 @@ class CqChip extends StatelessWidget {
         fontFamily: appFontFamily,
         fontSize: TypeScale.body,
         fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-        color: selected ? context.cq.vertDark : context.cq.textPrimary,
+        color: context.cq.textPrimary,
       ),
       padding: const EdgeInsets.symmetric(horizontal: Space.xs),
     );

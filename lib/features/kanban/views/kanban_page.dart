@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 import '../../../shared/models/task_model.dart';
 import '../providers/task_provider.dart';
 import '../widgets/task_card.dart';
@@ -58,6 +60,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
       context: context,
       animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('Supprimer cette tâche ?'),
         content: Text(task.title),
         actions: [
@@ -67,7 +70,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:  Text(
+            child: Text(
               'Supprimer',
               style: TextStyle(color: context.cq.errorColor),
             ),
@@ -101,40 +104,55 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes tâches'),
-        actions: [
-          IconButton(
-            tooltip: _view == _BoardView.kanban
-                ? 'Voir la matrice d\'Eisenhower'
-                : 'Voir le tableau Kanban',
-            icon: Icon(
-              _view == _BoardView.kanban
-                  ? Icons.grid_view_outlined
-                  : Icons.view_kanban_outlined,
-            ),
-            onPressed: () => setState(
-              () => _view = _view == _BoardView.kanban
-                  ? _BoardView.eisenhower
-                  : _BoardView.kanban,
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: tasksAsync.when(
         skipLoadingOnRefresh: true,
-        loading: () =>  Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: context.cq.vert),
         ),
         error: (error, _) => _ErrorState(
           message: error.toString(),
           onRetry: () => ref.read(taskProvider.notifier).refresh(),
         ),
-        data: (tasks) => RefreshIndicator(
-          color: context.cq.vert,
-          onRefresh: () => ref.read(taskProvider.notifier).refresh(),
-          child: _view == _BoardView.kanban
-              ? _KanbanBoard(onEdit: _editTask, onDelete: _deleteTask, onAdd: _createTask)
-              : _EisenhowerBoard(onEdit: _editTask, onDelete: _deleteTask),
+        data: (tasks) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Une seule vue à la fois, sur les mêmes tâches : le tableau par
+            // état d'avancement, ou la matrice par urgence et importance.
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
+              child: CqSegmentedControl<_BoardView>(
+                options: const {
+                  _BoardView.kanban: 'Kanban',
+                  _BoardView.eisenhower: 'Matrice',
+                },
+                selected: _view,
+                onChanged: (view) => setState(() => _view = view),
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                color: context.cq.vert,
+                onRefresh: () => ref.read(taskProvider.notifier).refresh(),
+                child: AnimatedSwitcher(
+                  duration: Motion.duration(context, CqMotion.base),
+                  switchInCurve: CqMotion.enter,
+                  switchOutCurve: CqMotion.exit,
+                  child: _view == _BoardView.kanban
+                      ? _KanbanBoard(
+                          key: const ValueKey(_BoardView.kanban),
+                          onEdit: _editTask,
+                          onDelete: _deleteTask,
+                          onAdd: _createTask)
+                      : _EisenhowerBoard(
+                          key: const ValueKey(_BoardView.eisenhower),
+                          onEdit: _editTask,
+                          onDelete: _deleteTask),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -147,10 +165,14 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
   }
 }
 
+/// Largeur de la carte qui suit le pointeur pendant un glisser.
+const double _feedbackWidth = 300;
+
 // ─── Tableau Kanban ─────────────────────────────────────────────────────────
 
 class _KanbanBoard extends StatelessWidget {
   const _KanbanBoard({
+    super.key,
     required this.onEdit,
     required this.onDelete,
     required this.onAdd,
@@ -236,9 +258,8 @@ class _KanbanColumn extends ConsumerWidget {
 
     return DragTarget<Task>(
       onWillAcceptWithDetails: (details) => details.data.status != status,
-      onAcceptWithDetails: (details) => ref
-          .read(taskProvider.notifier)
-          .moveTask(details.data.id, status),
+      onAcceptWithDetails: (details) =>
+          ref.read(taskProvider.notifier).moveTask(details.data.id, status),
       builder: (context, candidate, __) {
         final isHovered = candidate.isNotEmpty;
 
@@ -268,12 +289,12 @@ class _KanbanColumn extends ConsumerWidget {
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(Radii.md),
                     ),
                     child: Text(
                       '${tasks.length}',
-                      style:  TextStyle(
-                        fontSize: 12,
+                      style: TextStyle(
+                        fontSize: TypeScale.caption,
                         fontWeight: FontWeight.w600,
                         color: context.cq.textMuted,
                       ),
@@ -284,8 +305,8 @@ class _KanbanColumn extends ConsumerWidget {
                     tooltip: 'Ajouter dans « ${status.label} »',
                     visualDensity: VisualDensity.compact,
                     onPressed: onAdd,
-                    icon:  Icon(Icons.add, size: 20,
-                        color: context.cq.textMuted),
+                    icon:
+                        Icon(Icons.add, size: 20, color: context.cq.textMuted),
                   ),
                 ],
               ),
@@ -409,21 +430,15 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
                 margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
                   color: context.cq.vert,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
-            LongPressDraggable<Task>(
+            CqDraggable<Task>(
               data: task,
-              delay: const Duration(milliseconds: 180),
               onDragUpdate: _onDragUpdate,
               onDragEnd: (_) => _stopAutoScroll(),
-              feedback: Material(
-                color: Colors.transparent,
-                child: SizedBox(
-                  width: 300,
-                  child: Opacity(opacity: 0.9, child: card),
-                ),
-              ),
+              feedbackWidth: _feedbackWidth,
+              feedback: card,
               childWhenDragging: TaskCard(
                 task: task,
                 isDragging: true,
@@ -448,8 +463,8 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
                     color: context.cq.errorColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppTheme.radius),
                   ),
-                  child:  Icon(Icons.delete_outline,
-                      color: context.cq.errorColor),
+                  child:
+                      Icon(Icons.delete_outline, color: context.cq.errorColor),
                 ),
                 child: card,
               ),
@@ -525,14 +540,14 @@ class _EmptyColumn extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 22),
       decoration: BoxDecoration(
         color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Text(
         isHovered ? 'Déposer ici' : 'Aucune tâche',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: isHovered ? context.cq.vert : context.cq.textMuted,
-          fontSize: 13,
+          fontSize: TypeScale.body,
           fontWeight: isHovered ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
@@ -543,7 +558,8 @@ class _EmptyColumn extends StatelessWidget {
 // ─── Matrice d'Eisenhower ───────────────────────────────────────────────────
 
 class _EisenhowerBoard extends StatelessWidget {
-  const _EisenhowerBoard({required this.onEdit, required this.onDelete});
+  const _EisenhowerBoard(
+      {super.key, required this.onEdit, required this.onDelete});
 
   final ValueChanged<Task> onEdit;
   final ValueChanged<Task> onDelete;
@@ -631,7 +647,8 @@ class _QuadrantTile extends ConsumerWidget {
         final isImportant = quadrant == EisenhowerQuadrant.doNow ||
             quadrant == EisenhowerQuadrant.schedule;
         ref.read(taskProvider.notifier).updateTask(
-              details.data.copyWith(isUrgent: isUrgent, isImportant: isImportant),
+              details.data
+                  .copyWith(isUrgent: isUrgent, isImportant: isImportant),
             );
       },
       builder: (context, candidate, __) {
@@ -656,7 +673,8 @@ class _QuadrantTile extends ConsumerWidget {
                   Container(
                     width: 10,
                     height: 10,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                    decoration:
+                        BoxDecoration(color: color, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -665,8 +683,8 @@ class _QuadrantTile extends ConsumerWidget {
                   ),
                   Text(
                     '${tasks.length}',
-                    style:  TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: TypeScale.caption,
                       fontWeight: FontWeight.w600,
                       color: context.cq.textMuted,
                     ),
@@ -676,29 +694,21 @@ class _QuadrantTile extends ConsumerWidget {
               const SizedBox(height: 2),
               Text(
                 quadrant.description,
-                style:  TextStyle(fontSize: 12, color: context.cq.textMuted),
+                style: TextStyle(
+                    fontSize: TypeScale.caption, color: context.cq.textMuted),
               ),
               const SizedBox(height: 12),
               if (tasks.isEmpty)
                 _EmptyColumn(isHovered: isHovered)
               else
                 for (final task in tasks)
-                  LongPressDraggable<Task>(
+                  CqDraggable<Task>(
                     data: task,
-                    delay: const Duration(milliseconds: 180),
-                    feedback: Material(
-                      color: Colors.transparent,
-                      child: SizedBox(
-                        width: 300,
-                        child: Opacity(
-                          opacity: 0.9,
-                          child: TaskCard(
-                            task: task,
-                            onTap: () {},
-                            onToggleDone: () {},
-                          ),
-                        ),
-                      ),
+                    feedbackWidth: _feedbackWidth,
+                    feedback: TaskCard(
+                      task: task,
+                      onTap: () {},
+                      onToggleDone: () {},
                     ),
                     childWhenDragging: TaskCard(
                       task: task,
@@ -737,13 +747,14 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-             Icon(Icons.cloud_off_outlined,
+            Icon(Icons.cloud_off_outlined,
                 size: 44, color: context.cq.textHint),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style:  TextStyle(color: context.cq.textMuted, fontSize: 14),
+              style: TextStyle(
+                  color: context.cq.textMuted, fontSize: TypeScale.body),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(

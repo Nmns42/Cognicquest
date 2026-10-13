@@ -7,6 +7,7 @@ import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
 import '../providers/metacognition_provider.dart';
 import '../widgets/scale_picker.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Bilan de session — « bilan de fin de session avec questions guidées » (CdC),
 /// avec tracker d'humeur, d'énergie et de RPE.
@@ -97,7 +98,7 @@ class _JournalEntryPageState extends ConsumerState<JournalEntryPage> {
               'Trois curseurs, quatre questions. Deux minutes suffisent — '
               'c\'est la régularité qui rend les tendances lisibles.',
               style: TextStyle(
-                  fontSize: 12.5, color: context.cq.textMuted, height: 1.45),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
             ),
             const SizedBox(height: 22),
 
@@ -131,7 +132,7 @@ class _JournalEntryPageState extends ConsumerState<JournalEntryPage> {
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
                   color: context.cq.errorColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   border: Border.all(
                       color: context.cq.errorColor.withValues(alpha: 0.3)),
                 ),
@@ -146,7 +147,7 @@ class _JournalEntryPageState extends ConsumerState<JournalEntryPage> {
                         'Effort fort et moral bas : c\'est la combinaison qui '
                         'précède l\'épuisement. Prévois une vraie coupure.',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: TypeScale.caption,
                             color: context.cq.errorColor,
                             height: 1.4),
                       ),
@@ -211,7 +212,7 @@ class _Question extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style:  TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),

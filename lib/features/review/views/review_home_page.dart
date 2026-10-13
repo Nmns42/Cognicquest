@@ -7,6 +7,7 @@ import '../../../router/app_router.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../providers/review_provider.dart';
 import '../widgets/flashcard_editor_sheet.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Accueil de la révision active : ce qui est dû aujourd'hui, la charge à
 /// venir, et l'accès aux outils de compréhension (SQ3R, « Explique-moi »).
@@ -90,7 +91,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
                 'Mémoriser ce qu\'on n\'a pas compris ne tient pas. '
                 'Ces deux outils travaillent la compréhension.',
                 style: TextStyle(
-                    fontSize: 12, color: context.cq.textMuted, height: 1.4),
+                    fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
               ),
               const SizedBox(height: 12),
               _ToolCard(
@@ -140,7 +141,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
                     child: Text(
                       '… et ${cards.length - 20} autres',
                       style:  TextStyle(
-                          fontSize: 12, color: context.cq.textHint),
+                          fontSize: TypeScale.caption, color: context.cq.textHint),
                     ),
                   ),
               ],
@@ -170,7 +171,7 @@ class _DueCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.cq.vert,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +180,7 @@ class _DueCard extends StatelessWidget {
             stats.hasWork ? '${stats.dueCount}' : '✓',
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 34,
+              fontSize: TypeScale.display,
               fontWeight: FontWeight.w700,
               height: 1.1,
             ),
@@ -192,14 +193,14 @@ class _DueCard extends StatelessWidget {
                 : stats.totalCards == 0
                     ? 'Aucune carte pour le moment'
                     : 'Tout est à jour. Reviens demain.',
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: 14),
+            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.body),
           ),
           if (stats.reviewedToday > 0) ...[
             const SizedBox(height: 6),
             Text(
               '${stats.reviewedToday} déjà travaillée'
               '${stats.reviewedToday > 1 ? 's' : ''} aujourd\'hui',
-              style:  TextStyle(color: context.cq.onVertMuted, fontSize: 12),
+              style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
             ),
           ],
           if (stats.hasWork) ...[
@@ -241,13 +242,13 @@ class _DeckFilter extends StatelessWidget {
       runSpacing: 8,
       children: [
         FilterChip(
-          label: const Text('Tous', style: TextStyle(fontSize: 12)),
+          label: const Text('Tous', style: TextStyle(fontSize: TypeScale.caption)),
           selected: selected == null,
           onSelected: (_) => onSelect(null),
         ),
         for (final deck in decks)
           FilterChip(
-            label: Text(deck, style: const TextStyle(fontSize: 12)),
+            label: Text(deck, style: const TextStyle(fontSize: TypeScale.caption)),
             selected: selected == deck,
             onSelected: (isSelected) => onSelect(isSelected ? deck : null),
           ),
@@ -311,7 +312,7 @@ class _UpcomingLoad extends StatelessWidget {
                                       child: Text(
                                         '${upcoming[i]}',
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: TypeScale.caption,
                                           fontWeight: FontWeight.w600,
                                           color: i == 0
                                               ? context.cq.textPrimary
@@ -333,7 +334,7 @@ class _UpcomingLoad extends StatelessWidget {
                                     : context.cq.vertDark
                                         .withValues(alpha: i == 0 ? 1 : 0.75),
                                 borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(4),
+                                  top: Radius.circular(Radii.md),
                                 ),
                               ),
                             ),
@@ -345,7 +346,7 @@ class _UpcomingLoad extends StatelessWidget {
                             Text(
                               labels[i],
                               style: TextStyle(
-                                fontSize: 9.5,
+                                fontSize: TypeScale.caption,
                                 fontWeight: i == 0
                                     ? FontWeight.w700
                                     : FontWeight.w500,
@@ -395,7 +396,7 @@ class _ToolCard extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: context.cq.vert.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 20, color: context.cq.vertDark),
               ),
@@ -406,13 +407,13 @@ class _ToolCard extends StatelessWidget {
                   children: [
                     Text(title,
                         style:  TextStyle(
-                            fontSize: 14,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
                     const SizedBox(height: 2),
                     Text(subtitle,
                         style:  TextStyle(
-                            fontSize: 12, color: context.cq.textMuted)),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
                   ],
                 ),
               ),
@@ -462,7 +463,7 @@ class _CardRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                          fontSize: 14, color: context.cq.textPrimary),
+                          fontSize: TypeScale.body, color: context.cq.textPrimary),
                     ),
                     const SizedBox(height: 3),
                     Row(
@@ -470,7 +471,7 @@ class _CardRow extends StatelessWidget {
                         Text(
                           dueLabel,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: TypeScale.caption,
                             color: card.isDue
                                 ? context.cq.vertDark
                                 : context.cq.textMuted,
@@ -481,14 +482,14 @@ class _CardRow extends StatelessWidget {
                         if (card.deck != null) ...[
                            Text(' · ',
                               style: TextStyle(
-                                  fontSize: 11, color: context.cq.textHint)),
+                                  fontSize: TypeScale.caption, color: context.cq.textHint)),
                           Flexible(
                             child: Text(
                               card.deck!,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style:  TextStyle(
-                                  fontSize: 11, color: context.cq.textHint),
+                                  fontSize: TypeScale.caption, color: context.cq.textHint),
                             ),
                           ),
                         ],
@@ -527,7 +528,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style:  TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),
@@ -543,7 +544,7 @@ class _EmptyCards extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child:  Column(
         children: [
@@ -554,7 +555,7 @@ class _EmptyCards extends StatelessWidget {
             'Crée-en une, ou génère-les depuis une fiche.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: 13, height: 1.4),
+                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
           ),
         ],
       ),

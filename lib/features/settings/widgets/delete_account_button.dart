@@ -79,6 +79,7 @@ class _ConfirmDeleteDialogState extends State<_ConfirmDeleteDialog> {
     final danger = context.cq.errorColor;
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Supprimer ton compte ?'),
       content: Column(
         mainAxisSize: MainAxisSize.min,

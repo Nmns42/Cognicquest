@@ -12,6 +12,7 @@ import '../data/note_repository.dart';
 import '../providers/note_provider.dart';
 import '../widgets/note_block_editor.dart';
 import '../widgets/note_meta_sheet.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Éditeur de fiche, avec **sauvegarde automatique** — « Sauvegarde automatique
 /// en local » (CdC). Aucun bouton « Enregistrer » : l'écriture part en SQLite
@@ -103,6 +104,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
       context: context,
       animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('Supprimer cette fiche ?'),
         content: Text(
           '${note.displayTitle}\n\nCette action est définitive.',
@@ -219,7 +221,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   onChanged: (_) => _scheduleSave(),
                   textCapitalization: TextCapitalization.sentences,
                   style:  TextStyle(
-                    fontSize: 22,
+                    fontSize: TypeScale.headline,
                     fontWeight: FontWeight.bold,
                     color: context.cq.textPrimary,
                   ),
@@ -231,7 +233,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                     focusedBorder: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
                     hintStyle: TextStyle(
-                      fontSize: 22,
+                      fontSize: TypeScale.headline,
                       fontWeight: FontWeight.bold,
                       color: context.cq.textHint,
                     ),
@@ -248,7 +250,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   textCapitalization: TextCapitalization.sentences,
                   keyboardType: TextInputType.multiline,
                   style:  TextStyle(
-                      fontSize: 15, height: 1.5, color: context.cq.textPrimary),
+                      fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
                   decoration: const InputDecoration(
                     hintText:
                         'Écris ici. Le Markdown est accepté (**gras**, # titre, - liste).',
@@ -296,20 +298,20 @@ class _MetaSummary extends StatelessWidget {
       children: [
         if (note.subject != null)
           Chip(
-            label: Text(note.subject!, style: const TextStyle(fontSize: 11)),
+            label: Text(note.subject!, style: const TextStyle(fontSize: TypeScale.caption)),
             avatar: const Icon(Icons.folder_outlined, size: 13),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
         for (final tag in note.tags)
           Chip(
-            label: Text('#$tag', style: const TextStyle(fontSize: 11)),
+            label: Text('#$tag', style: const TextStyle(fontSize: TypeScale.caption)),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
         if (importance != NoteImportance.review)
           Chip(
-            label: Text(importance.label, style: const TextStyle(fontSize: 11)),
+            label: Text(importance.label, style: const TextStyle(fontSize: TypeScale.caption)),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
@@ -342,7 +344,7 @@ class _AddBlockBar extends StatelessWidget {
          Text(
           'Ajouter un bloc',
           style: TextStyle(
-            fontSize: 12,
+            fontSize: TypeScale.caption,
             fontWeight: FontWeight.w600,
             color: context.cq.textMuted,
           ),
@@ -355,7 +357,7 @@ class _AddBlockBar extends StatelessWidget {
             for (final (type, icon) in _options)
               ActionChip(
                 avatar: Icon(icon, size: 15),
-                label: Text(type.label, style: const TextStyle(fontSize: 12)),
+                label: Text(type.label, style: const TextStyle(fontSize: TypeScale.caption)),
                 onPressed: () => onAdd(type),
                 visualDensity: VisualDensity.compact,
               ),
@@ -378,19 +380,19 @@ class _MarkdownPreview extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 60),
       styleSheet: MarkdownStyleSheet(
         h1:  TextStyle(
-            fontSize: 22, fontWeight: FontWeight.bold, color: context.cq.textPrimary),
+            fontSize: TypeScale.headline, fontWeight: FontWeight.bold, color: context.cq.textPrimary),
         h2:  TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w600, color: context.cq.textPrimary),
-        p:  TextStyle(fontSize: 15, height: 1.5, color: context.cq.textPrimary),
+            fontSize: TypeScale.title, fontWeight: FontWeight.w600, color: context.cq.textPrimary),
+        p:  TextStyle(fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
         blockquoteDecoration: BoxDecoration(
           color: context.cq.beigeDark.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         code: const TextStyle(
-            fontSize: 13, backgroundColor: Colors.transparent),
+            fontSize: TypeScale.body, backgroundColor: Colors.transparent),
         codeblockDecoration: BoxDecoration(
           color: context.cq.beigeDark.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
       ),
     );
@@ -421,7 +423,7 @@ class _SaveIndicator extends StatelessWidget {
             isSynced
                 ? 'Enregistrée et synchronisée'
                 : 'Enregistrée sur cet appareil',
-            style:  TextStyle(fontSize: 12, color: context.cq.textHint),
+            style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
           ),
         ],
       ),

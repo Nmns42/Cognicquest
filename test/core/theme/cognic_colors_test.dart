@@ -76,13 +76,13 @@ void main() {
       expect(nav.labelTextStyle!.resolve(selected),
           TextStyle(
               fontFamily: appFontFamily,
-              fontSize: 12,
+              fontSize: TypeScale.caption,
               fontWeight: FontWeight.w600,
               color: cq.vertDark));
       expect(nav.labelTextStyle!.resolve(states),
           TextStyle(
               fontFamily: appFontFamily,
-              fontSize: 12,
+              fontSize: TypeScale.caption,
               fontWeight: FontWeight.w500,
               color: cq.textMuted));
       expect(nav.iconTheme!.resolve(selected),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
+import '../../../core/theme/tokens.dart';
 
 class FlashcardDraft {
   const FlashcardDraft({required this.front, required this.back, this.deck});
@@ -78,7 +79,7 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
       child: Container(
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -94,7 +95,7 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -105,7 +106,7 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
                  Text(
                   'Une carte = une seule idée. Si tu hésites à la couper '
                   'en deux, coupe-la.',
-                  style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+                  style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
                 const SizedBox(height: 18),
 

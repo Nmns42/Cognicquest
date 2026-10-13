@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
 import '../providers/planning_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Objectifs SMART — « définir des objectifs précis, atteignables et
 /// mesurables » (CdC).
@@ -84,7 +85,7 @@ class _GoalCard extends ConsumerWidget {
                     child: Text(
                       goal.title,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: TypeScale.bodyLarge,
                         fontWeight: FontWeight.w600,
                         height: 1.3,
                         color: goal.isCompleted
@@ -120,7 +121,7 @@ class _GoalCard extends ConsumerWidget {
               if (goal.targetValue > 0) ...[
                 const SizedBox(height: 10),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   child: LinearProgressIndicator(
                     value: goal.progress,
                     minHeight: 7,
@@ -135,7 +136,7 @@ class _GoalCard extends ConsumerWidget {
                   '${goal.currentValue.toStringAsFixed(0)} / '
                   '${goal.targetValue.toStringAsFixed(0)} ${goal.metricLabel}',
                   style:  TextStyle(
-                      fontSize: 12, color: context.cq.textMuted),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
               ],
 
@@ -163,7 +164,7 @@ class _GoalCard extends ConsumerWidget {
                                     '${days > 1 ? 's' : ''}'
                                     '${pace != null && pace > 0 ? ' · ${pace.toStringAsFixed(1)} ${goal.metricLabel}/jour' : ''}'),
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: TypeScale.caption,
                           color: goal.isOverdue
                               ? context.cq.errorColor
                               : context.cq.textMuted,
@@ -189,12 +190,12 @@ class _GoalCard extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: context.cq.warning
                                 .withValues(alpha: 0.11),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(Radii.md),
                           ),
                           child: Text(
                             criterion.label,
                             style: TextStyle(
-                                fontSize: 10.5, color: context.cq.warning),
+                                fontSize: TypeScale.caption, color: context.cq.warning),
                           ),
                         ),
                       ),
@@ -228,7 +229,7 @@ class _EmptyState extends StatelessWidget {
             '« Faire 20 exercices de dérivées avant le 12 mai » en est un.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: 13, height: 1.45),
+                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
           ),
         ],
       ),
@@ -335,7 +336,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
         ),
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -351,7 +352,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -473,7 +474,7 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
                               '${_deadline!.month.toString().padLeft(2, '0')}/'
                               '${_deadline!.year}',
                       style:  TextStyle(
-                          fontSize: 14, color: context.cq.textPrimary),
+                          fontSize: TypeScale.body, color: context.cq.textPrimary),
                     ),
                   ),
                 ),
@@ -525,7 +526,7 @@ class _CriterionChip extends StatelessWidget {
           color: satisfied
               ? context.cq.vert.withValues(alpha: 0.13)
               : context.cq.beigeDark.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -539,7 +540,7 @@ class _CriterionChip extends StatelessWidget {
             Text(
               criterion.label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: TypeScale.caption,
                 fontWeight: FontWeight.w600,
                 color: satisfied ? context.cq.vertDark : context.cq.textMuted,
               ),

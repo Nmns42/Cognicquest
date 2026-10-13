@@ -241,7 +241,7 @@ class _SectionTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? context.cq.vertDark : context.cq.textMuted;
+    final color = selected ? context.cq.textPrimary : context.cq.textMuted;
     return Semantics(
       selected: selected,
       button: true,

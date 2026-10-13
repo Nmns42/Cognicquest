@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Tendance de l'humeur sur 7 jours.
 ///
@@ -46,7 +47,7 @@ class MoodTrendChart extends StatelessWidget {
             Text(
               '${logged.length} jour${logged.length > 1 ? 's' : ''} noté'
               '${logged.length > 1 ? 's' : ''} sur 7',
-              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 16),
             // Pas de hauteur fixe pour l'ensemble : elle ne laissait pas de
@@ -128,7 +129,7 @@ class _MoodBar extends StatelessWidget {
                               child: Text(
                                 mood.toStringAsFixed(1),
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: TypeScale.caption,
                                   fontWeight: FontWeight.w600,
                                   color: isToday
                                       ? context.cq.textPrimary
@@ -145,7 +146,7 @@ class _MoodBar extends StatelessWidget {
                         height: 4,
                         decoration: BoxDecoration(
                           color: context.cq.beigeDark,
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(Radii.sm),
                         ),
                       )
                     else
@@ -164,7 +165,7 @@ class _MoodBar extends StatelessWidget {
                             color: context.cq.vertDark
                                 .withValues(alpha: isToday ? 1 : 0.75),
                             borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(4),
+                              top: Radius.circular(Radii.md),
                             ),
                           ),
                         ),
@@ -177,7 +178,7 @@ class _MoodBar extends StatelessWidget {
               Text(
                 initial,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: TypeScale.caption,
                   fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                   color: isToday ? context.cq.textPrimary : context.cq.textHint,
                 ),

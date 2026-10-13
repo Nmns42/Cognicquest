@@ -6,6 +6,7 @@ import '../../../shared/models/planning_model.dart';
 import '../domain/revision_priority.dart';
 import '../providers/planning_provider.dart';
 import '../widgets/exam_target_sheet.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Ordre de révision par rentabilité — « viser là où il y a le plus de points
 /// en examen […] ⇒ ordre de révision » (CdC).
@@ -31,7 +32,7 @@ class RevisionOrderPage extends ConsumerWidget {
               'Chaque chapitre est classé par points récupérables à l\'heure, '
               'ajustés selon la proximité de l\'examen.',
               style: TextStyle(
-                  fontSize: 12.5, color: context.cq.textMuted, height: 1.45),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
             ),
             const SizedBox(height: 18),
 
@@ -48,12 +49,12 @@ class RevisionOrderPage extends ConsumerWidget {
                 color: plan.isFeasible
                     ? context.cq.vert.withValues(alpha: 0.08)
                     : context.cq.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               child: Text(
                 plan.summary,
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: TypeScale.caption,
                   height: 1.4,
                   color: plan.isFeasible
                       ? context.cq.vertDark
@@ -73,7 +74,7 @@ class RevisionOrderPage extends ConsumerWidget {
                 'Les 3 premiers : ~'
                 '${RevisionPriority.effortFor(ranked).toStringAsFixed(1)} h',
                 style:  TextStyle(
-                    fontSize: 11.5, color: context.cq.textMuted),
+                    fontSize: TypeScale.caption, color: context.cq.textMuted),
               ),
               const SizedBox(height: 12),
               for (var i = 0; i < ranked.length; i++)
@@ -90,7 +91,7 @@ class RevisionOrderPage extends ConsumerWidget {
                Text(
                 // Les montrer évite de croire à un oubli.
                 'Ils restent dans ta liste, mais ne rapporteraient rien.',
-                style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+                style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
               ),
               const SizedBox(height: 10),
               for (final entry in excluded)
@@ -128,13 +129,13 @@ class _CapacitySlider extends StatelessWidget {
           children: [
              Text('Temps d\'étude par jour',
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textPrimary)),
             const Spacer(),
             Text('${value.toStringAsFixed(1)} h',
                 style:  TextStyle(
-                    fontSize: 13,
+                    fontSize: TypeScale.body,
                     fontWeight: FontWeight.w700,
                     color: context.cq.vertDark)),
           ],
@@ -189,7 +190,7 @@ class _RankedRow extends ConsumerWidget {
                 child: Text(
                   '$rank',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: TypeScale.caption,
                     fontWeight: FontWeight.w700,
                     color: rank <= 3 ? context.onAccent : context.cq.textMuted,
                   ),
@@ -205,7 +206,7 @@ class _RankedRow extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                          fontSize: 14,
+                          fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textPrimary,
                           height: 1.3),
@@ -215,14 +216,14 @@ class _RankedRow extends ConsumerWidget {
                     Text(
                       entry.rationale,
                       style:  TextStyle(
-                          fontSize: 11.5, color: context.cq.textMuted),
+                          fontSize: TypeScale.caption, color: context.cq.textMuted),
                     ),
                     if (target.subject != null) ...[
                       const SizedBox(height: 5),
                       Text(
                         target.subject!,
                         style:  TextStyle(
-                            fontSize: 11, color: context.cq.textHint),
+                            fontSize: TypeScale.caption, color: context.cq.textHint),
                       ),
                     ],
                   ],
@@ -235,13 +236,13 @@ class _RankedRow extends ConsumerWidget {
                   Text(
                     entry.score.toStringAsFixed(1),
                     style:  TextStyle(
-                        fontSize: 15,
+                        fontSize: TypeScale.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: context.cq.vertDark),
                   ),
                    Text('pts/h',
                       style: TextStyle(
-                          fontSize: 10, color: context.cq.textHint)),
+                          fontSize: TypeScale.caption, color: context.cq.textHint)),
                 ],
               ),
             ],
@@ -272,11 +273,11 @@ class _ExcludedRow extends StatelessWidget {
               target.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style:  TextStyle(fontSize: 12.5, color: context.cq.textMuted),
+              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           Text(reason,
-              style:  TextStyle(fontSize: 11, color: context.cq.textHint)),
+              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint)),
         ],
       ),
     );
@@ -303,7 +304,7 @@ class _EmptyState extends StatelessWidget {
             'CognicQuest te dira par quoi commencer.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: 13, height: 1.45),
+                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/sync_coordinator.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Bandeau affiché seulement quand l'app travaille hors ligne.
 ///
@@ -42,7 +43,7 @@ class OfflineBanner extends ConsumerWidget {
                         child: Text(
                           message,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: TypeScale.caption,
                             color: context.cq.textMuted,
                           ),
                         ),

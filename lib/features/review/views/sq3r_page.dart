@@ -7,6 +7,7 @@ import '../../../shared/models/flashcard_model.dart';
 import '../../notes/providers/note_provider.dart';
 import '../domain/spaced_repetition.dart';
 import '../providers/review_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Lecture guidée SQ3R sur une fiche — « outil de lecture guidée avec étapes
 /// interactives » (CdC).
@@ -157,7 +158,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: context.cq.vert.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Radii.md),
                       border: Border.all(
                           color: context.cq.vert.withValues(alpha: 0.25)),
                     ),
@@ -171,7 +172,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
                           child: Text(
                             step.instruction,
                             style:  TextStyle(
-                                fontSize: 13,
+                                fontSize: TypeScale.body,
                                 color: context.cq.vertDark,
                                 height: 1.4),
                           ),
@@ -218,7 +219,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
                     const SizedBox(height: 16),
                      Text('Tes questions',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: TypeScale.caption,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textMuted)),
                     const SizedBox(height: 8),
@@ -227,7 +228,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text('• $question',
                             style:  TextStyle(
-                                fontSize: 13,
+                                fontSize: TypeScale.body,
                                 color: context.cq.textMuted,
                                 height: 1.4)),
                       ),
@@ -269,7 +270,7 @@ class _StepBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
-                label: Text(step.label, style: const TextStyle(fontSize: 12)),
+                label: Text(step.label, style: const TextStyle(fontSize: TypeScale.caption)),
                 selected: step == current,
                 onSelected: (_) => onSelect(step),
               ),
@@ -318,7 +319,7 @@ class _QuestionsStep extends StatelessWidget {
             'Aucune question pour l\'instant. Transforme chaque titre du '
             'cours en question : c\'est ce qui rend la lecture active.',
             style: TextStyle(
-                fontSize: 12, color: context.cq.textHint, height: 1.4),
+                fontSize: TypeScale.caption, color: context.cq.textHint, height: 1.4),
           )
         else
           for (var i = 0; i < questions.length; i++)
@@ -327,7 +328,7 @@ class _QuestionsStep extends StatelessWidget {
               child: ListTile(
                 dense: true,
                 title: Text(questions[i],
-                    style: const TextStyle(fontSize: 13)),
+                    style: const TextStyle(fontSize: TypeScale.body)),
                 trailing: IconButton(
                   visualDensity: VisualDensity.compact,
                   icon:  Icon(Icons.close, size: 16,
@@ -355,7 +356,7 @@ class _ReadStep extends StatelessWidget {
         if (questions.isNotEmpty) ...[
            Text('Garde ces questions en tête',
               style: TextStyle(
-                  fontSize: 12,
+                  fontSize: TypeScale.caption,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textMuted)),
           const SizedBox(height: 8),
@@ -364,7 +365,7 @@ class _ReadStep extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 6),
               child: Text('• $question',
                   style:  TextStyle(
-                      fontSize: 13, color: context.cq.vertDark, height: 1.4)),
+                      fontSize: TypeScale.body, color: context.cq.vertDark, height: 1.4)),
             ),
           const SizedBox(height: 18),
         ],
@@ -380,7 +381,7 @@ class _ReadStep extends StatelessWidget {
                 ? 'Cette fiche est vide. Ajoute son contenu pour la lire ici.'
                 : noteContent,
             style:  TextStyle(
-                fontSize: 14, height: 1.55, color: context.cq.textPrimary),
+                fontSize: TypeScale.body, height: 1.55, color: context.cq.textPrimary),
           ),
         ),
       ],

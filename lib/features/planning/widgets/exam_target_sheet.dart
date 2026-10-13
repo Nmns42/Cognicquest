@@ -7,6 +7,7 @@ import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
 import '../domain/revision_priority.dart';
 import '../providers/planning_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Déclaration d'un chapitre à réviser, avec de quoi calculer sa rentabilité.
 class ExamTargetSheet extends ConsumerStatefulWidget {
@@ -117,7 +118,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
         ),
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -133,7 +134,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -242,7 +243,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                               '${_examDate!.month.toString().padLeft(2, '0')}/'
                               '${_examDate!.year}',
                       style:  TextStyle(
-                          fontSize: 14, color: context.cq.textPrimary),
+                          fontSize: TypeScale.body, color: context.cq.textPrimary),
                     ),
                   ),
                 ),
@@ -252,7 +253,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: context.cq.vert.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Radii.md),
                     border: Border.all(
                         color: context.cq.vert.withValues(alpha: 0.25)),
                   ),
@@ -261,7 +262,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                     children: [
                        Text('Rentabilité estimée',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: TypeScale.caption,
                               fontWeight: FontWeight.w600,
                               color: context.cq.vertDark)),
                       const SizedBox(height: 6),
@@ -271,7 +272,7 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                         '${preview.estimatedCost.toStringAsFixed(1)} h '
                         '→ ${RevisionPriority.scoreFor(preview).toStringAsFixed(1)} pts/h',
                         style:  TextStyle(
-                            fontSize: 12.5,
+                            fontSize: TypeScale.caption,
                             color: context.cq.textPrimary,
                             height: 1.4),
                       ),
@@ -335,11 +336,11 @@ class _Slider extends StatelessWidget {
           children: [
             Text(label,
                 style:  TextStyle(
-                    fontSize: 13, color: context.cq.textPrimary)),
+                    fontSize: TypeScale.body, color: context.cq.textPrimary)),
             const Spacer(),
             Text(valueLabel,
                 style:  TextStyle(
-                    fontSize: 12.5,
+                    fontSize: TypeScale.caption,
                     fontWeight: FontWeight.w700,
                     color: context.cq.vertDark)),
           ],

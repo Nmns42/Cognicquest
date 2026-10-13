@@ -21,27 +21,34 @@ abstract final class Space {
   static const List<double> scale = [0, xs, sm, md, lg, xl, xxl, xxxl];
 }
 
-/// Rayons d'angle.
+/// Rayons d'angle : quasi droits.
+///
+/// Les grands arrondis sont la signature des interfaces génériques ; des
+/// angles presque vifs donnent un dessin plus net, plus « sur mesure ».
 abstract final class Radii {
   /// Champs, puces, petits contrôles.
-  static const double sm = 8;
+  static const double sm = 2;
 
   /// Cartes et boutons.
-  static const double md = 12;
+  static const double md = 4;
 
-  /// Feuilles du bas et dialogues.
-  static const double lg = 20;
+  /// Feuilles du bas et dialogues : pas plus ronds que le reste.
+  static const double lg = 4;
 }
 
 /// Échelle typographique : six tailles, pas une de plus.
+///
+/// Base relevée (15 au lieu de 14) pour que l'interface respire ; l'élégance
+/// vient de l'interlettrage ([tracking…]) et de l'interligne, pas de la
+/// graisse.
 abstract final class TypeScale {
   /// Mentions, légendes, étiquettes de navigation. Jamais en dessous.
-  static const double caption = 12;
-  static const double body = 14;
-  static const double bodyLarge = 16;
-  static const double title = 20;
-  static const double headline = 24;
-  static const double display = 32;
+  static const double caption = 13;
+  static const double body = 15;
+  static const double bodyLarge = 17;
+  static const double title = 21;
+  static const double headline = 26;
+  static const double display = 34;
 
   static const List<double> sizes = [
     caption,
@@ -53,10 +60,25 @@ abstract final class TypeScale {
   ];
 
   /// Interligne du texte courant : confortable à la lecture longue.
-  static const double bodyHeight = 1.5;
+  static const double bodyHeight = 1.55;
 
   /// Interligne des titres : plus serré, ils tiennent sur peu de lignes.
   static const double titleHeight = 1.25;
+
+  /// Titres : Atkinson est large, un interlettrage légèrement resserré
+  /// donne des titres plus denses et plus nets.
+  static const double trackingTitle = -0.3;
+
+  /// Texte courant : à peine ouvert, il gagne en clarté.
+  static const double trackingBody = 0.15;
+
+  /// Petits textes (légendes, étiquettes) : plus ouverts pour rester
+  /// lisibles à 13 px.
+  static const double trackingCaption = 0.3;
+
+  /// Libellés de boutons et d'onglets : ouverts, ils se lisent d'un coup
+  /// d'œil sans être mis en gras.
+  static const double trackingLabel = 0.4;
 }
 
 /// Dimensions des contrôles.
@@ -90,8 +112,9 @@ abstract final class Borders {
 /// Opacités des teintes d'accent.
 abstract final class Tints {
   /// Fond d'un élément sélectionné (onglet, ligne, puce, indicateur de
-  /// navigation) : l'accent assez dilué pour garder le texte lisible.
-  static const double selected = 0.16;
+  /// navigation). Le texte posé dessus est en `textPrimary` : l'accent en
+  /// texte n'y tiendrait pas 4,5:1 (cf. contrast_test).
+  static const double selected = 0.35;
 }
 
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`).

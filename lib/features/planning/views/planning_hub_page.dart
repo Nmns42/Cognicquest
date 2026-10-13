@@ -8,6 +8,7 @@ import '../../../router/app_router.dart';
 import '../../../shared/models/planning_model.dart';
 import '../domain/adaptive_schedule.dart';
 import '../providers/planning_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Accueil de la planification : objectifs, échéances, accès aux outils.
 class PlanningHubPage extends ConsumerStatefulWidget {
@@ -116,13 +117,13 @@ class _NextDeadlineCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: context.cq.beigeDark.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(Radii.md),
         ),
         child:  Text(
           'Aucune échéance planifiée.\n'
           'Ajoute tes examens et rendus pour voir venir.',
           style: TextStyle(
-              color: context.cq.textMuted, fontSize: 13, height: 1.45),
+              color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
         ),
       );
     }
@@ -138,7 +139,7 @@ class _NextDeadlineCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: days <= 3 ? context.cq.errorColor : context.cq.vert,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +150,7 @@ class _NextDeadlineCard extends StatelessWidget {
                 : (days == 1 ? 'Demain' : 'Dans $days jours'),
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 24,
+              fontSize: TypeScale.headline,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -157,12 +158,12 @@ class _NextDeadlineCard extends StatelessWidget {
           Text(
             next.title,
             style: TextStyle(
-                color: context.onAccent, fontSize: 15, fontWeight: FontWeight.w500),
+                color: context.onAccent, fontSize: TypeScale.bodyLarge, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 2),
           Text(
             '${next.endDate.day} ${_months[next.endDate.month - 1]}',
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: 12),
+            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
           ),
           if (upcoming.length > 1) ...[
             const SizedBox(height: 12),
@@ -170,7 +171,7 @@ class _NextDeadlineCard extends StatelessWidget {
               '+ ${upcoming.length - 1} autre'
               '${upcoming.length > 2 ? 's' : ''} échéance'
               '${upcoming.length > 2 ? 's' : ''} à venir',
-              style:  TextStyle(color: context.cq.onVertMuted, fontSize: 12),
+              style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
             ),
           ],
         ],
@@ -212,7 +213,7 @@ class _PlanSummaryCard extends ConsumerWidget {
             Text(
               plan.summary,
               style:  TextStyle(
-                  fontSize: 12.5, color: context.cq.textMuted, height: 1.4),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
             ),
             const SizedBox(height: 14),
             OutlinedButton.icon(
@@ -267,7 +268,7 @@ class _GoalRow extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                          fontSize: 14,
+                          fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textPrimary,
                           height: 1.3),
@@ -288,7 +289,7 @@ class _GoalRow extends ConsumerWidget {
               if (goal.targetValue > 0) ...[
                 const SizedBox(height: 10),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   child: LinearProgressIndicator(
                     value: goal.progress,
                     minHeight: 6,
@@ -302,7 +303,7 @@ class _GoalRow extends ConsumerWidget {
                   '${goal.targetValue.toStringAsFixed(0)} ${goal.metricLabel}'
                   '${pace != null && pace > 0 ? ' · ${pace.toStringAsFixed(1)} / jour pour tenir' : ''}',
                   style:  TextStyle(
-                      fontSize: 11.5, color: context.cq.textMuted),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
               ],
             ],
@@ -341,7 +342,7 @@ class _ToolTile extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: context.cq.vert.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 19, color: context.cq.vertDark),
               ),
@@ -352,7 +353,7 @@ class _ToolTile extends StatelessWidget {
                   children: [
                     Text(title,
                         style:  TextStyle(
-                            fontSize: 14,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
                     const SizedBox(height: 2),
@@ -360,7 +361,7 @@ class _ToolTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style:  TextStyle(
-                            fontSize: 12, color: context.cq.textMuted)),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
                   ],
                 ),
               ),
@@ -383,7 +384,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style:  TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),

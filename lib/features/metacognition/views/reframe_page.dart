@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
 import '../providers/metacognition_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Recadrage cognitif — « identifier et transformer les pensées bloquantes
 /// (ex : "Je suis nul en maths") en objectifs de croissance » (CdC).
@@ -121,7 +122,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
             const SizedBox(height: 4),
              Text(
               'Nommer le mécanisme le désamorce en partie.',
-              style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 10),
             Wrap(
@@ -133,7 +134,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
                     message: distortion.example,
                     child: FilterChip(
                       label: Text(distortion.label,
-                          style: const TextStyle(fontSize: 12)),
+                          style: const TextStyle(fontSize: TypeScale.caption)),
                       selected: _distortion == distortion,
                       onSelected: (selected) => setState(
                           () => _distortion = selected ? distortion : null),
@@ -149,7 +150,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
               'Des faits, pas des encouragements. Une note correcte, un '
               'exercice réussi, un progrès mesurable.',
               style: TextStyle(
-                  fontSize: 11.5, color: context.cq.textMuted, height: 1.4),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -181,7 +182,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
             const SizedBox(height: 4),
              Text(
               'Ce que tu vas faire, pas ce que tu voudrais être.',
-              style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 8),
             TextField(
@@ -206,7 +207,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
                Text(
                 'Tes recadrages',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textPrimary,
                 ),
@@ -243,7 +244,7 @@ class _Step extends StatelessWidget {
           child: Text(
             '$number',
             style: TextStyle(
-                color: context.onAccent, fontSize: 11, fontWeight: FontWeight.w700),
+                color: context.onAccent, fontSize: TypeScale.caption, fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: 10),
@@ -251,7 +252,7 @@ class _Step extends StatelessWidget {
           child: Text(
             label,
             style:  TextStyle(
-              fontSize: 14,
+              fontSize: TypeScale.body,
               fontWeight: FontWeight.w600,
               color: context.cq.textPrimary,
             ),
@@ -288,7 +289,7 @@ class _ReframeRow extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                        fontSize: 13,
+                        fontSize: TypeScale.body,
                         fontStyle: FontStyle.italic,
                         color: context.cq.textMuted,
                         height: 1.35,
@@ -302,12 +303,12 @@ class _ReframeRow extends StatelessWidget {
                           horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: context.cq.warning.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(7),
+                        borderRadius: BorderRadius.circular(Radii.md),
                       ),
                       child: Text(
                         'à finir',
                         style: TextStyle(
-                            fontSize: 10, color: context.cq.warning),
+                            fontSize: TypeScale.caption, color: context.cq.warning),
                       ),
                     ),
                 ],
@@ -326,7 +327,7 @@ class _ReframeRow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style:  TextStyle(
-                            fontSize: 13,
+                            fontSize: TypeScale.body,
                             color: context.cq.textPrimary,
                             height: 1.35),
                       ),

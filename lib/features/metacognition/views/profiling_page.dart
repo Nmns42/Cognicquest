@@ -6,6 +6,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/learning_profile.dart';
 import '../providers/metacognition_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Onboarding de profilage — « un questionnaire initial pour aider l'étudiant
 /// à comprendre son propre mode d'emploi avant de commencer » (CdC).
@@ -114,7 +115,7 @@ class _ProfilingPageState extends ConsumerState<ProfilingPage> {
             Text(
               question.prompt,
               style:  TextStyle(
-                fontSize: 19,
+                fontSize: TypeScale.title,
                 fontWeight: FontWeight.w600,
                 color: context.cq.textPrimary,
                 height: 1.35,
@@ -123,7 +124,7 @@ class _ProfilingPageState extends ConsumerState<ProfilingPage> {
             const SizedBox(height: 6),
              Text(
               'Il n\'y a pas de bonne réponse : seulement la tienne.',
-              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 24),
             for (final option in question.options)
@@ -157,7 +158,7 @@ class _OptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: AnimatedContainer(
         duration: Motion.duration(context, const Duration(milliseconds: 150)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -165,7 +166,7 @@ class _OptionCard extends StatelessWidget {
           color: isSelected
               ? context.cq.vert.withValues(alpha: 0.1)
               : context.cq.cardColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
             color: isSelected ? context.cq.vert : context.cq.beigeDark,
             width: isSelected ? 1.8 : 1,
@@ -185,7 +186,7 @@ class _OptionCard extends StatelessWidget {
               child: Text(
                 label,
                 style:  TextStyle(
-                    fontSize: 14, color: context.cq.textPrimary, height: 1.35),
+                    fontSize: TypeScale.body, color: context.cq.textPrimary, height: 1.35),
               ),
             ),
           ],
@@ -244,7 +245,7 @@ class _ResultScaffold extends StatelessWidget {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child:  Text(
                   // On préfère ne rien affirmer plutôt que de trancher au
@@ -253,7 +254,7 @@ class _ResultScaffold extends StatelessWidget {
                   'ne se dégage nettement. C\'est fréquent, et plutôt bon signe '
                   '— tu t\'adaptes selon les situations.',
                   style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: TypeScale.caption,
                       color: context.cq.textMuted,
                       height: 1.45),
                 ),
@@ -265,7 +266,7 @@ class _ResultScaffold extends StatelessWidget {
                Text(
                 'Ce que CognicQuest te conseille',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textPrimary,
                 ),
@@ -278,7 +279,7 @@ class _ResultScaffold extends StatelessWidget {
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
                       color: context.cq.vert.withValues(alpha: 0.07),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Radii.md),
                       border: Border.all(
                           color: context.cq.vert.withValues(alpha: 0.22)),
                     ),
@@ -292,7 +293,7 @@ class _ResultScaffold extends StatelessWidget {
                           child: Text(
                             tip,
                             style:  TextStyle(
-                                fontSize: 12.5,
+                                fontSize: TypeScale.caption,
                                 color: context.cq.textPrimary,
                                 height: 1.45),
                           ),
@@ -333,7 +334,7 @@ class _TraitCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: context.cq.vert,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,7 +345,7 @@ class _TraitCard extends StatelessWidget {
             title,
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 18,
+              fontSize: TypeScale.title,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -352,7 +353,7 @@ class _TraitCard extends StatelessWidget {
           Text(
             description,
             style:  TextStyle(
-                color: context.cq.onVertMuted, fontSize: 13, height: 1.4),
+                color: context.cq.onVertMuted, fontSize: TypeScale.body, height: 1.4),
           ),
         ],
       ),

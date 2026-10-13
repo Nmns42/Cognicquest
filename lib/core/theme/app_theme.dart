@@ -181,19 +181,23 @@ class AppTheme {
   //
   // Contrastes mesurés (WCAG), sur le fond et sur les cartes :
   // texte ≥ 10:1, texte secondaire, accent en texte, erreur et
-  // avertissement ≥ 4,5:1, texte sur l'accent ≥ 4,5:1. Le vert de l'accent a
-  // été assombri (#7A9E7E → #5F7B62) : le blanc posé dessus plafonnait à 3:1.
+  // avertissement ≥ 4,5:1, texte sur l'accent ≥ 4,5:1.
+  //
+  // Accent : un eucalyptus pâle et désaturé (#ABC4B8). Trop clair pour
+  // porter du blanc, il porte un vert très sombre (#1F3329, 7,2:1) : des
+  // boutons doux, sans masse sombre. Le vert en texte (#4A7861) est le plus
+  // clair qui tienne 4,5:1 sur le fond.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFF5F7B62),
-    vertDark: Color(0xFF4F6B53),
+    vert: Color(0xFFABC4B8),
+    vertDark: Color(0xFF4A7861),
     beige: Color(0xFFF9F6F0),
-    beigeDark: Color(0xFFEAE5DC),
-    textPrimary: Color(0xFF2C3E50),
-    textMuted: Color(0xFF677172),
-    textHint: Color(0xFF888C8F),
+    beigeDark: Color(0xFFE8E5DC),
+    textPrimary: Color(0xFF2B3A36),
+    textMuted: Color(0xFF63706A),
+    textHint: Color(0xFF878D88),
     errorColor: Color(0xFFC44133),
-    onVertMuted: Color(0xFFF1F6F1),
+    onVertMuted: Color(0xFF2E4A3D),
     warning: Color(0xFF966627),
     cardColor: Color(0xFFFFFDF9),
   );
@@ -204,8 +208,8 @@ class AppTheme {
   /// sont désaturées et les contrastes recalculés pour rester lisibles sur
   /// fond sombre sans éblouir.
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFF8FB894),
-    vertDark: Color(0xFFA9CCAE),
+    vert: Color(0xFF8DB098),
+    vertDark: Color(0xFFA8C9B4),
     beige: Color(0xFF16191A),
     beigeDark: Color(0xFF2C3133),
     textPrimary: Color(0xFFE8EBE9),
@@ -224,7 +228,7 @@ class AppTheme {
 
   /// Texte et icônes posés sur l'accent plein (boutons, pastilles).
   static Color onAccentFor(AppThemeVariant variant) =>
-      variant.isDark ? _darkColors.beige : Colors.white;
+      variant.isDark ? _darkColors.beige : const Color(0xFF1F3329);
 
   /// Thème clair, conservé pour les tests et les écrans hors préférences
   /// (démarrage, erreur fatale).
@@ -259,8 +263,9 @@ class AppTheme {
     );
     const buttonLabel = TextStyle(
       fontFamily: appFontFamily,
-      fontSize: TypeScale.bodyLarge,
+      fontSize: TypeScale.body,
       fontWeight: FontWeight.w600,
+      letterSpacing: TypeScale.trackingLabel,
     );
 
     return ThemeData(
@@ -268,7 +273,17 @@ class AppTheme {
       brightness: brightness,
       fontFamily: appFontFamily,
       colorScheme: scheme,
-      scaffoldBackgroundColor: cq.beige,
+      // Transparent : le fond (beige et motif de feuilles) est peint une
+      // seule fois sous toute l'app, par `ZenBackground`.
+      scaffoldBackgroundColor: Colors.transparent,
+      canvasColor: cq.beige,
+      // Fondu enchaîné discret entre les écrans, sur toutes les plateformes.
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const FadeForwardsPageTransitionsBuilder(),
+        },
+      ),
       primaryColor: cq.vert,
       cardColor: cq.cardColor,
       extensions: [cq],
@@ -487,9 +502,11 @@ class AppTheme {
             fontFamily: appFontFamily,
             color: cq.textPrimary,
             fontSize: TypeScale.caption),
+        // Texte d'une puce sélectionnée : posé sur la teinte, donc en couleur
+        // de texte (l'accent n'y tiendrait pas 4,5:1).
         secondaryLabelStyle: TextStyle(
             fontFamily: appFontFamily,
-            color: cq.vertDark,
+            color: cq.textPrimary,
             fontSize: TypeScale.caption),
       ),
 
@@ -509,16 +526,19 @@ class AppTheme {
             fontFamily: appFontFamily,
             fontSize: TypeScale.body,
             fontWeight: FontWeight.w600,
+            letterSpacing: TypeScale.trackingLabel,
             color: cq.textPrimary),
         labelMedium: TextStyle(
             fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w600,
+            letterSpacing: TypeScale.trackingCaption,
             color: cq.textPrimary),
         labelSmall: TextStyle(
             fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w500,
+            letterSpacing: TypeScale.trackingCaption,
             color: cq.textMuted),
       ),
     );
@@ -529,6 +549,9 @@ class AppTheme {
         fontSize: size,
         fontWeight: FontWeight.w600,
         height: TypeScale.titleHeight,
+        // Les petits titres gardent un interlettrage neutre ; seuls les grands
+        // gagnent à être resserrés.
+        letterSpacing: size >= TypeScale.title ? TypeScale.trackingTitle : 0,
         color: color,
       );
 
@@ -536,6 +559,9 @@ class AppTheme {
         fontFamily: appFontFamily,
         fontSize: size,
         height: TypeScale.bodyHeight,
+        letterSpacing: size <= TypeScale.caption
+            ? TypeScale.trackingCaption
+            : TypeScale.trackingBody,
         color: color,
       );
 }

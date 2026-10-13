@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../domain/spaced_repetition.dart';
 import '../providers/review_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Session de révision : une carte à la fois, réponse cachée, puis jugement.
 ///
@@ -83,12 +84,12 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: context.cq.vert.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(Radii.md),
                         ),
                         child:  Text(
                           'Nouvelle carte',
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: TypeScale.caption,
                               fontWeight: FontWeight.w600,
                               color: context.cq.vertDark),
                         ),
@@ -185,7 +186,7 @@ class _Face extends StatelessWidget {
           Text(
             label.toUpperCase(),
             style:  TextStyle(
-              fontSize: 10,
+              fontSize: TypeScale.caption,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.6,
               color: context.cq.textHint,
@@ -228,7 +229,7 @@ class _HiddenAnswer extends StatelessWidget {
             'C\'est l\'effort de rappel qui ancre la mémoire.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 13, color: context.cq.textMuted, height: 1.45),
+                fontSize: TypeScale.body, color: context.cq.textMuted, height: 1.45),
           ),
         ),
         const SizedBox(height: 16),
@@ -269,7 +270,7 @@ class _GradeBar extends StatelessWidget {
         children: [
            Text(
             'Sois honnête : c\'est ce qui règle ton planning.',
-            style: TextStyle(fontSize: 11, color: context.cq.textHint),
+            style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
           ),
           const SizedBox(height: 10),
           Row(
@@ -297,7 +298,7 @@ class _GradeBar extends StatelessWidget {
                             child: Text(
                               grade.label,
                               style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600),
+                                  fontSize: TypeScale.caption, fontWeight: FontWeight.w600),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -308,7 +309,7 @@ class _GradeBar extends StatelessWidget {
                               SpacedRepetition.describeInterval(
                                   preview[grade] ?? 0),
                               style:  TextStyle(
-                                  fontSize: 10, color: context.cq.textMuted),
+                                  fontSize: TypeScale.caption, color: context.cq.textMuted),
                             ),
                           ),
                         ],
@@ -359,7 +360,7 @@ class _Finished extends StatelessWidget {
                       'Le rythme des révisions s\'est ajusté tout seul.',
               textAlign: TextAlign.center,
               style:  TextStyle(
-                  color: context.cq.textMuted, fontSize: 14, height: 1.4),
+                  color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
             ),
             const SizedBox(height: 24),
             FilledButton(

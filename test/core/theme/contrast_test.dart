@@ -48,6 +48,13 @@ void main() {
         expect(ratio(onAccent, cq.vert), greaterThanOrEqualTo(4.5));
       });
 
+      test('sur une teinte de sélection : texte ≥ 4,5:1, icône ≥ 3:1', () {
+        final tint = Color.alphaBlend(
+            cq.vert.withValues(alpha: Tints.selected), cq.beige);
+        expect(ratio(cq.textPrimary, tint), greaterThanOrEqualTo(4.5));
+        expect(ratio(cq.vertDark, tint), greaterThanOrEqualTo(3));
+      });
+
       for (final MapEntry(key: bgName, value: bg) in backgrounds.entries) {
         test('indications (non textuelles) sur $bgName ≥ 3:1', () {
           expect(ratio(cq.textHint, bg), greaterThanOrEqualTo(3));

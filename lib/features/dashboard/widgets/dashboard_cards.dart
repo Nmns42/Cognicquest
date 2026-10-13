@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../../../shared/models/task_model.dart';
 import '../../kanban/widgets/task_card.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Bandeau d'accueil.
 class GreetingCard extends StatelessWidget {
@@ -27,7 +28,7 @@ class GreetingCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: context.cq.vert,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +37,7 @@ class GreetingCard extends StatelessWidget {
             name.isEmpty ? '$greeting !' : '$greeting, $name !',
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 22,
+              fontSize: TypeScale.headline,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -45,7 +46,7 @@ class GreetingCard extends StatelessWidget {
             dateLabel,
             // Le gris `textMuted` sur fond vert échouait au contraste WCAG :
             // on utilise le ton clair dédié.
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: 14),
+            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.body),
           ),
         ],
       ),
@@ -84,7 +85,7 @@ class HeroFocusCard extends StatelessWidget {
                   Text(
                     value,
                     style:  TextStyle(
-                      fontSize: 34,
+                      fontSize: TypeScale.display,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
                       color: context.cq.textPrimary,
@@ -94,7 +95,7 @@ class HeroFocusCard extends StatelessWidget {
                   Text(
                     caption,
                     style:  TextStyle(
-                        fontSize: 13, color: context.cq.textMuted),
+                        fontSize: TypeScale.body, color: context.cq.textMuted),
                   ),
                 ],
               ),
@@ -145,7 +146,7 @@ class StatTile extends StatelessWidget {
                   value,
                   style:  TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 20,
+                    fontSize: TypeScale.title,
                     color: context.cq.textPrimary,
                   ),
                 ),
@@ -154,7 +155,7 @@ class StatTile extends StatelessWidget {
               Text(
                 label,
                 style:
-                     TextStyle(color: context.cq.textMuted, fontSize: 11),
+                     TextStyle(color: context.cq.textMuted, fontSize: TypeScale.caption),
               ),
             ],
           ),
@@ -203,7 +204,7 @@ class QuickStartCard extends StatelessWidget {
                     'Démarrer une session',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: TypeScale.bodyLarge,
                       color: context.cq.textPrimary,
                     ),
                   ),
@@ -211,7 +212,7 @@ class QuickStartCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style:  TextStyle(
-                        color: context.cq.textMuted, fontSize: 13),
+                        color: context.cq.textMuted, fontSize: TypeScale.body),
                   ),
                 ],
               ),
@@ -275,7 +276,7 @@ class TaskPreviewRow extends StatelessWidget {
             children: [
               InkWell(
                 onTap: onToggle,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(Radii.md),
                 child: Padding(
                   padding: const EdgeInsets.all(2),
                   child: Container(
@@ -284,7 +285,7 @@ class TaskPreviewRow extends StatelessWidget {
                     decoration: BoxDecoration(
                       border:
                           Border.all(color: context.cq.beigeDark, width: 2),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(Radii.md),
                     ),
                   ),
                 ),
@@ -296,7 +297,7 @@ class TaskPreviewRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:  TextStyle(
-                      fontSize: 14, color: context.cq.textPrimary),
+                      fontSize: TypeScale.body, color: context.cq.textPrimary),
                 ),
               ),
               if (task.isOverdue)
@@ -360,7 +361,7 @@ class HabitPreviewRow extends StatelessWidget {
                     color: done ? context.cq.vert : context.cq.beigeDark,
                     width: 2,
                   ),
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: done
                     ? Icon(Icons.check, size: 13, color: context.onAccent)
@@ -374,7 +375,7 @@ class HabitPreviewRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: TypeScale.body,
                     color: context.cq.textPrimary,
                     decoration: done ? TextDecoration.lineThrough : null,
                     decorationColor: context.cq.textMuted,
@@ -388,7 +389,7 @@ class HabitPreviewRow extends StatelessWidget {
                     : Text(
                         '🔥 $streak',
                         style: TextStyle(
-                            fontSize: 12, color: context.cq.errorColor),
+                            fontSize: TypeScale.caption, color: context.cq.errorColor),
                       ),
               ),
             ],
@@ -419,7 +420,7 @@ class EmptySection extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Row(
         children: [
@@ -429,7 +430,7 @@ class EmptySection extends StatelessWidget {
             child: Text(
               message,
               style:
-                   TextStyle(color: context.cq.textMuted, fontSize: 14),
+                   TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
             ),
           ),
           if (onAction != null && actionLabel != null)

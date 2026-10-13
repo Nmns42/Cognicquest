@@ -9,6 +9,7 @@ import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
 import '../widgets/routine_editor.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Système de configuration — « Changement de thème, taille du texte,
 /// raccourcis clavier » et « sons d'ambiance réglables individuellement »
@@ -39,7 +40,7 @@ class SettingsPage extends ConsumerWidget {
           Text(
             'S\'applique à toute l\'application, y compris aux écrans déjà '
             'ouverts.',
-            style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+            style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
           ),
           const SizedBox(height: 10),
           SegmentedButton<TextScalePreset>(
@@ -48,7 +49,7 @@ class SettingsPage extends ConsumerWidget {
                 ButtonSegment(
                   value: preset,
                   label: Text(preset.label,
-                      style: const TextStyle(fontSize: 11)),
+                      style: const TextStyle(fontSize: TypeScale.caption)),
                 ),
             ],
             selected: {settings.textScale},
@@ -61,14 +62,14 @@ class SettingsPage extends ConsumerWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: context.cq.beigeDark.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(Radii.md),
             ),
             // Aperçu en direct : l'utilisateur voit l'effet avant de quitter
             // l'écran.
             child: Text(
               'Aperçu — CognicQuest t\'aide à apprendre mieux, chaque jour.',
               style: TextStyle(
-                  fontSize: 14, height: 1.45, color: context.cq.textPrimary),
+                  fontSize: TypeScale.body, height: 1.45, color: context.cq.textPrimary),
             ),
           ),
           const SizedBox(height: 26),
@@ -79,7 +80,7 @@ class SettingsPage extends ConsumerWidget {
             'Un fond sonore constant masque les bruits parasites et aide à '
             'rester en place.',
             style: TextStyle(
-                fontSize: 11.5, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
           ),
           const SizedBox(height: 10),
           _SoundPicker(settings: settings, notifier: notifier),
@@ -92,10 +93,10 @@ class SettingsPage extends ConsumerWidget {
             value: settings.reduceMotion,
             onChanged: (_) => notifier.toggleReduceMotion(),
             title: const Text('Réduire les animations',
-                style: TextStyle(fontSize: 14)),
+                style: TextStyle(fontSize: TypeScale.body)),
             subtitle: Text(
               'Transitions plus courtes, moins de mouvement à l\'écran',
-              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           SwitchListTile.adaptive(
@@ -103,10 +104,10 @@ class SettingsPage extends ConsumerWidget {
             value: settings.keyboardShortcutsEnabled,
             onChanged: (_) => notifier.toggleKeyboardShortcuts(),
             title: const Text('Raccourcis clavier',
-                style: TextStyle(fontSize: 14)),
+                style: TextStyle(fontSize: TypeScale.body)),
             subtitle: Text(
               'Navigation rapide au clavier sur web et bureau',
-              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           if (settings.keyboardShortcutsEnabled) ...[
@@ -121,7 +122,7 @@ class SettingsPage extends ConsumerWidget {
             'Un cadre fixe le matin et le soir coûte moins d\'énergie qu\'une '
             'décision à reprendre chaque jour.',
             style: TextStyle(
-                fontSize: 11.5, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
           ),
           const SizedBox(height: 12),
           RoutineEditor(
@@ -145,6 +146,7 @@ class SettingsPage extends ConsumerWidget {
                 context: context,
                 animationStyle: Motion.style(context),
                 builder: (context) => AlertDialog(
+                  scrollable: true,
                   title: const Text('Rétablir les réglages ?'),
                   content: const Text(
                     'Thème, taille de texte, sons et routines reviendront à '
@@ -197,7 +199,7 @@ class _ThemePicker extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
               onTap: () => onSelect(variant),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(Radii.md),
               child: AnimatedContainer(
                 duration: Motion.duration(context, const Duration(milliseconds: 150)),
                 padding: const EdgeInsets.all(14),
@@ -205,7 +207,7 @@ class _ThemePicker extends StatelessWidget {
                   color: variant == selected
                       ? context.cq.vert.withValues(alpha: 0.1)
                       : context.cq.cardColor,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   border: Border.all(
                     color: variant == selected
                         ? context.cq.vert
@@ -223,13 +225,13 @@ class _ThemePicker extends StatelessWidget {
                         children: [
                           Text(variant.label,
                               style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: TypeScale.body,
                                   fontWeight: FontWeight.w600,
                                   color: context.cq.textPrimary)),
                           const SizedBox(height: 1),
                           Text(variant.description,
                               style: TextStyle(
-                                  fontSize: 11.5,
+                                  fontSize: TypeScale.caption,
                                   color: context.cq.textMuted)),
                         ],
                       ),
@@ -269,7 +271,7 @@ class _Swatch extends StatelessWidget {
       height: 44,
       decoration: BoxDecoration(
         color: palette.beige,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: palette.beigeDark),
       ),
       child: Column(
@@ -281,7 +283,7 @@ class _Swatch extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               color: palette.vert,
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(Radii.sm),
             ),
           ),
           const SizedBox(height: 4),
@@ -290,7 +292,7 @@ class _Swatch extends StatelessWidget {
             height: 4,
             decoration: BoxDecoration(
               color: palette.textMuted,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(Radii.sm),
             ),
           ),
         ],
@@ -318,7 +320,7 @@ class _SoundPicker extends ConsumerWidget {
           children: [
             for (final sound in AmbientSound.available)
               ChoiceChip(
-                label: Text(sound.label, style: const TextStyle(fontSize: 12)),
+                label: Text(sound.label, style: const TextStyle(fontSize: TypeScale.caption)),
                 selected: settings.ambientSound == sound,
                 onSelected: (_) {
                   notifier.setAmbientSound(sound);
@@ -352,14 +354,14 @@ class _SoundPicker extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: context.cq.beigeDark.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.md),
           ),
           child: Text(
             'Ces ambiances sont générées par l\'application : aucun fichier à '
             'télécharger. Pluie, café et vent demandent des enregistrements '
             'à déposer dans assets/sounds/.',
             style: TextStyle(
-                fontSize: 11.5, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
           ),
         ),
       ],
@@ -383,7 +385,7 @@ class _ShortcutList extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.cq.beigeDark.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         children: [
@@ -397,12 +399,12 @@ class _ShortcutList extends StatelessWidget {
                         horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: context.cq.cardColor,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(Radii.md),
                       border: Border.all(color: context.cq.beigeDark),
                     ),
                     child: Text(keys,
                         style: TextStyle(
-                            fontSize: 11,
+                            fontSize: TypeScale.caption,
                             fontFamily: 'monospace',
                             color: context.cq.textPrimary)),
                   ),
@@ -410,7 +412,7 @@ class _ShortcutList extends StatelessWidget {
                   Expanded(
                     child: Text(description,
                         style: TextStyle(
-                            fontSize: 12, color: context.cq.textMuted)),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
                   ),
                 ],
               ),
@@ -430,7 +432,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),

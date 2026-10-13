@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 /// Édition des blocs structurés d'une fiche.
 ///
@@ -49,7 +51,8 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
 
   void _update(NoteBlock block, NoteBlock updated) {
     widget.onChanged([
-      for (final b in widget.blocks) if (b.id == block.id) updated else b,
+      for (final b in widget.blocks)
+        if (b.id == block.id) updated else b,
     ]);
   }
 
@@ -64,7 +67,8 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
 
   void _reorder(int oldIndex, int newIndex) {
     final blocks = List<NoteBlock>.from(widget.blocks);
-    blocks.insert(newIndex.clamp(0, blocks.length - 1), blocks.removeAt(oldIndex));
+    blocks.insert(
+        newIndex.clamp(0, blocks.length - 1), blocks.removeAt(oldIndex));
     widget.onChanged([
       for (var i = 0; i < blocks.length; i++) blocks[i].copyWith(position: i),
     ]);
@@ -88,8 +92,9 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
           child: _BlockRow(
             index: index,
             block: block,
-            controller:
-                block.type == NoteBlockType.divider ? null : _controllerFor(block),
+            controller: block.type == NoteBlockType.divider
+                ? null
+                : _controllerFor(block),
             onContentChanged: (value) =>
                 _update(block, block.copyWith(content: value)),
             onToggleCheck: () =>
@@ -121,26 +126,27 @@ class _BlockRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        ReorderableDragStartListener(
-          index: index,
-          child:  Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Icon(Icons.drag_indicator, size: 16, color: context.cq.textHint),
+    // L'appui long sert à sélectionner du texte : seule la poignée, visible
+    // au survol, déplace le bloc.
+    return CqReorderableItem(
+      index: index,
+      gripLeading: true,
+      longPressAnywhere: false,
+      semanticLabel: 'Déplacer ce bloc',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: _content(context)),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            padding: EdgeInsets.zero,
+            tooltip: 'Supprimer ce bloc',
+            icon: Icon(Icons.close, size: 16, color: context.cq.textHint),
+            onPressed: onRemove,
           ),
-        ),
-        Expanded(child: _content(context)),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          padding: EdgeInsets.zero,
-          tooltip: 'Supprimer ce bloc',
-          icon:  Icon(Icons.close, size: 16, color: context.cq.textHint),
-          onPressed: onRemove,
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -174,20 +180,22 @@ class _BlockRow extends StatelessWidget {
           children: [
             InkWell(
               onTap: onToggleCheck,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(Radii.md),
               child: Padding(
                 padding: const EdgeInsets.all(2),
                 child: Container(
                   width: 18,
                   height: 18,
                   decoration: BoxDecoration(
-                    color: block.isChecked ? context.cq.vert : Colors.transparent,
+                    color:
+                        block.isChecked ? context.cq.vert : Colors.transparent,
                     border: Border.all(
-                      color:
-                          block.isChecked ? context.cq.vert : context.cq.beigeDark,
+                      color: block.isChecked
+                          ? context.cq.vert
+                          : context.cq.beigeDark,
                       width: 2,
                     ),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: block.isChecked
                       ? Icon(Icons.check, size: 12, color: context.onAccent)
@@ -202,7 +210,7 @@ class _BlockRow extends StatelessWidget {
       NoteBlockType.bulleted => Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             Padding(
+            Padding(
               padding: const EdgeInsets.only(top: 12, right: 8, left: 4),
               child: SizedBox(
                 width: 5,
@@ -220,7 +228,7 @@ class _BlockRow extends StatelessWidget {
         ),
       NoteBlockType.quote => Container(
           padding: const EdgeInsets.only(left: 10),
-          decoration:  BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
               left: BorderSide(color: context.cq.vert, width: 3),
             ),
@@ -231,7 +239,7 @@ class _BlockRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
           decoration: BoxDecoration(
             color: context.cq.beigeDark.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(Radii.md),
           ),
           child: field,
         ),
@@ -240,29 +248,29 @@ class _BlockRow extends StatelessWidget {
   }
 
   TextStyle _textStyle(BuildContext context) => switch (block.type) {
-        NoteBlockType.heading =>  TextStyle(
-            fontSize: 17,
+        NoteBlockType.heading => TextStyle(
+            fontSize: TypeScale.title,
             fontWeight: FontWeight.w600,
             color: context.cq.textPrimary,
           ),
-        NoteBlockType.quote =>  TextStyle(
-            fontSize: 14,
+        NoteBlockType.quote => TextStyle(
+            fontSize: TypeScale.body,
             fontStyle: FontStyle.italic,
             color: context.cq.textMuted,
           ),
-        NoteBlockType.code =>  TextStyle(
-            fontSize: 13,
+        NoteBlockType.code => TextStyle(
+            fontSize: TypeScale.body,
             fontFamily: 'monospace',
             color: context.cq.textPrimary,
           ),
         NoteBlockType.todo => TextStyle(
-            fontSize: 14,
-            color: block.isChecked ? context.cq.textMuted : context.cq.textPrimary,
-            decoration:
-                block.isChecked ? TextDecoration.lineThrough : null,
+            fontSize: TypeScale.body,
+            color:
+                block.isChecked ? context.cq.textMuted : context.cq.textPrimary,
+            decoration: block.isChecked ? TextDecoration.lineThrough : null,
             decorationColor: context.cq.textMuted,
           ),
-        _ =>  TextStyle(fontSize: 14, color: context.cq.textPrimary),
+        _ => TextStyle(fontSize: TypeScale.body, color: context.cq.textPrimary),
       };
 
   String get _hint => switch (block.type) {

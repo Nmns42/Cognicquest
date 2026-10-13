@@ -7,6 +7,7 @@ import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
 import '../domain/study_speed.dart';
 import '../providers/planning_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Estimation de la vitesse de travail — « estimation/pronostic de la vitesse
 /// de lecture/rédaction/rétention/compréhension » (CdC).
@@ -53,7 +54,7 @@ class _StudySpeedPageState extends ConsumerState<StudySpeedPage> {
             'qu\'il te faut — au lieu de te fier à une intuition qui se '
             'trompe presque toujours.',
             style: TextStyle(
-                fontSize: 12.5, color: context.cq.textMuted, height: 1.45),
+                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
           ),
           const SizedBox(height: 18),
 
@@ -64,14 +65,14 @@ class _StudySpeedPageState extends ConsumerState<StudySpeedPage> {
               children: [
                 FilterChip(
                   label: const Text('Toutes matières',
-                      style: TextStyle(fontSize: 12)),
+                      style: TextStyle(fontSize: TypeScale.caption)),
                   selected: selected == null,
                   onSelected: (_) =>
                       ref.read(speedSubjectProvider.notifier).state = null,
                 ),
                 for (final subject in subjects)
                   FilterChip(
-                    label: Text(subject, style: const TextStyle(fontSize: 12)),
+                    label: Text(subject, style: const TextStyle(fontSize: TypeScale.caption)),
                     selected: selected == subject,
                     onSelected: (isSelected) => ref
                         .read(speedSubjectProvider.notifier)
@@ -141,12 +142,12 @@ class _EstimateCard extends StatelessWidget {
                     color: estimate.isReliable
                         ? context.cq.vert.withValues(alpha: 0.12)
                         : context.cq.warning.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(7),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     estimate.confidenceLabel,
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: TypeScale.caption,
                       fontWeight: FontWeight.w600,
                       color: estimate.isReliable
                           ? context.cq.vertDark
@@ -163,7 +164,7 @@ class _EstimateCard extends StatelessWidget {
                 Text(
                   estimate.unitsPerHour.toStringAsFixed(1),
                   style:  TextStyle(
-                    fontSize: 28,
+                    fontSize: TypeScale.display,
                     fontWeight: FontWeight.w700,
                     height: 1.1,
                     color: context.cq.textPrimary,
@@ -175,7 +176,7 @@ class _EstimateCard extends StatelessWidget {
                   child: Text(
                     '${estimate.activity.unit} / heure',
                     style:  TextStyle(
-                        fontSize: 12.5, color: context.cq.textMuted),
+                        fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ),
               ],
@@ -187,14 +188,14 @@ class _EstimateCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Text(
                   '${forecastUnits.toStringAsFixed(0)} ${estimate.activity.unit} '
                   '→ environ ${StudySpeed.formatForecast(forecast)}'
                   '${estimate.isReliable ? '' : ' (à confirmer)'}',
                   style:  TextStyle(
-                      fontSize: 12.5,
+                      fontSize: TypeScale.caption,
                       color: context.cq.textPrimary,
                       height: 1.4),
                 ),
@@ -226,7 +227,7 @@ class _EmptyState extends StatelessWidget {
             'temps. Trois mesures suffisent pour une estimation fiable.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: 13, height: 1.45),
+                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
           ),
         ],
       ),
@@ -296,7 +297,7 @@ class _SampleSheetState extends ConsumerState<_SampleSheet> {
       child: Container(
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -312,7 +313,7 @@ class _SampleSheetState extends ConsumerState<_SampleSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -327,7 +328,7 @@ class _SampleSheetState extends ConsumerState<_SampleSheet> {
                       ButtonSegment(
                         value: activity,
                         label: Text(activity.label,
-                            style: const TextStyle(fontSize: 11)),
+                            style: const TextStyle(fontSize: TypeScale.caption)),
                       ),
                   ],
                   selected: {_activity},

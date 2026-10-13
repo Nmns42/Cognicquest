@@ -12,6 +12,8 @@ import '../../settings/providers/settings_provider.dart';
 import '../domain/note_search.dart';
 import '../providers/note_provider.dart';
 import '../widgets/note_filter_sheet.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 /// Bibliothèque de fiches — « Base de données intelligente » du CdC.
 class NotesPage extends ConsumerStatefulWidget {
@@ -137,12 +139,14 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                       ? ReorderableListView.builder(
                           padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
                           physics: const AlwaysScrollableScrollPhysics(),
+                          buildDefaultDragHandles: false,
                           itemCount: notes.length,
                           onReorderItem: (from, to) => ref
                               .read(noteActionsProvider)
                               .move(notes, notes[from].id, to),
-                          itemBuilder: (context, index) => KeyedSubtree(
+                          itemBuilder: (context, index) => CqReorderableItem(
                             key: ValueKey(notes[index].id),
+                            index: index,
                             child: _NoteCard(note: notes[index]),
                           ),
                         )
@@ -254,13 +258,13 @@ class _FilterButton extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
                 color: context.cq.vert,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               child: Text(
                 '$activeCount',
                 style: TextStyle(
                   color: context.onAccent,
-                  fontSize: 10,
+                  fontSize: TypeScale.caption,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -326,7 +330,7 @@ class _Chip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: InputChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
+        label: Text(label, style: const TextStyle(fontSize: TypeScale.caption)),
         onDeleted: onRemove,
         deleteIcon: const Icon(Icons.close, size: 14),
         backgroundColor: context.cq.vert.withValues(alpha: 0.1),
@@ -387,7 +391,7 @@ class _NoteCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                        fontSize: 15,
+                        fontSize: TypeScale.bodyLarge,
                         fontWeight: FontWeight.w600,
                         color: context.cq.textPrimary,
                         height: 1.25,
@@ -427,7 +431,7 @@ class _NoteCard extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:  TextStyle(
-                      fontSize: 13, color: context.cq.textMuted, height: 1.35),
+                      fontSize: TypeScale.body, color: context.cq.textMuted, height: 1.35),
                 ),
               ],
               const SizedBox(height: 10),
@@ -482,7 +486,7 @@ class _MetaBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -494,7 +498,7 @@ class _MetaBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                fontSize: 11, color: color, fontWeight: FontWeight.w500),
+                fontSize: TypeScale.caption, color: color, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -526,7 +530,7 @@ class _EmptyLibrary extends StatelessWidget {
               'quantique ». Tu pourras les relier entre elles plus tard.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: context.cq.textMuted, fontSize: 14, height: 1.4),
+                  color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -558,7 +562,7 @@ class _NoResults extends StatelessWidget {
             const SizedBox(height: 16),
              Text(
               'Aucune fiche ne correspond.',
-              style: TextStyle(color: context.cq.textMuted, fontSize: 14),
+              style: TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
             ),
             const SizedBox(height: 16),
             OutlinedButton(

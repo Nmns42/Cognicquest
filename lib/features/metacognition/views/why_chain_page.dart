@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
 import '../providers/metacognition_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Méthode des 5 Pourquoi : remonter d'un blocage constaté à sa cause réelle.
 ///
@@ -131,7 +132,7 @@ class _WhyChainPageState extends ConsumerState<WhyChainPage> {
               'Pars du blocage constaté et demande « pourquoi » jusqu\'à '
               'tomber sur quelque chose que tu peux changer.',
               style: TextStyle(
-                  fontSize: 12.5, color: context.cq.textMuted, height: 1.45),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
             ),
             const SizedBox(height: 20),
 
@@ -182,14 +183,14 @@ class _WhyChainPageState extends ConsumerState<WhyChainPage> {
                   padding: const EdgeInsets.all(13),
                   decoration: BoxDecoration(
                     color: context.cq.vert.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child:  Text(
                     'Cinq niveaux atteints. Si la cause n\'est toujours pas '
                     'claire, c\'est souvent que le vrai problème est ailleurs '
                     'que là où tu cherches.',
                     style: TextStyle(
-                        fontSize: 12, color: context.cq.vertDark, height: 1.4),
+                        fontSize: TypeScale.caption, color: context.cq.vertDark, height: 1.4),
                   ),
                 ),
 
@@ -227,7 +228,7 @@ class _WhyChainPageState extends ConsumerState<WhyChainPage> {
                  Text(
                   'Une action, pas une intention. Sinon l\'analyse ne sert '
                   'qu\'à ruminer.',
-                  style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+                  style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
                 const SizedBox(height: 8),
                 TextField(
@@ -253,7 +254,7 @@ class _WhyChainPageState extends ConsumerState<WhyChainPage> {
                Text(
                 'Tes analyses',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textPrimary,
                 ),
@@ -299,7 +300,7 @@ class _WhyStep extends StatelessWidget {
             child: Text(
               '${index + 1}',
               style:  TextStyle(
-                  fontSize: 10,
+                  fontSize: TypeScale.caption,
                   fontWeight: FontWeight.w700,
                   color: context.cq.vertDark),
             ),
@@ -309,7 +310,7 @@ class _WhyStep extends StatelessWidget {
             child: Text(
               answer,
               style:  TextStyle(
-                  fontSize: 13, color: context.cq.textPrimary, height: 1.4),
+                  fontSize: TypeScale.body, color: context.cq.textPrimary, height: 1.4),
             ),
           ),
           IconButton(
@@ -341,7 +342,7 @@ class _BlockerOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(Radii.md),
       child: AnimatedContainer(
         duration: Motion.duration(context, const Duration(milliseconds: 150)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
@@ -349,7 +350,7 @@ class _BlockerOption extends StatelessWidget {
           color: isSelected
               ? context.cq.vert.withValues(alpha: 0.1)
               : context.cq.cardColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
           border: Border.all(
             color: isSelected ? context.cq.vert : context.cq.beigeDark,
             width: isSelected ? 1.8 : 1,
@@ -371,13 +372,13 @@ class _BlockerOption extends StatelessWidget {
                 children: [
                   Text(type.label,
                       style:  TextStyle(
-                          fontSize: 13.5,
+                          fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textPrimary)),
                   const SizedBox(height: 1),
                   Text(type.description,
                       style:  TextStyle(
-                          fontSize: 11.5, color: context.cq.textMuted)),
+                          fontSize: TypeScale.caption, color: context.cq.textMuted)),
                 ],
               ),
             ),
@@ -411,7 +412,7 @@ class _ChainRow extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style:  TextStyle(
-                    fontSize: 13,
+                    fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textPrimary,
                     height: 1.35),
@@ -434,7 +435,7 @@ class _ChainRow extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:  TextStyle(
-                      fontSize: 12, color: context.cq.textMuted, height: 1.35),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.35),
                 ),
               ],
             ],
@@ -462,12 +463,12 @@ class _Tag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Text(
         label,
         style: TextStyle(
-            fontSize: 11, color: color, fontWeight: FontWeight.w500),
+            fontSize: TypeScale.caption, color: color, fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -482,7 +483,7 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style:  TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),

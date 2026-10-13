@@ -7,6 +7,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/pomodoro_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 class PomodoroPage extends ConsumerWidget {
   const PomodoroPage({super.key});
@@ -80,13 +81,13 @@ class _PhaseHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(Radii.md),
           ),
           child: Text(
             state.phase.label,
             style: TextStyle(
               color: color,
-              fontSize: 14,
+              fontSize: TypeScale.body,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -98,7 +99,7 @@ class _PhaseHeader extends StatelessWidget {
             PomodoroPhase.shortBreak => 'Lève-toi, respire, bouge un peu.',
             PomodoroPhase.longBreak => 'Pause longue : coupe vraiment.',
           },
-          style:  TextStyle(color: context.cq.textMuted, fontSize: 13),
+          style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
           textAlign: TextAlign.center,
         ),
       ],
@@ -156,7 +157,7 @@ class _TimerDial extends StatelessWidget {
                   PomodoroStatus.paused => 'En pause',
                   PomodoroStatus.idle => 'Prêt',
                 },
-                style:  TextStyle(color: context.cq.textMuted, fontSize: 13),
+                style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
               ),
             ],
           ),
@@ -256,7 +257,7 @@ class _CycleIndicator extends StatelessWidget {
               : 'Plus que ${AppConfig.sessionsBeforeLongBreak - done} '
                   'session${AppConfig.sessionsBeforeLongBreak - done > 1 ? 's' : ''} '
                   'avant la pause longue',
-          style:  TextStyle(color: context.cq.textMuted, fontSize: 12),
+          style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.caption),
         ),
       ],
     );
@@ -324,7 +325,7 @@ class _StatTile extends StatelessWidget {
             Text(
               value,
               style:  TextStyle(
-                fontSize: 17,
+                fontSize: TypeScale.title,
                 fontWeight: FontWeight.w700,
                 color: context.cq.textPrimary,
               ),
@@ -332,7 +333,7 @@ class _StatTile extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               label,
-              style:  TextStyle(fontSize: 11, color: context.cq.textMuted),
+              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ],
         ),

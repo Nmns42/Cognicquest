@@ -7,6 +7,7 @@ import '../../../shared/models/metacognition_model.dart';
 import '../data/metacognition_repository.dart';
 import '../domain/metacognition_insights.dart';
 import '../providers/metacognition_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Analyse des erreurs — « regroupe les types d'erreurs commises par l'élève
 /// (erreurs d'inattention vs erreurs de compréhension) » (CdC).
@@ -58,14 +59,14 @@ class _ErrorLogsPageState extends ConsumerState<ErrorLogsPage> {
                 children: [
                   FilterChip(
                     label: const Text('Toutes',
-                        style: TextStyle(fontSize: 12)),
+                        style: TextStyle(fontSize: TypeScale.caption)),
                     selected: _subjectFilter == null,
                     onSelected: (_) => setState(() => _subjectFilter = null),
                   ),
                   for (final subject in subjects)
                     FilterChip(
                       label:
-                          Text(subject, style: const TextStyle(fontSize: 12)),
+                          Text(subject, style: const TextStyle(fontSize: TypeScale.caption)),
                       selected: _subjectFilter == subject,
                       onSelected: (selected) => setState(
                           () => _subjectFilter = selected ? subject : null),
@@ -82,7 +83,7 @@ class _ErrorLogsPageState extends ConsumerState<ErrorLogsPage> {
               '${visible.length} erreur${visible.length > 1 ? 's' : ''} '
               'consignée${visible.length > 1 ? 's' : ''}',
               style:  TextStyle(
-                fontSize: 14,
+                fontSize: TypeScale.body,
                 fontWeight: FontWeight.w600,
                 color: context.cq.textPrimary,
               ),
@@ -141,7 +142,7 @@ class _PatternBreakdown extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: context.cq.vert.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Radii.md),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +154,7 @@ class _PatternBreakdown extends StatelessWidget {
                     child: Text(
                       pattern.summary,
                       style:  TextStyle(
-                          fontSize: 12.5,
+                          fontSize: TypeScale.caption,
                           color: context.cq.vertDark,
                           height: 1.4),
                     ),
@@ -195,7 +196,7 @@ class _TypeBar extends StatelessWidget {
                 child: Text(
                   type.label,
                   style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: TypeScale.caption,
                     fontWeight:
                         isDominant ? FontWeight.w700 : FontWeight.w500,
                     color: context.cq.textPrimary,
@@ -205,13 +206,13 @@ class _TypeBar extends StatelessWidget {
               Text(
                 '$count · ${(share * 100).round()} %',
                 style:  TextStyle(
-                    fontSize: 11.5, color: context.cq.textMuted),
+                    fontSize: TypeScale.caption, color: context.cq.textMuted),
               ),
             ],
           ),
           const SizedBox(height: 5),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(Radii.md),
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: share),
               duration: Motion.duration(context, const Duration(milliseconds: 420)),
@@ -259,12 +260,12 @@ class _ErrorRow extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: context.cq.vertDark.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     error.errorType.label,
                     style:  TextStyle(
-                        fontSize: 11,
+                        fontSize: TypeScale.caption,
                         fontWeight: FontWeight.w600,
                         color: context.cq.vertDark),
                   ),
@@ -277,7 +278,7 @@ class _ErrorRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
-                          fontSize: 11, color: context.cq.textHint),
+                          fontSize: TypeScale.caption, color: context.cq.textHint),
                     ),
                   ),
                 ],
@@ -285,7 +286,7 @@ class _ErrorRow extends StatelessWidget {
                 Text(
                   '${date.day} ${_months[date.month - 1]}',
                   style:  TextStyle(
-                      fontSize: 11, color: context.cq.textHint),
+                      fontSize: TypeScale.caption, color: context.cq.textHint),
                 ),
               ],
             ),
@@ -293,7 +294,7 @@ class _ErrorRow extends StatelessWidget {
             Text(
               error.description,
               style:  TextStyle(
-                  fontSize: 13, color: context.cq.textPrimary, height: 1.4),
+                  fontSize: TypeScale.body, color: context.cq.textPrimary, height: 1.4),
             ),
             if (error.isCorrected) ...[
               const SizedBox(height: 8),
@@ -307,7 +308,7 @@ class _ErrorRow extends StatelessWidget {
                     child: Text(
                       error.correction,
                       style:  TextStyle(
-                          fontSize: 12,
+                          fontSize: TypeScale.caption,
                           color: context.cq.textMuted,
                           height: 1.35),
                     ),
@@ -342,7 +343,7 @@ class _EmptyState extends StatelessWidget {
             'incompréhension. Les deux appellent des réponses opposées.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: 13, height: 1.45),
+                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
           ),
         ],
       ),
@@ -404,7 +405,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
         ),
         decoration: BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -420,7 +421,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -448,7 +449,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                  Text(
                   'De quel type ?',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textMuted,
                   ),
@@ -459,7 +460,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: InkWell(
                       onTap: () => setState(() => _type = type),
-                      borderRadius: BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(Radii.md),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 13, vertical: 10),
@@ -467,7 +468,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                           color: _type == type
                               ? context.cq.vert.withValues(alpha: 0.1)
                               : context.cq.cardColor,
-                          borderRadius: BorderRadius.circular(11),
+                          borderRadius: BorderRadius.circular(Radii.md),
                           border: Border.all(
                             color: _type == type
                                 ? context.cq.vert
@@ -493,13 +494,13 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                                 children: [
                                   Text(type.label,
                                       style:  TextStyle(
-                                          fontSize: 13,
+                                          fontSize: TypeScale.body,
                                           fontWeight: FontWeight.w600,
                                           color: context.cq.textPrimary)),
                                   const SizedBox(height: 1),
                                   Text(type.description,
                                       style:  TextStyle(
-                                          fontSize: 11.5,
+                                          fontSize: TypeScale.caption,
                                           color: context.cq.textMuted,
                                           height: 1.3)),
                                 ],
@@ -516,12 +517,12 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                   padding: const EdgeInsets.all(11),
                   decoration: BoxDecoration(
                     color: context.cq.beigeDark.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     _type.remedy,
                     style:  TextStyle(
-                        fontSize: 12, color: context.cq.textMuted, height: 1.4),
+                        fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
                   ),
                 ),
                 const SizedBox(height: 16),

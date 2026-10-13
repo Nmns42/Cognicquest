@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Métadonnées d'une fiche : sujet, tags, importance.
 ///
@@ -74,7 +75,7 @@ class _NoteMetaSheetState extends State<NoteMetaSheet> {
       child: Container(
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -88,7 +89,7 @@ class _NoteMetaSheetState extends State<NoteMetaSheet> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: context.cq.beigeDark,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                 ),
               ),
@@ -132,7 +133,7 @@ class _NoteMetaSheetState extends State<NoteMetaSheet> {
                     for (final tag in _tags)
                       InputChip(
                         label: Text('#$tag',
-                            style: const TextStyle(fontSize: 12)),
+                            style: const TextStyle(fontSize: TypeScale.caption)),
                         onDeleted: () => setState(
                             () => _tags = _tags.where((t) => t != tag).toList()),
                         deleteIcon: const Icon(Icons.close, size: 14),
@@ -146,7 +147,7 @@ class _NoteMetaSheetState extends State<NoteMetaSheet> {
                Text(
                 'Importance',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textMuted,
                 ),

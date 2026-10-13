@@ -7,6 +7,7 @@ import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
 import '../domain/gantt_timeline.dart';
 import '../providers/planning_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Création / édition d'une barre du Gantt.
 class PlanItemSheet extends ConsumerStatefulWidget {
@@ -124,7 +125,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
         ),
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -140,7 +141,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -174,10 +175,10 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                   contentPadding: EdgeInsets.zero,
                   value: _isMilestone,
                   onChanged: (value) => setState(() => _isMilestone = value),
-                  title: const Text('Jalon', style: TextStyle(fontSize: 14)),
+                  title: const Text('Jalon', style: TextStyle(fontSize: TypeScale.body)),
                   subtitle:  Text(
                     'Une date sans durée : examen, rendu…',
-                    style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+                    style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -209,13 +210,13 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                   children: [
                      Text('Avancement',
                         style: TextStyle(
-                            fontSize: 14,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
                     const Spacer(),
                     Text('${(_progress * 100).round()} %',
                         style:  TextStyle(
-                            fontSize: 13,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w700,
                             color: context.cq.vertDark)),
                   ],
@@ -231,7 +232,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                 if (candidates.isNotEmpty) ...[
                    Text('Dépend de (facultatif)',
                       style: TextStyle(
-                          fontSize: 13,
+                          fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textMuted)),
                   const SizedBox(height: 8),
@@ -245,7 +246,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                       const DropdownMenuItem<String?>(
                         value: null,
                         child: Text('Aucune dépendance',
-                            style: TextStyle(fontSize: 13)),
+                            style: TextStyle(fontSize: TypeScale.body)),
                       ),
                       for (final candidate in candidates)
                         DropdownMenuItem<String?>(
@@ -253,7 +254,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                           child: Text(candidate.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 13)),
+                              style: const TextStyle(fontSize: TypeScale.body)),
                         ),
                     ],
                     onChanged: (value) => setState(() {
@@ -265,7 +266,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                     const SizedBox(height: 6),
                     Text(_dependencyError!,
                         style:  TextStyle(
-                            fontSize: 12, color: context.cq.errorColor)),
+                            fontSize: TypeScale.caption, color: context.cq.errorColor)),
                   ],
                   const SizedBox(height: 18),
                 ],
@@ -321,7 +322,7 @@ class _DateField extends StatelessWidget {
         child: Text(
           '${date.day.toString().padLeft(2, '0')}/'
           '${date.month.toString().padLeft(2, '0')}/${date.year}',
-          style:  TextStyle(fontSize: 14, color: context.cq.textPrimary),
+          style:  TextStyle(fontSize: TypeScale.body, color: context.cq.textPrimary),
         ),
       ),
     );

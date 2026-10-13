@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/ui/zen_background.dart';
 import 'core/config/app_config.dart';
 import 'core/motion/reduce_motion.dart';
 import 'core/theme/app_theme.dart';
@@ -11,6 +12,7 @@ import 'features/settings/data/ambient_sound_engine.dart';
 import 'features/settings/providers/settings_provider.dart';
 import 'features/sync/providers/sync_coordinator.dart';
 import 'router/app_router.dart';
+import 'core/theme/tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -118,7 +120,8 @@ class CognicQuestApp extends ConsumerWidget {
             ),
             disableAnimations: reduceMotion,
           ),
-          child: child ?? const SizedBox.shrink(),
+          // Fond commun (beige et feuilles) sous toutes les pages.
+          child: ZenBackground(child: child ?? const SizedBox.shrink()),
         );
       },
     );
@@ -176,6 +179,8 @@ class _StartupErrorApp extends StatelessWidget {
       title: AppConfig.appName,
       theme: AppTheme.light,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) =>
+          ZenBackground(child: child ?? const SizedBox.shrink()),
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -196,14 +201,14 @@ class _StartupErrorApp extends StatelessWidget {
                   Text(
                     explanation,
                     style:
-                        TextStyle(color: context.cq.textMuted, fontSize: 14),
+                        TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
                   Text(
                     message,
                     style:
-                        TextStyle(color: context.cq.textHint, fontSize: 11),
+                        TextStyle(color: context.cq.textHint, fontSize: TypeScale.caption),
                     textAlign: TextAlign.center,
                   ),
                 ],

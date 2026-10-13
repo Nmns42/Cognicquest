@@ -46,13 +46,15 @@ void main() {
 
   for (final variant in AppThemeVariant.values) {
     testWidgets('galerie des composants — ${variant.label}', (tester) async {
-      tester.view.physicalSize = const Size(420, 1180);
+      tester.view.physicalSize = const Size(420, 1320);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.build(variant),
+        // Fond réel de l'app : beige et feuilles au trait.
+        builder: (context, child) => ZenBackground(child: child!),
         home: const Scaffold(body: _Gallery()),
       ));
       // Pas de pumpAndSettle : l'indicateur de chargement tourne sans fin.
@@ -60,7 +62,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       await expectLater(
-        find.byType(_Gallery),
+        find.byType(ZenBackground),
         matchesGoldenFile('goldens/components_${variant.value}.png'),
       );
     });
@@ -111,6 +113,12 @@ class _Gallery extends StatelessWidget {
         const SizedBox(height: Space.sm),
         const CqButton.primary(
             label: 'Envoi', onPressed: null, isLoading: true),
+        const SizedBox(height: Space.sm),
+        CqSegmentedControl<int>(
+          options: const {0: 'Kanban', 1: 'Matrice'},
+          selected: 0,
+          onChanged: (_) {},
+        ),
         const SizedBox(height: Space.sm),
         Row(
           children: [

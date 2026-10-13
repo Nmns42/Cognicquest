@@ -9,6 +9,7 @@ import '../../../shared/models/note_link_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../notes/providers/note_provider.dart';
 import '../providers/graph_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Aperçu du contenu d'un nœud — CdC : « survol des nœuds avec aperçu du
 /// contenu ». Permet aussi de créer et supprimer les liens depuis le graphe.
@@ -40,7 +41,7 @@ class NodePreviewSheet extends ConsumerWidget {
       ),
       decoration:  BoxDecoration(
         color: context.cq.beige,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: SafeArea(
@@ -55,7 +56,7 @@ class NodePreviewSheet extends ConsumerWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
             ),
@@ -66,14 +67,14 @@ class NodePreviewSheet extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(note.subject!,
                   style:  TextStyle(
-                      fontSize: 12, color: context.cq.textMuted)),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted)),
             ],
             if (note.excerpt.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
                 note.excerpt,
                 style:  TextStyle(
-                    fontSize: 13, color: context.cq.textMuted, height: 1.4),
+                    fontSize: TypeScale.body, color: context.cq.textMuted, height: 1.4),
               ),
             ],
             const SizedBox(height: 18),
@@ -89,7 +90,7 @@ class NodePreviewSheet extends ConsumerWidget {
                           : '${neighbours.length} lien'
                               '${neighbours.length > 1 ? 's' : ''}',
                       style:  TextStyle(
-                        fontSize: 13,
+                        fontSize: TypeScale.body,
                         fontWeight: FontWeight.w600,
                         color: context.cq.textMuted,
                       ),
@@ -102,7 +103,7 @@ class NodePreviewSheet extends ConsumerWidget {
                           'Relie cette fiche à ce que tu sais déjà : '
                           'c\'est ce qui ancre une notion en mémoire.',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: TypeScale.caption,
                               color: context.cq.textHint,
                               height: 1.4),
                         ),
@@ -212,12 +213,12 @@ class _NeighbourRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style:  TextStyle(
-                        fontSize: 13, color: context.cq.textPrimary),
+                        fontSize: TypeScale.body, color: context.cq.textPrimary),
                   ),
                   Text(
                     link.type.label,
                     style:  TextStyle(
-                        fontSize: 11, color: context.cq.textMuted),
+                        fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ],
               ),
@@ -267,7 +268,7 @@ class _LinkPickerSheetState extends ConsumerState<_LinkPickerSheet> {
         ),
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         child: Column(
@@ -280,7 +281,7 @@ class _LinkPickerSheetState extends ConsumerState<_LinkPickerSheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
             ),
@@ -295,7 +296,7 @@ class _LinkPickerSheetState extends ConsumerState<_LinkPickerSheet> {
                   ButtonSegment(
                     value: type,
                     label: Text(type.label,
-                        style: const TextStyle(fontSize: 11)),
+                        style: const TextStyle(fontSize: TypeScale.caption)),
                   ),
               ],
               selected: {_type},
@@ -327,11 +328,11 @@ class _LinkPickerSheetState extends ConsumerState<_LinkPickerSheet> {
                       title: Text(note.displayTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13)),
+                          style: const TextStyle(fontSize: TypeScale.body)),
                       subtitle: note.subject == null
                           ? null
                           : Text(note.subject!,
-                              style: const TextStyle(fontSize: 11)),
+                              style: const TextStyle(fontSize: TypeScale.caption)),
                       trailing: const Icon(Icons.add_link, size: 18),
                       onTap: () async {
                         await ref.read(graphActionsProvider).link(

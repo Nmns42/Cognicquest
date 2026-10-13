@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Coquille commune aux écrans d'authentification.
 ///
@@ -78,7 +79,7 @@ class AuthMessageBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
@@ -93,7 +94,7 @@ class AuthMessageBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: color, fontSize: 13, height: 1.35),
+              style: TextStyle(color: color, fontSize: TypeScale.body, height: 1.35),
             ),
           ),
         ],

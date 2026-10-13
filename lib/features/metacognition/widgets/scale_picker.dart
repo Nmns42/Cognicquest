@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Sélecteur sur une échelle de 1 à [max].
 ///
@@ -42,7 +43,7 @@ class ScalePicker extends StatelessWidget {
             Text(
               label,
               style:  TextStyle(
-                fontSize: 14,
+                fontSize: TypeScale.body,
                 fontWeight: FontWeight.w600,
                 color: context.cq.textPrimary,
               ),
@@ -51,7 +52,7 @@ class ScalePicker extends StatelessWidget {
             Text(
               '$value / $max',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: TypeScale.body,
                 fontWeight: FontWeight.w700,
                 color: _colorFor(context, value),
               ),
@@ -60,7 +61,7 @@ class ScalePicker extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(hint,
-            style:  TextStyle(fontSize: 11.5, color: context.cq.textMuted)),
+            style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted)),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -72,7 +73,7 @@ class ScalePicker extends StatelessWidget {
                   label: '$label : $level sur $max',
                   child: InkWell(
                     onTap: () => onChanged(level),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Radii.md),
                     child: AnimatedContainer(
                       duration: Motion.duration(context, const Duration(milliseconds: 150)),
                       // Hauteur confortable au doigt même à 10 crans.
@@ -82,7 +83,7 @@ class ScalePicker extends StatelessWidget {
                         color: level <= value
                             ? _colorFor(context, value)
                             : context.cq.beigeDark.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(Radii.md),
                       ),
                       child: FittedBox(
                         child: Padding(
@@ -90,7 +91,7 @@ class ScalePicker extends StatelessWidget {
                           child: Text(
                             '$level',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: TypeScale.caption,
                               fontWeight: FontWeight.w600,
                               color: level <= value
                                   ? context.onAccent

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/user_settings.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 /// Édition d'une routine matin ou soir.
 ///
@@ -65,7 +67,7 @@ class RoutineEditor extends StatelessWidget {
                 Expanded(
                   child: Text(title,
                       style: TextStyle(
-                          fontSize: 14,
+                          fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textPrimary)),
                 ),
@@ -87,14 +89,14 @@ class RoutineEditor extends StatelessWidget {
                       children: [
                         InkWell(
                           onTap: () => _pickTime(context),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(Radii.md),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: context.cq.beigeDark
-                                  .withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(8),
+                              color:
+                                  context.cq.beigeDark.withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(Radii.md),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -104,7 +106,7 @@ class RoutineEditor extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 Text(routine.timeLabel,
                                     style: TextStyle(
-                                        fontSize: 12.5,
+                                        fontSize: TypeScale.caption,
                                         fontWeight: FontWeight.w600,
                                         color: context.cq.textPrimary)),
                               ],
@@ -127,13 +129,13 @@ class RoutineEditor extends StatelessWidget {
                           children: [
                             Text('${i + 1}.',
                                 style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: TypeScale.caption,
                                     color: context.cq.textHint)),
                             const SizedBox(width: 7),
                             Expanded(
                               child: Text(routine.steps[i],
                                   style: TextStyle(
-                                      fontSize: 12.5,
+                                      fontSize: TypeScale.caption,
                                       height: 1.35,
                                       color: context.cq.textMuted)),
                             ),
@@ -183,7 +185,8 @@ class _StepsSheetState extends State<_StepsSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.85,
@@ -191,7 +194,7 @@ class _StepsSheetState extends State<_StepsSheet> {
         decoration: BoxDecoration(
           color: context.cq.beige,
           borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(24)),
+              const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Column(
@@ -204,20 +207,19 @@ class _StepsSheetState extends State<_StepsSheet> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
             ),
             const SizedBox(height: 18),
-            Text(widget.title,
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(widget.title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
               'Trois étapes suffisent. Une routine trop longue ne se tient pas.',
-              style: TextStyle(fontSize: 11.5, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 16),
-
             TextField(
               controller: _controller,
               textInputAction: TextInputAction.done,
@@ -233,39 +235,39 @@ class _StepsSheetState extends State<_StepsSheet> {
               ),
             ),
             const SizedBox(height: 12),
-
             Flexible(
               child: ReorderableListView.builder(
                 shrinkWrap: true,
+                buildDefaultDragHandles: false,
                 itemCount: _steps.length,
                 onReorderItem: (oldIndex, newIndex) => setState(() {
                   final steps = List<String>.from(_steps);
-                  steps.insert(
-                      newIndex.clamp(0, steps.length - 1),
+                  steps.insert(newIndex.clamp(0, steps.length - 1),
                       steps.removeAt(oldIndex));
                   _steps = steps;
                 }),
-                itemBuilder: (context, index) => Card(
+                itemBuilder: (context, index) => CqReorderableItem(
                   key: ValueKey('${_steps[index]}-$index'),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    dense: true,
-                    leading: Icon(Icons.drag_indicator,
-                        size: 18, color: context.cq.textHint),
-                    title: Text(_steps[index],
-                        style: const TextStyle(fontSize: 13)),
-                    trailing: IconButton(
-                      icon: Icon(Icons.close,
-                          size: 16, color: context.cq.textHint),
-                      onPressed: () => setState(
-                          () => _steps = [..._steps]..removeAt(index)),
+                  index: index,
+                  gripLeading: true,
+                  child: Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(_steps[index],
+                          style: const TextStyle(fontSize: TypeScale.body)),
+                      trailing: IconButton(
+                        icon: Icon(Icons.close,
+                            size: 16, color: context.cq.textHint),
+                        onPressed: () => setState(
+                            () => _steps = [..._steps]..removeAt(index)),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 12),
-
             ElevatedButton(
               onPressed: () => Navigator.pop(context, _steps),
               child: const Text('Enregistrer'),

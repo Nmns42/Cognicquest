@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Résultat de l'édition d'une carte.
 class TaskDraft {
@@ -125,7 +126,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
       child: Container(
         decoration:  BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: SingleChildScrollView(
@@ -141,7 +142,7 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(Radii.sm),
                     ),
                   ),
                 ),
@@ -212,20 +213,20 @@ class _TaskEditorSheetState extends State<TaskEditorSheet> {
                   contentPadding: EdgeInsets.zero,
                   value: _isUrgent,
                   onChanged: (value) => setState(() => _isUrgent = value),
-                  title: const Text('Urgent', style: TextStyle(fontSize: 14)),
+                  title: const Text('Urgent', style: TextStyle(fontSize: TypeScale.body)),
                   subtitle:  Text(
                     'Demande une action immédiate',
-                    style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+                    style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   value: _isImportant,
                   onChanged: (value) => setState(() => _isImportant = value),
-                  title: const Text('Important', style: TextStyle(fontSize: 14)),
+                  title: const Text('Important', style: TextStyle(fontSize: TypeScale.body)),
                   subtitle:  Text(
                     'Contribue à tes objectifs de fond',
-                    style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+                    style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -282,7 +283,7 @@ class _Label extends StatelessWidget {
     return Text(
       text,
       style:  TextStyle(
-        fontSize: 13,
+        fontSize: TypeScale.body,
         fontWeight: FontWeight.w600,
         color: context.cq.textMuted,
       ),

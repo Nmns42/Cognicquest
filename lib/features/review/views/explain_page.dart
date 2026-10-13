@@ -8,6 +8,7 @@ import '../../../shared/models/flashcard_model.dart';
 import '../../notes/data/note_repository.dart';
 import '../../notes/providers/note_provider.dart';
 import '../providers/review_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Mode « Explique-moi » — CdC : « expliquer avec ses propres mots ce qu'on
 /// vient d'apprendre », technique Feynman.
@@ -100,7 +101,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
               'pas. Les trous dans ton explication sont les trous dans ta '
               'compréhension.',
               style: TextStyle(
-                  fontSize: 12.5, color: context.cq.textMuted, height: 1.45),
+                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
             ),
             const SizedBox(height: 18),
 
@@ -109,14 +110,14 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Text(
                   note.content.trim().isEmpty
                       ? note.excerpt
                       : note.content,
                   style:  TextStyle(
-                      fontSize: 13, height: 1.5, color: context.cq.textMuted),
+                      fontSize: TypeScale.body, height: 1.5, color: context.cq.textMuted),
                 ),
               ),
               const SizedBox(height: 16),
@@ -139,7 +140,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
               alignment: Alignment.centerRight,
               child: Text(
                 '$_wordCount mot${_wordCount > 1 ? 's' : ''}',
-                style:  TextStyle(fontSize: 11, color: context.cq.textHint),
+                style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
               ),
             ),
             const SizedBox(height: 18),
@@ -147,7 +148,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
              Text(
               'À quel point te sens-tu sûr ?',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: TypeScale.body,
                 fontWeight: FontWeight.w600,
                 color: context.cq.textMuted,
               ),
@@ -169,7 +170,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
               Text(
                 'Tes explications précédentes (${previous.length})',
                 style:  TextStyle(
-                  fontSize: 13,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textPrimary,
                 ),
@@ -177,7 +178,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
               const SizedBox(height: 4),
                Text(
                 'Les relire montre comment ta compréhension a évolué.',
-                style: TextStyle(fontSize: 11, color: context.cq.textMuted),
+                style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
               ),
               const SizedBox(height: 10),
               for (final explanation in previous)
@@ -215,7 +216,7 @@ class _ConfidencePicker extends StatelessWidget {
               message: _labels[level - 1],
               child: InkWell(
                 onTap: () => onChanged(level),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(Radii.md),
                 child: AnimatedContainer(
                   duration: Motion.duration(context, const Duration(milliseconds: 160)),
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -223,13 +224,13 @@ class _ConfidencePicker extends StatelessWidget {
                     color: level <= value
                         ? context.cq.vert
                         : context.cq.beigeDark.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     '$level',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: TypeScale.body,
                       fontWeight: FontWeight.w600,
                       color: level <= value ? context.onAccent : context.cq.textMuted,
                     ),
@@ -270,13 +271,13 @@ class _PreviousExplanation extends StatelessWidget {
                 Text(
                   '${date.day} ${_months[date.month - 1]}',
                   style:  TextStyle(
-                      fontSize: 11, color: context.cq.textHint),
+                      fontSize: TypeScale.caption, color: context.cq.textHint),
                 ),
                 const Spacer(),
                 Text(
                   'Confiance ${explanation.confidence}/5',
                   style:  TextStyle(
-                      fontSize: 11, color: context.cq.textMuted),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
               ],
             ),
@@ -284,7 +285,7 @@ class _PreviousExplanation extends StatelessWidget {
             Text(
               explanation.content,
               style:  TextStyle(
-                  fontSize: 13, height: 1.45, color: context.cq.textPrimary),
+                  fontSize: TypeScale.body, height: 1.45, color: context.cq.textPrimary),
             ),
           ],
         ),
@@ -339,7 +340,7 @@ class NotePickerPage extends ConsumerWidget {
               children: [
                 Text(subtitle,
                     style:  TextStyle(
-                        fontSize: 13,
+                        fontSize: TypeScale.body,
                         color: context.cq.textMuted,
                         height: 1.4)),
                 const SizedBox(height: 16),
@@ -350,11 +351,11 @@ class NotePickerPage extends ConsumerWidget {
                       title: Text(note.displayTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14)),
+                          style: const TextStyle(fontSize: TypeScale.body)),
                       subtitle: note.subject == null
                           ? null
                           : Text(note.subject!,
-                              style: const TextStyle(fontSize: 11)),
+                              style: const TextStyle(fontSize: TypeScale.caption)),
                       trailing:  Icon(Icons.arrow_forward_ios_rounded,
                           size: 13, color: context.cq.textMuted),
                       onTap: () => context.push(routeBuilder(note.id)),

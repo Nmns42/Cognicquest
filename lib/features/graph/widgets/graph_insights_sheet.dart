@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_link_model.dart';
 import '../../notes/providers/note_provider.dart';
 import '../providers/graph_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Analyse du graphe et suggestions d'association.
 ///
@@ -34,7 +35,7 @@ class GraphInsightsSheet extends ConsumerWidget {
       ),
       decoration:  BoxDecoration(
         color: context.cq.beige,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: SafeArea(
@@ -49,7 +50,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                 height: 4,
                 decoration: BoxDecoration(
                   color: context.cq.beigeDark,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
             ),
@@ -60,7 +61,7 @@ class GraphInsightsSheet extends ConsumerWidget {
             Text(
               insights.summary,
               style:  TextStyle(
-                  fontSize: 13, color: context.cq.textMuted, height: 1.4),
+                  fontSize: TypeScale.body, color: context.cq.textMuted, height: 1.4),
             ),
             const SizedBox(height: 18),
 
@@ -100,7 +101,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                         'Les plus connectées : ce sont elles qui structurent '
                         'ta compréhension.',
                         style: TextStyle(
-                            fontSize: 11, color: context.cq.textMuted),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -110,7 +111,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                           for (final note in insights.hubs)
                             Chip(
                               label: Text(note.displayTitle,
-                                  style: const TextStyle(fontSize: 11)),
+                                  style: const TextStyle(fontSize: TypeScale.caption)),
                               visualDensity: VisualDensity.compact,
                             ),
                         ],
@@ -128,7 +129,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                           for (final note in insights.isolatedNotes.take(12))
                             Chip(
                               label: Text(note.displayTitle,
-                                  style: const TextStyle(fontSize: 11)),
+                                  style: const TextStyle(fontSize: TypeScale.caption)),
                               avatar: const Icon(Icons.link_off, size: 13),
                               visualDensity: VisualDensity.compact,
                             ),
@@ -143,7 +144,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                       'Déduites des tags partagés. Tu valides, rien n\'est '
                       'créé automatiquement.',
                       style:
-                          TextStyle(fontSize: 11, color: context.cq.textMuted),
+                          TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
                     ),
                     const SizedBox(height: 8),
                     if (suggestions.isEmpty)
@@ -154,7 +155,7 @@ class GraphInsightsSheet extends ConsumerWidget {
                           'à tes fiches : c\'est ce qui permet de repérer les '
                           'proximités.',
                           style: TextStyle(
-                              fontSize: 12,
+                              fontSize: TypeScale.caption,
                               color: context.cq.textHint,
                               height: 1.4),
                         ),
@@ -186,13 +187,13 @@ class _Metric extends StatelessWidget {
         Text(
           value,
           style:  TextStyle(
-            fontSize: 20,
+            fontSize: TypeScale.title,
             fontWeight: FontWeight.w700,
             color: context.cq.textPrimary,
           ),
         ),
         Text(label,
-            style:  TextStyle(fontSize: 11, color: context.cq.textMuted)),
+            style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted)),
       ],
     );
   }
@@ -208,7 +209,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style:  TextStyle(
-        fontSize: 13,
+        fontSize: TypeScale.body,
         fontWeight: FontWeight.w600,
         color: context.cq.textPrimary,
       ),
@@ -241,7 +242,7 @@ class _SuggestionRow extends ConsumerWidget {
                     '${source.displayTitle}  ↔  ${target.displayTitle}',
                     maxLines: 2,
                     style:  TextStyle(
-                        fontSize: 12.5,
+                        fontSize: TypeScale.caption,
                         color: context.cq.textPrimary,
                         height: 1.3),
                   ),
@@ -249,7 +250,7 @@ class _SuggestionRow extends ConsumerWidget {
                   Text(
                     suggestion.reason,
                     style:  TextStyle(
-                        fontSize: 11, color: context.cq.textMuted),
+                        fontSize: TypeScale.caption, color: context.cq.textMuted),
                   ),
                 ],
               ),

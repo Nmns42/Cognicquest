@@ -7,6 +7,7 @@ import '../../../shared/models/planning_model.dart';
 import '../domain/gantt_timeline.dart';
 import '../providers/planning_provider.dart';
 import '../widgets/plan_item_sheet.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Diagramme de Gantt — « vue chronologique horizontale avec barres
 /// ajustables », « zoom (jour, semaine, mois) », « affichage des
@@ -188,7 +189,7 @@ class _DateHeader extends StatelessWidget {
                         ? '${date.day}/${date.month}'
                         : '${date.day} ${_months[date.month - 1]}',
                     style:  TextStyle(
-                        fontSize: 10, color: context.cq.textHint),
+                        fontSize: TypeScale.caption, color: context.cq.textHint),
                   );
                 },
               ),
@@ -241,7 +242,7 @@ class _Bar extends ConsumerWidget {
         child: Container(
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(color: color.withValues(alpha: 0.55)),
           ),
           child: Stack(
@@ -252,7 +253,7 @@ class _Bar extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                 ),
               ),
@@ -265,7 +266,7 @@ class _Bar extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style:  TextStyle(
-                      fontSize: 11,
+                      fontSize: TypeScale.caption,
                       fontWeight: FontWeight.w600,
                       color: context.cq.textPrimary,
                     ),
@@ -307,7 +308,7 @@ class _LaneLabel extends StatelessWidget {
           subjects.isEmpty ? '—' : subjects,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style:  TextStyle(fontSize: 11, color: context.cq.textMuted),
+          style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
         ),
       ),
     );
@@ -327,7 +328,7 @@ class _ViolationBanner extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.cq.warning.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border:
             Border.all(color: context.cq.warning.withValues(alpha: 0.32)),
       ),
@@ -345,7 +346,7 @@ class _ViolationBanner extends StatelessWidget {
               '${items.length > 1 ? 'ent' : ''} : '
               '${items.map((i) => i.title).join(', ')}.',
               style: TextStyle(
-                  fontSize: 12, color: context.cq.warning, height: 1.4),
+                  fontSize: TypeScale.caption, color: context.cq.warning, height: 1.4),
             ),
           ),
         ],
@@ -376,7 +377,7 @@ class _EmptyGantt extends StatelessWidget {
               'l\'ordre de révision.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: context.cq.textMuted, fontSize: 14, height: 1.4),
+                  color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
             ),
           ],
         ),

@@ -15,6 +15,7 @@ import '../domain/knowledge_graph.dart';
 import '../providers/graph_provider.dart';
 import '../widgets/graph_insights_sheet.dart';
 import '../widgets/node_preview_sheet.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Graphe de liaison des connaissances — CdC : « visualiser les connexions
 /// entre les pages, concepts et idées », avec zoom, filtrage et aperçu au
@@ -389,7 +390,7 @@ class _NodeChip extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: isIsolated ? context.cq.cardColor : context.cq.vert,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: Border.all(
               color: isSelected
                   ? context.cq.textPrimary
@@ -451,7 +452,7 @@ class _InsightBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
       child: Row(
@@ -465,7 +466,7 @@ class _InsightBanner extends StatelessWidget {
           Expanded(
             child: Text(
               insights.summary,
-              style: TextStyle(fontSize: 12.5, color: color, height: 1.35),
+              style: TextStyle(fontSize: TypeScale.caption, color: color, height: 1.35),
             ),
           ),
         ],
@@ -496,7 +497,7 @@ class _SubjectFilterBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
-              label: const Text('Tout', style: TextStyle(fontSize: 12)),
+              label: const Text('Tout', style: TextStyle(fontSize: TypeScale.caption)),
               selected: selected == null,
               onSelected: (_) => onSelect(null),
             ),
@@ -505,7 +506,7 @@ class _SubjectFilterBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: Text(subject, style: const TextStyle(fontSize: 12)),
+                label: Text(subject, style: const TextStyle(fontSize: TypeScale.caption)),
                 selected: selected == subject,
                 onSelected: (isSelected) =>
                     onSelect(isSelected ? subject : null),
@@ -538,7 +539,7 @@ class _EmptyGraph extends StatelessWidget {
               'Le graphe dessine alors ta structure de pensée.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  color: context.cq.textMuted, fontSize: 14, height: 1.4),
+                  color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(

@@ -8,6 +8,7 @@ import '../../../shared/models/metacognition_model.dart';
 import '../domain/metacognition_insights.dart';
 import '../providers/metacognition_provider.dart';
 import '../widgets/mood_trend_chart.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Point d'entrée de la métacognition : état du moment, outils, historique.
 class JournalHubPage extends ConsumerStatefulWidget {
@@ -138,7 +139,7 @@ class _ProfilingPrompt extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: context.cq.warning.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(
             color: context.cq.warning.withValues(alpha: 0.3)),
       ),
@@ -152,7 +153,7 @@ class _ProfilingPrompt extends StatelessWidget {
               Text(
                 'Ton mode d\'emploi',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.warning,
                 ),
@@ -164,7 +165,7 @@ class _ProfilingPrompt extends StatelessWidget {
             'Cinq questions pour comprendre comment tu apprends. '
             'L\'application adaptera ensuite ses conseils.',
             style: TextStyle(
-                fontSize: 12.5, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -202,7 +203,7 @@ class _StrainCard extends StatelessWidget {
         color: insights.isEmpty
             ? context.cq.beigeDark.withValues(alpha: 0.4)
             : _color(context),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +214,7 @@ class _StrainCard extends StatelessWidget {
                 : insights.strainLevel.label,
             style: TextStyle(
               color: insights.isEmpty ? context.cq.textMuted : context.onAccent,
-              fontSize: 19,
+              fontSize: TypeScale.title,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -224,7 +225,7 @@ class _StrainCard extends StatelessWidget {
               color: insights.isEmpty
                   ? context.cq.textMuted
                   : context.cq.onVertMuted,
-              fontSize: 13,
+              fontSize: TypeScale.body,
               height: 1.4,
             ),
           ),
@@ -254,7 +255,7 @@ class _StrainCard extends StatelessWidget {
             Text(
               'Pas encore de bilan aujourd\'hui.',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: TypeScale.caption,
                 color: insights.isEmpty
                     ? context.cq.textHint
                     : context.cq.onVertMuted,
@@ -281,13 +282,13 @@ class _Metric extends StatelessWidget {
             value,
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 17,
+              fontSize: TypeScale.title,
               fontWeight: FontWeight.w700,
             ),
           ),
           Text(label,
               style:  TextStyle(
-                  color: context.cq.onVertMuted, fontSize: 11)),
+                  color: context.cq.onVertMuted, fontSize: TypeScale.caption)),
         ],
       );
 }
@@ -322,7 +323,7 @@ class _ToolTile extends StatelessWidget {
                 height: 38,
                 decoration: BoxDecoration(
                   color: context.cq.vert.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 19, color: context.cq.vertDark),
               ),
@@ -333,7 +334,7 @@ class _ToolTile extends StatelessWidget {
                   children: [
                     Text(title,
                         style:  TextStyle(
-                            fontSize: 14,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
                     const SizedBox(height: 2),
@@ -341,7 +342,7 @@ class _ToolTile extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style:  TextStyle(
-                            fontSize: 12, color: context.cq.textMuted)),
+                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
                   ],
                 ),
               ),
@@ -352,13 +353,13 @@ class _ToolTile extends StatelessWidget {
                       horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
                     color: context.cq.warning,
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     badge!,
                     style: TextStyle(
                         color: context.onAccent,
-                        fontSize: 10,
+                        fontSize: TypeScale.caption,
                         fontWeight: FontWeight.w700),
                   ),
                 ),
@@ -384,7 +385,7 @@ class _InsightBanner extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.cq.vert.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
         border: Border.all(color: context.cq.vert.withValues(alpha: 0.25)),
       ),
       child: Row(
@@ -396,7 +397,7 @@ class _InsightBanner extends StatelessWidget {
             child: Text(
               message,
               style:  TextStyle(
-                  fontSize: 12.5, color: context.cq.vertDark, height: 1.4),
+                  fontSize: TypeScale.caption, color: context.cq.vertDark, height: 1.4),
             ),
           ),
         ],
@@ -431,12 +432,12 @@ class _JournalRow extends StatelessWidget {
             Row(
               children: [
                 Text(_moodFaces[(entry.mood - 1).clamp(0, 4)],
-                    style: const TextStyle(fontSize: 17)),
+                    style: const TextStyle(fontSize: TypeScale.title)),
                 const SizedBox(width: 10),
                 Text(
                   '${date.day} ${_months[date.month - 1]}',
                   style:  TextStyle(
-                      fontSize: 12, color: context.cq.textMuted),
+                      fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
                 const Spacer(),
                 Container(
@@ -446,12 +447,12 @@ class _JournalRow extends StatelessWidget {
                     color: entry.rpe >= 8
                         ? context.cq.errorColor.withValues(alpha: 0.1)
                         : context.cq.beigeDark.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: Text(
                     'RPE ${entry.rpe}',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: TypeScale.caption,
                       fontWeight: FontWeight.w600,
                       color: entry.rpe >= 8
                           ? context.cq.errorColor
@@ -474,7 +475,7 @@ class _JournalRow extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style:  TextStyle(
-                    fontSize: 13, color: context.cq.textPrimary, height: 1.4),
+                    fontSize: TypeScale.body, color: context.cq.textPrimary, height: 1.4),
               ),
             ],
             if (entry.whatBlocked.trim().isNotEmpty) ...[
@@ -484,7 +485,7 @@ class _JournalRow extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style:  TextStyle(
-                    fontSize: 12, color: context.cq.textMuted, height: 1.35),
+                    fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.35),
               ),
             ],
           ],
@@ -503,7 +504,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style:  TextStyle(
-          fontSize: 14,
+          fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,
         ),

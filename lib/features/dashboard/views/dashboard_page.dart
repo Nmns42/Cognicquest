@@ -25,6 +25,7 @@ import '../providers/dashboard_stats_provider.dart';
 import '../widgets/dashboard_cards.dart';
 import '../widgets/module_picker_sheet.dart';
 import '../widgets/weekly_focus_chart.dart';
+import '../../../core/ui/ui.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -62,6 +63,7 @@ class DashboardPage extends ConsumerWidget {
               snapshot.connectionState != ConnectionState.done;
           final pending = snapshot.data ?? 0;
           return AlertDialog(
+            scrollable: true,
             title: const Text('Se déconnecter ?'),
             content: isFlushing
                 ? const Row(
@@ -167,7 +169,9 @@ class DashboardPage extends ConsumerWidget {
               dateLabel: _formatDate(now),
             ),
           ),
-          footer: const _CustomiseHint(),
+          // Poignées maison : visibles au survol seulement (vue zen), appui
+          // long au doigt.
+          buildDefaultDragHandles: false,
           itemCount: visibleModules.length,
           onReorderItem: ref.read(dashboardLayoutProvider.notifier).reorder,
           proxyDecorator: (child, index, animation) => Material(
@@ -181,7 +185,11 @@ class DashboardPage extends ConsumerWidget {
               // bon widget pendant le déplacement.
               key: ValueKey(module.id),
               padding: const EdgeInsets.only(bottom: 20),
-              child: _ModuleSection(module: module),
+              child: CqReorderableItem(
+                index: index,
+                semanticLabel: 'Déplacer le module ${module.label}',
+                child: _ModuleSection(module: module),
+              ),
             );
           },
         ),
@@ -539,13 +547,13 @@ class _NotesModule extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style:  TextStyle(
-                                  fontSize: 14, color: context.cq.textPrimary),
+                                  fontSize: TypeScale.body, color: context.cq.textPrimary),
                             ),
                             if (note.subject != null)
                               Text(
                                 note.subject!,
                                 style:  TextStyle(
-                                    fontSize: 11, color: context.cq.textMuted),
+                                    fontSize: TypeScale.caption, color: context.cq.textMuted),
                               ),
                           ],
                         ),
@@ -563,7 +571,7 @@ class _NotesModule extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 '$pending fiche${pending > 1 ? 's' : ''} en attente de synchronisation',
-                style:  TextStyle(fontSize: 11, color: context.cq.textHint),
+                style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
               ),
             ),
         ],
@@ -612,7 +620,7 @@ class _MetacognitionModule extends ConsumerWidget {
                     height: 40,
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(Radii.md),
                     ),
                     child: Icon(Icons.self_improvement_outlined,
                         size: 20, color: color),
@@ -629,7 +637,7 @@ class _MetacognitionModule extends ConsumerWidget {
                                   ? insights.strainLevel.label
                                   : 'Bilan du jour à faire'),
                           style:  TextStyle(
-                            fontSize: 14,
+                            fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary,
                           ),
@@ -644,7 +652,7 @@ class _MetacognitionModule extends ConsumerWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style:  TextStyle(
-                              fontSize: 12, color: context.cq.textMuted),
+                              fontSize: TypeScale.caption, color: context.cq.textMuted),
                         ),
                       ],
                     ),
@@ -712,7 +720,7 @@ class _PlanningModule extends ConsumerWidget {
                         child: Text(
                           '${goals.length} objectif${goals.length > 1 ? 's' : ''} en cours',
                           style:  TextStyle(
-                              fontSize: 14, color: context.cq.textPrimary),
+                              fontSize: TypeScale.body, color: context.cq.textPrimary),
                         ),
                       ),
                     ],
@@ -761,7 +769,7 @@ class _DeadlineRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style:  TextStyle(
-                      fontSize: 14, color: context.cq.textPrimary),
+                      fontSize: TypeScale.body, color: context.cq.textPrimary),
                 ),
               ),
               Text(
@@ -771,7 +779,7 @@ class _DeadlineRow extends StatelessWidget {
                         ? 'Demain'
                         : '${item.endDate.day} ${months[item.endDate.month - 1]}'),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: TypeScale.caption,
                   fontWeight: urgent ? FontWeight.w700 : FontWeight.w500,
                   color: urgent ? context.cq.errorColor : context.cq.textMuted,
                 ),
@@ -784,26 +792,3 @@ class _DeadlineRow extends StatelessWidget {
   }
 }
 
-class _CustomiseHint extends StatelessWidget {
-  const _CustomiseHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return  Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.drag_indicator, size: 14, color: context.cq.textHint),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Maintiens un module appuyé pour le déplacer',
-              style: TextStyle(fontSize: 12, color: context.cq.textHint),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

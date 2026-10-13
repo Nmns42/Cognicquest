@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
+import '../../../core/theme/tokens.dart';
 
 Color priorityColor(BuildContext context, TaskPriority priority) =>
     switch (priority) {
@@ -55,7 +56,7 @@ class TaskCard extends StatelessWidget {
                       Text(
                         task.title,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: TypeScale.body,
                           height: 1.3,
                           color: done ? context.cq.textMuted : context.cq.textPrimary,
                           decoration: done ? TextDecoration.lineThrough : null,
@@ -69,7 +70,7 @@ class TaskCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style:  TextStyle(
-                            fontSize: 12,
+                            fontSize: TypeScale.caption,
                             color: context.cq.textMuted,
                             height: 1.3,
                           ),
@@ -144,7 +145,7 @@ class _Checkbox extends StatelessWidget {
       label: 'Marquer comme terminée',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: Padding(
           padding: const EdgeInsets.all(2),
           child: AnimatedContainer(
@@ -157,7 +158,7 @@ class _Checkbox extends StatelessWidget {
                 color: done ? context.cq.vert : context.cq.beigeDark,
                 width: 2,
               ),
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(Radii.md),
             ),
             child: done
                 ? Icon(Icons.check, size: 13, color: context.onAccent)
@@ -182,7 +183,7 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -199,7 +200,7 @@ class _Badge extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: TypeScale.caption,
                 color: color,
                 fontWeight: FontWeight.w500,
               ),

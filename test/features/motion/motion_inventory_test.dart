@@ -34,6 +34,9 @@ void main() {
 
   final rules = <String, (RegExp, String)>{
     'AnimatedContainer': (RegExp(r'AnimatedContainer\('), 'Motion.duration('),
+    // Refonte zen, Phase 3 : poignées au survol et bascule Kanban / Matrice.
+    'AnimatedOpacity': (RegExp(r'AnimatedOpacity\('), 'Motion.duration('),
+    'AnimatedSwitcher': (RegExp(r'AnimatedSwitcher\('), 'Motion.duration('),
     'TweenAnimationBuilder':
         (RegExp(r'TweenAnimationBuilder<'), 'Motion.duration('),
     'feuilles du bas': (RegExp(r'showModalBottomSheet<.*>\('),
@@ -73,7 +76,7 @@ void main() {
     // Un AnimationController ou une transition explicite devrait être ajouté
     // à l'inventaire et branché sur Motion avant d'arriver ici.
     final explicit = RegExp(
-        r'AnimationController\(|AnimatedSwitcher\(|AnimatedOpacity\(|Hero\(|'
+        r'AnimationController\(|Hero\(|'
         r'FadeTransition\(|SlideTransition\(|ScaleTransition\(');
     final found = [
       for (final MapEntry(key: path, value: source) in sources.entries)

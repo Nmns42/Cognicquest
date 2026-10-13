@@ -4,6 +4,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/dashboard_stats_provider.dart';
+import '../../../core/theme/tokens.dart';
 
 /// Graphe du temps de focus des 7 derniers jours.
 ///
@@ -57,7 +58,7 @@ class WeeklyFocusChart extends StatelessWidget {
                 Text(
                   formatFocusDuration(stats.focusThisWeek),
                   style:  TextStyle(
-                    fontSize: 13,
+                    fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textMuted,
                   ),
@@ -67,7 +68,7 @@ class WeeklyFocusChart extends StatelessWidget {
             const SizedBox(height: 4),
              Text(
               'Total sur la période',
-              style: TextStyle(fontSize: 12, color: context.cq.textMuted),
+              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 16),
 
@@ -162,7 +163,7 @@ class _Bar extends StatelessWidget {
                           // Le texte porte une couleur d'encre, jamais celle de
                           // la série.
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: TypeScale.caption,
                             fontWeight: FontWeight.w600,
                             color: day.isToday
                                 ? context.cq.textPrimary
@@ -185,7 +186,7 @@ class _Bar extends StatelessWidget {
                         : color.withValues(alpha: day.isToday ? 1 : 0.75),
                     // Extrémité arrondie côté donnée, ancrée à la ligne de base.
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
+                      top: Radius.circular(Radii.md),
                     ),
                   ),
                 ),
@@ -204,7 +205,7 @@ class _Bar extends StatelessWidget {
                   child: Text(
                     day.initial,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: TypeScale.caption,
                       fontWeight:
                           day.isToday ? FontWeight.w700 : FontWeight.w500,
                       color: day.isToday
@@ -232,12 +233,12 @@ class _EmptyPlot extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 26),
       decoration: BoxDecoration(
         color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child:  Text(
         'Aucune session cette semaine.\nTa première session apparaîtra ici.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: context.cq.textMuted, fontSize: 13, height: 1.4),
+        style: TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
       ),
     );
   }

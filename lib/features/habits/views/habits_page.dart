@@ -6,6 +6,8 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../providers/habit_provider.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 class HabitsPage extends ConsumerStatefulWidget {
   const HabitsPage({super.key});
@@ -38,6 +40,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       context: context,
       animationStyle: Motion.style(context),
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('Supprimer cette habitude ?'),
         content: Text(
           '${habit.name}\n\nSon historique (${habit.totalCompletions} '
@@ -51,7 +54,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:  Text(
+            child: Text(
               'Supprimer',
               style: TextStyle(color: context.cq.errorColor),
             ),
@@ -84,7 +87,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       appBar: AppBar(title: const Text("Tracker d'habitudes")),
       body: habitsAsync.when(
         skipLoadingOnRefresh: true,
-        loading: () =>  Center(
+        loading: () => Center(
           child: CircularProgressIndicator(color: context.cq.vert),
         ),
         error: (error, _) => Center(
@@ -93,14 +96,14 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                 Icon(Icons.cloud_off_outlined,
+                Icon(Icons.cloud_off_outlined,
                     size: 44, color: context.cq.textHint),
                 const SizedBox(height: 16),
                 Text(
                   error.toString(),
                   textAlign: TextAlign.center,
-                  style:  TextStyle(
-                      color: context.cq.textMuted, fontSize: 14),
+                  style: TextStyle(
+                      color: context.cq.textMuted, fontSize: TypeScale.body),
                 ),
                 const SizedBox(height: 20),
                 OutlinedButton.icon(
@@ -127,20 +130,26 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
                       const SizedBox(height: 20),
                     ],
                   ),
+                  buildDefaultDragHandles: false,
                   onReorderItem: (from, to) => ref
                       .read(habitProvider.notifier)
                       .move(habits[from].id, to),
                   children: [
-                    for (final habit in habits)
-                      _HabitTile(
+                    for (final (index, habit) in habits.indexed)
+                      CqReorderableItem(
                         key: ValueKey(habit.id),
-                        habit: habit,
-                        onToggle: () =>
-                            ref.read(habitProvider.notifier).toggleToday(habit),
-                        onToggleDay: (day) =>
-                            ref.read(habitProvider.notifier).toggleOn(habit, day),
-                        onEdit: () => _openEditor(habit: habit),
-                        onDelete: () => _delete(habit),
+                        index: index,
+                        child: _HabitTile(
+                          habit: habit,
+                          onToggle: () => ref
+                              .read(habitProvider.notifier)
+                              .toggleToday(habit),
+                          onToggleDay: (day) => ref
+                              .read(habitProvider.notifier)
+                              .toggleOn(habit, day),
+                          onEdit: () => _openEditor(habit: habit),
+                          onDelete: () => _delete(habit),
+                        ),
                       ),
                   ],
                 ),
@@ -177,7 +186,7 @@ class _SummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: context.cq.vert,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,7 +195,7 @@ class _SummaryHeader extends StatelessWidget {
             '$doneToday / ${habits.length} aujourd\'hui',
             style: TextStyle(
               color: context.onAccent,
-              fontSize: 22,
+              fontSize: TypeScale.headline,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -195,7 +204,8 @@ class _SummaryHeader extends StatelessWidget {
             doneToday == habits.length
                 ? 'Routine du jour bouclée. Belle constance.'
                 : 'Encore ${habits.length - doneToday} à valider.',
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: 13),
+            style: TextStyle(
+                color: context.cq.onVertMuted, fontSize: TypeScale.body),
           ),
           const SizedBox(height: 16),
           Row(
@@ -232,13 +242,14 @@ class _MiniStat extends StatelessWidget {
           value,
           style: TextStyle(
             color: context.onAccent,
-            fontSize: 17,
+            fontSize: TypeScale.title,
             fontWeight: FontWeight.w700,
           ),
         ),
         Text(
           label,
-          style:  TextStyle(color: context.cq.onVertMuted, fontSize: 11),
+          style: TextStyle(
+              color: context.cq.onVertMuted, fontSize: TypeScale.caption),
         ),
       ],
     );
@@ -249,7 +260,6 @@ class _MiniStat extends StatelessWidget {
 
 class _HabitTile extends StatelessWidget {
   const _HabitTile({
-    super.key,
     required this.habit,
     required this.onToggle,
     required this.onToggleDay,
@@ -281,7 +291,7 @@ class _HabitTile extends StatelessWidget {
               children: [
                 InkWell(
                   onTap: onToggle,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(Radii.md),
                   child: Padding(
                     padding: const EdgeInsets.all(2),
                     // Micro-animation n° 1 : la coche rebondit quand
@@ -291,21 +301,24 @@ class _HabitTile extends StatelessWidget {
                       enabled: isDone,
                       scale: 1.2,
                       child: AnimatedContainer(
-                      duration: Motion.duration(context, const Duration(milliseconds: 200)),
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: isDone ? context.cq.vert : Colors.transparent,
-                        border: Border.all(
-                          color: isDone ? context.cq.vert : context.cq.beigeDark,
-                          width: 2,
+                        duration: Motion.duration(
+                            context, const Duration(milliseconds: 200)),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: isDone ? context.cq.vert : Colors.transparent,
+                          border: Border.all(
+                            color:
+                                isDone ? context.cq.vert : context.cq.beigeDark,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(Radii.md),
                         ),
-                        borderRadius: BorderRadius.circular(6),
+                        child: isDone
+                            ? Icon(Icons.check,
+                                size: 16, color: context.onAccent)
+                            : null,
                       ),
-                      child: isDone
-                          ? Icon(Icons.check, size: 16, color: context.onAccent)
-                          : null,
-                    ),
                     ),
                   ),
                 ),
@@ -317,7 +330,7 @@ class _HabitTile extends StatelessWidget {
                       Text(
                         habit.name,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: TypeScale.bodyLarge,
                           color: context.cq.textPrimary,
                           decoration:
                               isDone ? TextDecoration.lineThrough : null,
@@ -327,8 +340,9 @@ class _HabitTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         habit.frequency.label,
-                        style:  TextStyle(
-                            fontSize: 11, color: context.cq.textMuted),
+                        style: TextStyle(
+                            fontSize: TypeScale.caption,
+                            color: context.cq.textMuted),
                       ),
                     ],
                   ),
@@ -344,7 +358,7 @@ class _HabitTile extends StatelessWidget {
                           child: Text(
                             '🔥 $streak',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: TypeScale.body,
                               color: context.cq.errorColor,
                               fontWeight: FontWeight.w600,
                             ),
@@ -354,11 +368,11 @@ class _HabitTile extends StatelessWidget {
                 PopupMenuButton<String>(
                   popUpAnimationStyle: Motion.style(context),
                   tooltip: 'Options',
-                  icon:  Icon(Icons.more_vert,
+                  icon: Icon(Icons.more_vert,
                       size: 18, color: context.cq.textMuted),
                   onSelected: (value) =>
                       value == 'edit' ? onEdit() : onDelete(),
-                  itemBuilder: (_) =>  [
+                  itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Modifier')),
                     PopupMenuItem(
                       value: 'delete',
@@ -382,7 +396,8 @@ class _HabitTile extends StatelessWidget {
                     _DayCell(
                       initial: _dayInitials[
                           today.subtract(Duration(days: i)).weekday - 1],
-                      done: habit.isCompletedOn(today.subtract(Duration(days: i))),
+                      done: habit
+                          .isCompletedOn(today.subtract(Duration(days: i))),
                       isToday: i == 0,
                       onTap: () =>
                           onToggleDay(today.subtract(Duration(days: i))),
@@ -390,8 +405,8 @@ class _HabitTile extends StatelessWidget {
                   const Spacer(),
                   Text(
                     '${(habit.successRateLast30Days * 100).round()} %',
-                    style:  TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: TypeScale.caption,
                       color: context.cq.textMuted,
                       fontWeight: FontWeight.w600,
                     ),
@@ -425,7 +440,7 @@ class _DayCell extends StatelessWidget {
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(Radii.md),
         child: AnimatedContainer(
           duration: Motion.duration(context, const Duration(milliseconds: 180)),
           width: 26,
@@ -435,7 +450,7 @@ class _DayCell extends StatelessWidget {
             color: done
                 ? context.cq.vert
                 : context.cq.beigeDark.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(Radii.md),
             border: isToday
                 ? Border.all(color: context.cq.vertDark, width: 1.6)
                 : null,
@@ -443,7 +458,7 @@ class _DayCell extends StatelessWidget {
           child: Text(
             initial,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: TypeScale.caption,
               fontWeight: FontWeight.w600,
               color: done ? context.onAccent : context.cq.textMuted,
             ),
@@ -463,10 +478,9 @@ class _EmptyHabits extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         SizedBox(height: MediaQuery.sizeOf(context).height * 0.2),
-         Icon(Icons.check_circle_outline,
-            size: 48, color: context.cq.textHint),
+        Icon(Icons.check_circle_outline, size: 48, color: context.cq.textHint),
         const SizedBox(height: 16),
-         Padding(
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Text(
             'Aucune habitude pour l\'instant.\n'
@@ -522,11 +536,13 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
-        decoration:  BoxDecoration(
+        decoration: BoxDecoration(
           color: context.cq.beige,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         child: Form(
@@ -541,7 +557,7 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: context.cq.beigeDark,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(Radii.sm),
                   ),
                 ),
               ),
@@ -567,10 +583,10 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
                 onFieldSubmitted: (_) => _submit(),
               ),
               const SizedBox(height: 18),
-               Text(
+              Text(
                 'Fréquence',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: TypeScale.body,
                   fontWeight: FontWeight.w600,
                   color: context.cq.textMuted,
                 ),
@@ -579,7 +595,8 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
               SegmentedButton<HabitFrequency>(
                 segments: [
                   for (final frequency in HabitFrequency.values)
-                    ButtonSegment(value: frequency, label: Text(frequency.label)),
+                    ButtonSegment(
+                        value: frequency, label: Text(frequency.label)),
                 ],
                 selected: {_frequency},
                 showSelectedIcon: false,
