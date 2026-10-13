@@ -445,6 +445,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
                 repetitions: Value(card.schedule.repetitions),
                 lapses: Value(card.schedule.lapses),
                 createdAt: card.createdAt,
+                folderId: Value(card.folderId),
                 isSynced: const Value(true),
               ),
             );
@@ -479,6 +480,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
         deck: row.deck,
         createdAt: row.createdAt,
         isSynced: row.isSynced,
+        folderId: row.folderId,
         schedule: ScheduleState(
           step: row.step,
           easeFactor: row.easeFactor,

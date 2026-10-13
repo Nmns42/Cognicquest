@@ -12,6 +12,7 @@ import '../../graph/data/note_link_repository.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../kanban/data/task_repository.dart';
 import '../../metacognition/data/metacognition_repository.dart';
+import '../../notes/data/folder_repository.dart';
 import '../../notes/data/note_repository.dart';
 import '../../planning/data/planning_repository.dart';
 import '../../pomodoro/data/pomodoro_repository.dart';
@@ -126,6 +127,8 @@ class SyncCoordinator extends Notifier<SyncStatus> {
         ref.read(taskRepositoryProvider)?.sync,
         ref.read(habitRepositoryProvider)?.sync,
         ref.read(pomodoroRepositoryProvider)?.sync,
+        // Les dossiers avant les fiches et les cartes qui y sont rangées.
+        ref.read(folderRepositoryProvider)?.sync,
         ref.read(noteRepositoryProvider)?.sync,
         ref.read(noteLinkRepositoryProvider)?.sync,
         ref.read(reviewRepositoryProvider)?.sync,

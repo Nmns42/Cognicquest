@@ -4,6 +4,8 @@ import 'package:cognicquest/core/config/app_config.dart';
 import 'package:cognicquest/core/database/app_database.dart';
 import 'package:cognicquest/core/navigation/adaptive_shell.dart';
 import 'package:cognicquest/features/auth/providers/auth_provider.dart';
+import 'package:cognicquest/features/dashboard/models/dashboard_module.dart';
+import 'package:cognicquest/features/dashboard/providers/dashboard_layout_provider.dart';
 import 'package:cognicquest/features/kanban/providers/task_provider.dart';
 import 'package:cognicquest/main.dart';
 import 'package:cognicquest/shared/models/task_model.dart';
@@ -76,20 +78,22 @@ void main() {
     (tester) async {
       await boot(tester, const Size(1400, 900));
 
-      // ── Accueil : 3 blocs, puis personnalisation ──────────────────────
-      expect(find.text('Révisions du jour'), findsWidgets);
+      // ── Accueil : épuré (pas de nom en double, pas de titres) ─────────
+      expect(find.text('CognicQuest'), findsOneWidget,
+          reason: 'le nom seulement dans la navigation');
+      expect(find.byTooltip('Voir tout : Révisions du jour'), findsOneWidget);
+      expect(find.byTooltip('Réglages'), findsOneWidget,
+          reason: 'une seule entrée vers les réglages');
       await tester.tap(find.byTooltip('Personnaliser le tableau de bord'));
       await settle(tester);
-      await tester.tap(find.text('Tâches à faire'));
+      expect(find.text('Habitudes du jour'), findsNothing,
+          reason: 'module retiré');
+      await tester.tap(find.text('Progrès du jour'));
       await settle(tester);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape); // ferme
       await settle(tester);
-      // Le module ajouté se place en bas : on fait défiler l'accueil.
-      await tester.drag(
-          find.byType(ReorderableListView), const Offset(0, -1200));
-      await settle(tester);
-      expect(find.text('À faire'), findsWidgets);
-
+      expect(container.read(dashboardLayoutProvider).visibleModules,
+          contains(DashboardModule.stats));
       // ── Menu latéral rétractable ──────────────────────────────────────
       await tester.tap(find.byTooltip('Réduire le menu'));
       await settle(tester);
@@ -179,6 +183,28 @@ void main() {
         isTrue,
         reason: '[[Chapitre 2 – Dérivées]] relie les deux fiches',
       );
+
+      // ── Explorateur : dossier, rangement, filtre ─────────────────────
+      await tester.tap(find.text('Nouveau dossier'));
+      await settle(tester);
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Nom du dossier'), 'Cardiologie');
+      await tester.tap(find.text('Valider'));
+      await wait(tester);
+      final recetteCard = find.ancestor(
+          of: find.text('Fiche recette'), matching: find.byType(Card));
+      await tester.tap(find.descendant(
+          of: recetteCard, matching: find.byTooltip('Ranger dans un dossier')));
+      await settle(tester);
+      await tester.tap(find.text('Cardiologie').last);
+      await wait(tester);
+      await tester.tap(find.text('Cardiologie').first);
+      await settle(tester);
+      expect(find.text('Fiche recette'), findsOneWidget);
+      expect(find.text('Chapitre 2 – Dérivées'), findsNothing,
+          reason: 'le dossier ne montre que ce qui y est rangé');
+      await tester.tap(find.text('Tout'));
+      await settle(tester);
 
       // ── Pomodoro : mode concentration ─────────────────────────────────
       await tester.tap(find.text("Aujourd'hui"));

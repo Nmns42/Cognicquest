@@ -110,11 +110,16 @@ class Note {
     this.blocks = const [],
     this.isSynced = true,
     this.position,
+    this.folderId,
   });
 
   final String id;
   final String userId;
   final String title;
+
+  /// Dossier de l'explorateur, `null` à la racine. Écrit uniquement par le
+  /// déplacement (comme [position]) : une sauvegarde ne le touche jamais.
+  final String? folderId;
 
   /// Clé d'ordre manuel (cf. `FractionalKey`), `null` tant que la fiche n'a
   /// jamais été placée à la main. Écrite uniquement par le réordonnancement :
@@ -205,6 +210,7 @@ class Note {
         blocks: blocks ?? this.blocks,
         isSynced: isSynced ?? this.isSynced,
         position: position,
+        folderId: folderId,
       );
 
   Map<String, dynamic> toJson() => {

@@ -13,10 +13,14 @@ class Flashcard {
     this.noteId,
     this.deck,
     this.isSynced = true,
+    this.folderId,
   });
 
   final String id;
   final String userId;
+
+  /// Dossier de l'explorateur, `null` à la racine (déplacement uniquement).
+  final String? folderId;
 
   /// Fiche d'origine, si la carte en a été tirée.
   final String? noteId;
@@ -72,6 +76,7 @@ class Flashcard {
         createdAt: createdAt,
         schedule: schedule ?? this.schedule,
         isSynced: isSynced ?? this.isSynced,
+        folderId: folderId,
       );
 
   Map<String, dynamic> toJson() => {
@@ -87,12 +92,14 @@ class Flashcard {
         'repetitions': schedule.repetitions,
         'lapses': schedule.lapses,
         'created_at': createdAt.toUtc().toIso8601String(),
+        'folder_id': folderId,
       };
 
   factory Flashcard.fromJson(Map<String, dynamic> json) => Flashcard(
         id: json['id'] as String,
         userId: json['user_id'] as String,
         noteId: json['note_id'] as String?,
+        folderId: json['folder_id'] as String?,
         front: json['front'] as String? ?? '',
         back: json['back'] as String? ?? '',
         deck: json['deck'] as String?,

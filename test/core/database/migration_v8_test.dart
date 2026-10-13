@@ -36,7 +36,10 @@ void main() {
             updatedAt: now,
           ),
         );
-    final expected = appIndexes();
+    // Index des paliers v8 seulement : celui des dossiers vient en v13.
+    final expected = appIndexes()
+        .where((name) => name != 'local_folders_user_parent')
+        .toList();
     await seed.close();
     expect(expected, hasLength(27));
 
@@ -45,14 +48,14 @@ void main() {
       raw.execute('DROP INDEX $name;');
     }
     raw.execute('PRAGMA user_version = 7;');
-    expect(appIndexes(), isEmpty);
+    expect(appIndexes(), ['local_folders_user_parent']);
 
     final db = AppDatabase(NativeDatabase.opened(raw));
     addTearDown(db.close);
 
     expect((await db.select(db.localNotes).get()).single.title,
         'Fiche avant migration');
-    expect(appIndexes(), expected);
+    expect(appIndexes(), unorderedEquals([...expected, 'local_folders_user_parent']));
     expect(raw.userVersion, db.schemaVersion);
   });
 

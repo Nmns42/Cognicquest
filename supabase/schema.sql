@@ -1040,3 +1040,81 @@ $$;
 
 revoke execute on function public.delete_own_account() from public, anon;
 grant execute on function public.delete_own_account() to authenticated;
+
+-- ============================================================================
+-- Dossiers (explorateur de fiches et de cartes)
+-- ============================================================================
+-- Arborescence libre : un dossier peut contenir des sous-dossiers, des
+-- fiches et des cartes. Supprimer un dossier supprime ses sous-dossiers ;
+-- les fiches et les cartes qu'ils contenaient reviennent à la racine
+-- (`on delete set null`), jamais perdues.
+
+create table if not exists public.folders (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null default auth.uid()
+                references auth.users (id) on delete cascade,
+  parent_id   uuid references public.folders (id) on delete cascade,
+  name        text not null check (char_length(name) between 1 and 120),
+  position    text collate "C",
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
+create index if not exists folders_user_parent_idx
+  on public.folders (user_id, parent_id);
+create index if not exists folders_parent_id_idx
+  on public.folders (parent_id);
+
+-- Propriété d'un dossier référencé (anti-IDOR), comme owns_note.
+create or replace function public.owns_folder(target uuid)
+returns boolean
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  return target is null or exists (
+    select 1 from public.folders f
+    where f.id = target and f.user_id = auth.uid()
+  );
+end;
+$$;
+
+alter table public.folders enable row level security;
+
+drop policy if exists "folders_all_own" on public.folders;
+create policy "folders_all_own" on public.folders
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and public.owns_folder(parent_id));
+
+drop trigger if exists folders_set_updated_at on public.folders;
+create trigger folders_set_updated_at
+  before insert or update on public.folders
+  for each row execute function public.set_updated_at();
+
+alter table public.notes
+  add column if not exists folder_id uuid
+    references public.folders (id) on delete set null;
+alter table public.flashcards
+  add column if not exists folder_id uuid
+    references public.folders (id) on delete set null;
+
+create index if not exists notes_folder_id_idx on public.notes (folder_id);
+create index if not exists flashcards_folder_id_idx
+  on public.flashcards (folder_id);
+
+-- Une fiche ou une carte ne peut être rangée que dans un dossier du même
+-- compte.
+drop policy if exists "notes_all_own" on public.notes;
+create policy "notes_all_own" on public.notes
+  for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id and public.owns_folder(folder_id));
+
+drop policy if exists "flashcards_all_own" on public.flashcards;
+create policy "flashcards_all_own" on public.flashcards
+  for all using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and public.owns_note(note_id)
+    and public.owns_folder(folder_id)
+  );

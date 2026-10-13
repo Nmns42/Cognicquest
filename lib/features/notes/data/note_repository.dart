@@ -435,6 +435,7 @@ class LocalFirstNoteRepository implements NoteRepository {
                     DateTime.parse(remote['created_at'] as String).toLocal(),
                 updatedAt: remoteUpdatedAt,
                 position: Value(remote['position'] as String?),
+                folderId: Value(remote['folder_id'] as String?),
                 isSynced: const Value(true),
               ),
             );
@@ -486,6 +487,7 @@ class LocalFirstNoteRepository implements NoteRepository {
         'is_archived': row.isArchived,
         'created_at': row.createdAt.toUtc().toIso8601String(),
         'position': row.position,
+        'folder_id': row.folderId,
         // Pas d'`updated_at` : le serveur le pose lui-même (trigger).
       };
 
@@ -504,6 +506,7 @@ class LocalFirstNoteRepository implements NoteRepository {
         blocks: blocks,
         isSynced: row.isSynced,
         position: row.position,
+        folderId: row.folderId,
       );
 
   static NoteBlock _toBlock(LocalNoteBlock row) => NoteBlock(

@@ -122,6 +122,12 @@ class $LocalNotesTable extends LocalNotes
   late final GeneratedColumn<String> position = GeneratedColumn<String>(
       'position', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _folderIdMeta =
+      const VerificationMeta('folderId');
+  @override
+  late final GeneratedColumn<String> folderId = GeneratedColumn<String>(
+      'folder_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -138,7 +144,8 @@ class $LocalNotesTable extends LocalNotes
         isDeleted,
         isSynced,
         revision,
-        position
+        position,
+        folderId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -225,6 +232,10 @@ class $LocalNotesTable extends LocalNotes
       context.handle(_positionMeta,
           position.isAcceptableOrUnknown(data['position']!, _positionMeta));
     }
+    if (data.containsKey('folder_id')) {
+      context.handle(_folderIdMeta,
+          folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta));
+    }
     return context;
   }
 
@@ -264,6 +275,8 @@ class $LocalNotesTable extends LocalNotes
           .read(DriftSqlType.int, data['${effectivePrefix}revision'])!,
       position: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}position']),
+      folderId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_id']),
     );
   }
 
@@ -316,6 +329,9 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
   /// « récentes ». Collation BINARY de SQLite : même ordre que Dart et que
   /// `collate "C"` côté Postgres.
   final String? position;
+
+  /// Dossier de l'explorateur (v13). `null` : à la racine.
+  final String? folderId;
   const LocalNote(
       {required this.id,
       required this.userId,
@@ -331,7 +347,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       required this.isDeleted,
       required this.isSynced,
       required this.revision,
-      this.position});
+      this.position,
+      this.folderId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -353,6 +370,9 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
     map['revision'] = Variable<int>(revision);
     if (!nullToAbsent || position != null) {
       map['position'] = Variable<String>(position);
+    }
+    if (!nullToAbsent || folderId != null) {
+      map['folder_id'] = Variable<String>(folderId);
     }
     return map;
   }
@@ -378,6 +398,9 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       position: position == null && nullToAbsent
           ? const Value.absent()
           : Value(position),
+      folderId: folderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderId),
     );
   }
 
@@ -400,6 +423,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isSynced: serializer.fromJson<bool>(json['isSynced']),
       revision: serializer.fromJson<int>(json['revision']),
       position: serializer.fromJson<String?>(json['position']),
+      folderId: serializer.fromJson<String?>(json['folderId']),
     );
   }
   @override
@@ -421,6 +445,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       'isSynced': serializer.toJson<bool>(isSynced),
       'revision': serializer.toJson<int>(revision),
       'position': serializer.toJson<String?>(position),
+      'folderId': serializer.toJson<String?>(folderId),
     };
   }
 
@@ -439,7 +464,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           bool? isDeleted,
           bool? isSynced,
           int? revision,
-          Value<String?> position = const Value.absent()}) =>
+          Value<String?> position = const Value.absent(),
+          Value<String?> folderId = const Value.absent()}) =>
       LocalNote(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -456,6 +482,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
         isSynced: isSynced ?? this.isSynced,
         revision: revision ?? this.revision,
         position: position.present ? position.value : this.position,
+        folderId: folderId.present ? folderId.value : this.folderId,
       );
   LocalNote copyWithCompanion(LocalNotesCompanion data) {
     return LocalNote(
@@ -477,6 +504,7 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
       revision: data.revision.present ? data.revision.value : this.revision,
       position: data.position.present ? data.position.value : this.position,
+      folderId: data.folderId.present ? data.folderId.value : this.folderId,
     );
   }
 
@@ -497,7 +525,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
           ..write('revision: $revision, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('folderId: $folderId')
           ..write(')'))
         .toString();
   }
@@ -518,7 +547,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
       isDeleted,
       isSynced,
       revision,
-      position);
+      position,
+      folderId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -537,7 +567,8 @@ class LocalNote extends DataClass implements Insertable<LocalNote> {
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced &&
           other.revision == this.revision &&
-          other.position == this.position);
+          other.position == this.position &&
+          other.folderId == this.folderId);
 }
 
 class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
@@ -556,6 +587,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
   final Value<bool> isSynced;
   final Value<int> revision;
   final Value<String?> position;
+  final Value<String?> folderId;
   final Value<int> rowid;
   const LocalNotesCompanion({
     this.id = const Value.absent(),
@@ -573,6 +605,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     this.isSynced = const Value.absent(),
     this.revision = const Value.absent(),
     this.position = const Value.absent(),
+    this.folderId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocalNotesCompanion.insert({
@@ -591,6 +624,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     this.isSynced = const Value.absent(),
     this.revision = const Value.absent(),
     this.position = const Value.absent(),
+    this.folderId = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         userId = Value(userId),
@@ -613,6 +647,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     Expression<bool>? isSynced,
     Expression<int>? revision,
     Expression<String>? position,
+    Expression<String>? folderId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -631,6 +666,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       if (isSynced != null) 'is_synced': isSynced,
       if (revision != null) 'revision': revision,
       if (position != null) 'position': position,
+      if (folderId != null) 'folder_id': folderId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -651,6 +687,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       Value<bool>? isSynced,
       Value<int>? revision,
       Value<String?>? position,
+      Value<String?>? folderId,
       Value<int>? rowid}) {
     return LocalNotesCompanion(
       id: id ?? this.id,
@@ -668,6 +705,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
       isSynced: isSynced ?? this.isSynced,
       revision: revision ?? this.revision,
       position: position ?? this.position,
+      folderId: folderId ?? this.folderId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -720,6 +758,9 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
     if (position.present) {
       map['position'] = Variable<String>(position.value);
     }
+    if (folderId.present) {
+      map['folder_id'] = Variable<String>(folderId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -744,6 +785,7 @@ class LocalNotesCompanion extends UpdateCompanion<LocalNote> {
           ..write('isSynced: $isSynced, ')
           ..write('revision: $revision, ')
           ..write('position: $position, ')
+          ..write('folderId: $folderId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1690,6 +1732,12 @@ class $LocalFlashcardsTable extends LocalFlashcards
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _folderIdMeta =
+      const VerificationMeta('folderId');
+  @override
+  late final GeneratedColumn<String> folderId = GeneratedColumn<String>(
+      'folder_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1706,7 +1754,8 @@ class $LocalFlashcardsTable extends LocalFlashcards
         lapses,
         createdAt,
         isDeleted,
-        isSynced
+        isSynced,
+        folderId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1795,6 +1844,10 @@ class $LocalFlashcardsTable extends LocalFlashcards
       context.handle(_isSyncedMeta,
           isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
     }
+    if (data.containsKey('folder_id')) {
+      context.handle(_folderIdMeta,
+          folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta));
+    }
     return context;
   }
 
@@ -1834,6 +1887,8 @@ class $LocalFlashcardsTable extends LocalFlashcards
           .read(DriftSqlType.bool, data['${effectivePrefix}is_deleted'])!,
       isSynced: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+      folderId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}folder_id']),
     );
   }
 
@@ -1864,6 +1919,9 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
   final DateTime createdAt;
   final bool isDeleted;
   final bool isSynced;
+
+  /// Dossier de l'explorateur (v13). `null` : à la racine.
+  final String? folderId;
   const LocalFlashcard(
       {required this.id,
       required this.userId,
@@ -1879,7 +1937,8 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       required this.lapses,
       required this.createdAt,
       required this.isDeleted,
-      required this.isSynced});
+      required this.isSynced,
+      this.folderId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1904,6 +1963,9 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
+    if (!nullToAbsent || folderId != null) {
+      map['folder_id'] = Variable<String>(folderId);
+    }
     return map;
   }
 
@@ -1927,6 +1989,9 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       createdAt: Value(createdAt),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
+      folderId: folderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderId),
     );
   }
 
@@ -1949,6 +2014,7 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
+      folderId: serializer.fromJson<String?>(json['folderId']),
     );
   }
   @override
@@ -1970,6 +2036,7 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
+      'folderId': serializer.toJson<String?>(folderId),
     };
   }
 
@@ -1988,7 +2055,8 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
           int? lapses,
           DateTime? createdAt,
           bool? isDeleted,
-          bool? isSynced}) =>
+          bool? isSynced,
+          Value<String?> folderId = const Value.absent()}) =>
       LocalFlashcard(
         id: id ?? this.id,
         userId: userId ?? this.userId,
@@ -2006,6 +2074,7 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
         createdAt: createdAt ?? this.createdAt,
         isDeleted: isDeleted ?? this.isDeleted,
         isSynced: isSynced ?? this.isSynced,
+        folderId: folderId.present ? folderId.value : this.folderId,
       );
   LocalFlashcard copyWithCompanion(LocalFlashcardsCompanion data) {
     return LocalFlashcard(
@@ -2028,6 +2097,7 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+      folderId: data.folderId.present ? data.folderId.value : this.folderId,
     );
   }
 
@@ -2048,7 +2118,8 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
           ..write('lapses: $lapses, ')
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('isSynced: $isSynced')
+          ..write('isSynced: $isSynced, ')
+          ..write('folderId: $folderId')
           ..write(')'))
         .toString();
   }
@@ -2069,7 +2140,8 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
       lapses,
       createdAt,
       isDeleted,
-      isSynced);
+      isSynced,
+      folderId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2088,7 +2160,8 @@ class LocalFlashcard extends DataClass implements Insertable<LocalFlashcard> {
           other.lapses == this.lapses &&
           other.createdAt == this.createdAt &&
           other.isDeleted == this.isDeleted &&
-          other.isSynced == this.isSynced);
+          other.isSynced == this.isSynced &&
+          other.folderId == this.folderId);
 }
 
 class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
@@ -2107,6 +2180,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
   final Value<DateTime> createdAt;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
+  final Value<String?> folderId;
   final Value<int> rowid;
   const LocalFlashcardsCompanion({
     this.id = const Value.absent(),
@@ -2124,6 +2198,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
     this.createdAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.folderId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LocalFlashcardsCompanion.insert({
@@ -2142,6 +2217,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
     required DateTime createdAt,
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
+    this.folderId = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         userId = Value(userId),
@@ -2165,6 +2241,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
     Expression<DateTime>? createdAt,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
+    Expression<String>? folderId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2183,6 +2260,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
       if (createdAt != null) 'created_at': createdAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
+      if (folderId != null) 'folder_id': folderId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2203,6 +2281,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
       Value<DateTime>? createdAt,
       Value<bool>? isDeleted,
       Value<bool>? isSynced,
+      Value<String?>? folderId,
       Value<int>? rowid}) {
     return LocalFlashcardsCompanion(
       id: id ?? this.id,
@@ -2220,6 +2299,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
       createdAt: createdAt ?? this.createdAt,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
+      folderId: folderId ?? this.folderId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2272,6 +2352,9 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
     if (isSynced.present) {
       map['is_synced'] = Variable<bool>(isSynced.value);
     }
+    if (folderId.present) {
+      map['folder_id'] = Variable<String>(folderId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2296,6 +2379,7 @@ class LocalFlashcardsCompanion extends UpdateCompanion<LocalFlashcard> {
           ..write('createdAt: $createdAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced, ')
+          ..write('folderId: $folderId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10944,6 +11028,396 @@ class LocalPreferencesCompanion extends UpdateCompanion<LocalPreference> {
   }
 }
 
+class $LocalFoldersTable extends LocalFolders
+    with TableInfo<$LocalFoldersTable, LocalFolder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalFoldersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _parentIdMeta =
+      const VerificationMeta('parentId');
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+      'parent_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 120),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<String> position = GeneratedColumn<String>(
+      'position', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isSyncedMeta =
+      const VerificationMeta('isSynced');
+  @override
+  late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
+      'is_synced', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, userId, parentId, name, position, createdAt, isSynced];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_folders';
+  @override
+  VerificationContext validateIntegrity(Insertable<LocalFolder> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(_parentIdMeta,
+          parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('is_synced')) {
+      context.handle(_isSyncedMeta,
+          isSynced.isAcceptableOrUnknown(data['is_synced']!, _isSyncedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalFolder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalFolder(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      parentId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}parent_id']),
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}position']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      isSynced: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_synced'])!,
+    );
+  }
+
+  @override
+  $LocalFoldersTable createAlias(String alias) {
+    return $LocalFoldersTable(attachedDatabase, alias);
+  }
+}
+
+class LocalFolder extends DataClass implements Insertable<LocalFolder> {
+  final String id;
+  final String userId;
+  final String? parentId;
+  final String name;
+
+  /// Clé d'ordre manuel ; `null` : ordre alphabétique.
+  final String? position;
+  final DateTime createdAt;
+  final bool isSynced;
+  const LocalFolder(
+      {required this.id,
+      required this.userId,
+      this.parentId,
+      required this.name,
+      this.position,
+      required this.createdAt,
+      required this.isSynced});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || position != null) {
+      map['position'] = Variable<String>(position);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_synced'] = Variable<bool>(isSynced);
+    return map;
+  }
+
+  LocalFoldersCompanion toCompanion(bool nullToAbsent) {
+    return LocalFoldersCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      name: Value(name),
+      position: position == null && nullToAbsent
+          ? const Value.absent()
+          : Value(position),
+      createdAt: Value(createdAt),
+      isSynced: Value(isSynced),
+    );
+  }
+
+  factory LocalFolder.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalFolder(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      parentId: serializer.fromJson<String?>(json['parentId']),
+      name: serializer.fromJson<String>(json['name']),
+      position: serializer.fromJson<String?>(json['position']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isSynced: serializer.fromJson<bool>(json['isSynced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'parentId': serializer.toJson<String?>(parentId),
+      'name': serializer.toJson<String>(name),
+      'position': serializer.toJson<String?>(position),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isSynced': serializer.toJson<bool>(isSynced),
+    };
+  }
+
+  LocalFolder copyWith(
+          {String? id,
+          String? userId,
+          Value<String?> parentId = const Value.absent(),
+          String? name,
+          Value<String?> position = const Value.absent(),
+          DateTime? createdAt,
+          bool? isSynced}) =>
+      LocalFolder(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        parentId: parentId.present ? parentId.value : this.parentId,
+        name: name ?? this.name,
+        position: position.present ? position.value : this.position,
+        createdAt: createdAt ?? this.createdAt,
+        isSynced: isSynced ?? this.isSynced,
+      );
+  LocalFolder copyWithCompanion(LocalFoldersCompanion data) {
+    return LocalFolder(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      name: data.name.present ? data.name.value : this.name,
+      position: data.position.present ? data.position.value : this.position,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFolder(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('parentId: $parentId, ')
+          ..write('name: $name, ')
+          ..write('position: $position, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, userId, parentId, name, position, createdAt, isSynced);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalFolder &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.parentId == this.parentId &&
+          other.name == this.name &&
+          other.position == this.position &&
+          other.createdAt == this.createdAt &&
+          other.isSynced == this.isSynced);
+}
+
+class LocalFoldersCompanion extends UpdateCompanion<LocalFolder> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String?> parentId;
+  final Value<String> name;
+  final Value<String?> position;
+  final Value<DateTime> createdAt;
+  final Value<bool> isSynced;
+  final Value<int> rowid;
+  const LocalFoldersCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.position = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.isSynced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalFoldersCompanion.insert({
+    required String id,
+    required String userId,
+    this.parentId = const Value.absent(),
+    required String name,
+    this.position = const Value.absent(),
+    required DateTime createdAt,
+    this.isSynced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        name = Value(name),
+        createdAt = Value(createdAt);
+  static Insertable<LocalFolder> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? parentId,
+    Expression<String>? name,
+    Expression<String>? position,
+    Expression<DateTime>? createdAt,
+    Expression<bool>? isSynced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (parentId != null) 'parent_id': parentId,
+      if (name != null) 'name': name,
+      if (position != null) 'position': position,
+      if (createdAt != null) 'created_at': createdAt,
+      if (isSynced != null) 'is_synced': isSynced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalFoldersCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String?>? parentId,
+      Value<String>? name,
+      Value<String?>? position,
+      Value<DateTime>? createdAt,
+      Value<bool>? isSynced,
+      Value<int>? rowid}) {
+    return LocalFoldersCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      parentId: parentId ?? this.parentId,
+      name: name ?? this.name,
+      position: position ?? this.position,
+      createdAt: createdAt ?? this.createdAt,
+      isSynced: isSynced ?? this.isSynced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<String>(position.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (isSynced.present) {
+      map['is_synced'] = Variable<bool>(isSynced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalFoldersCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('parentId: $parentId, ')
+          ..write('name: $name, ')
+          ..write('position: $position, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('isSynced: $isSynced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10992,6 +11466,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   late final $LocalPreferencesTable localPreferences =
       $LocalPreferencesTable(this);
+  late final $LocalFoldersTable localFolders = $LocalFoldersTable(this);
   late final Index localNotesUserUpdated = Index('local_notes_user_updated',
       'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
   late final Index localNoteBlocksNotePosition = Index(
@@ -11060,6 +11535,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       'CREATE INDEX local_pomodoro_sessions_user_started ON local_pomodoro_sessions (user_id, started_at)');
   late final Index syncQueueEntriesEntity = Index('sync_queue_entries_entity',
       'CREATE INDEX sync_queue_entries_entity ON sync_queue_entries (entity_table, entity_id)');
+  late final Index localFoldersUserParent = Index('local_folders_user_parent',
+      'CREATE INDEX local_folders_user_parent ON local_folders (user_id, parent_id)');
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11091,6 +11568,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         syncQueueEntries,
         syncCursors,
         localPreferences,
+        localFolders,
         localNotesUserUpdated,
         localNoteBlocksNotePosition,
         localNoteLinksUserCreated,
@@ -11117,7 +11595,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localTasksUserPosition,
         localHabitsUserCreated,
         localPomodoroSessionsUserStarted,
-        syncQueueEntriesEntity
+        syncQueueEntriesEntity,
+        localFoldersUserParent
       ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules(
@@ -11247,6 +11726,7 @@ typedef $$LocalNotesTableCreateCompanionBuilder = LocalNotesCompanion Function({
   Value<bool> isSynced,
   Value<int> revision,
   Value<String?> position,
+  Value<String?> folderId,
   Value<int> rowid,
 });
 typedef $$LocalNotesTableUpdateCompanionBuilder = LocalNotesCompanion Function({
@@ -11265,6 +11745,7 @@ typedef $$LocalNotesTableUpdateCompanionBuilder = LocalNotesCompanion Function({
   Value<bool> isSynced,
   Value<int> revision,
   Value<String?> position,
+  Value<String?> folderId,
   Value<int> rowid,
 });
 
@@ -11436,6 +11917,9 @@ class $$LocalNotesTableFilterComposer
 
   ColumnFilters<String> get position => $composableBuilder(
       column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnFilters(column));
 
   Expression<bool> localNoteBlocksRefs(
       Expression<bool> Function($$LocalNoteBlocksTableFilterComposer f) f) {
@@ -11638,6 +12122,9 @@ class $$LocalNotesTableOrderingComposer
 
   ColumnOrderings<String> get position => $composableBuilder(
       column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$LocalNotesTableAnnotationComposer
@@ -11693,6 +12180,9 @@ class $$LocalNotesTableAnnotationComposer
 
   GeneratedColumn<String> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get folderId =>
+      $composableBuilder(column: $table.folderId, builder: (column) => column);
 
   Expression<T> localNoteBlocksRefs<T extends Object>(
       Expression<T> Function($$LocalNoteBlocksTableAnnotationComposer a) f) {
@@ -11891,6 +12381,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             Value<bool> isSynced = const Value.absent(),
             Value<int> revision = const Value.absent(),
             Value<String?> position = const Value.absent(),
+            Value<String?> folderId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalNotesCompanion(
@@ -11909,6 +12400,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             isSynced: isSynced,
             revision: revision,
             position: position,
+            folderId: folderId,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -11927,6 +12419,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             Value<bool> isSynced = const Value.absent(),
             Value<int> revision = const Value.absent(),
             Value<String?> position = const Value.absent(),
+            Value<String?> folderId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalNotesCompanion.insert(
@@ -11945,6 +12438,7 @@ class $$LocalNotesTableTableManager extends RootTableManager<
             isSynced: isSynced,
             revision: revision,
             position: position,
+            folderId: folderId,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -12811,6 +13305,7 @@ typedef $$LocalFlashcardsTableCreateCompanionBuilder = LocalFlashcardsCompanion
   required DateTime createdAt,
   Value<bool> isDeleted,
   Value<bool> isSynced,
+  Value<String?> folderId,
   Value<int> rowid,
 });
 typedef $$LocalFlashcardsTableUpdateCompanionBuilder = LocalFlashcardsCompanion
@@ -12830,6 +13325,7 @@ typedef $$LocalFlashcardsTableUpdateCompanionBuilder = LocalFlashcardsCompanion
   Value<DateTime> createdAt,
   Value<bool> isDeleted,
   Value<bool> isSynced,
+  Value<String?> folderId,
   Value<int> rowid,
 });
 
@@ -12920,6 +13416,9 @@ class $$LocalFlashcardsTableFilterComposer
 
   ColumnFilters<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnFilters(column));
 
   $$LocalNotesTableFilterComposer get noteId {
     final $$LocalNotesTableFilterComposer composer = $composerBuilder(
@@ -13015,6 +13514,9 @@ class $$LocalFlashcardsTableOrderingComposer
   ColumnOrderings<bool> get isSynced => $composableBuilder(
       column: $table.isSynced, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get folderId => $composableBuilder(
+      column: $table.folderId, builder: (column) => ColumnOrderings(column));
+
   $$LocalNotesTableOrderingComposer get noteId {
     final $$LocalNotesTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -13086,6 +13588,9 @@ class $$LocalFlashcardsTableAnnotationComposer
 
   GeneratedColumn<bool> get isSynced =>
       $composableBuilder(column: $table.isSynced, builder: (column) => column);
+
+  GeneratedColumn<String> get folderId =>
+      $composableBuilder(column: $table.folderId, builder: (column) => column);
 
   $$LocalNotesTableAnnotationComposer get noteId {
     final $$LocalNotesTableAnnotationComposer composer = $composerBuilder(
@@ -13168,6 +13673,7 @@ class $$LocalFlashcardsTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isDeleted = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
+            Value<String?> folderId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalFlashcardsCompanion(
@@ -13186,6 +13692,7 @@ class $$LocalFlashcardsTableTableManager extends RootTableManager<
             createdAt: createdAt,
             isDeleted: isDeleted,
             isSynced: isSynced,
+            folderId: folderId,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -13204,6 +13711,7 @@ class $$LocalFlashcardsTableTableManager extends RootTableManager<
             required DateTime createdAt,
             Value<bool> isDeleted = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
+            Value<String?> folderId = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               LocalFlashcardsCompanion.insert(
@@ -13222,6 +13730,7 @@ class $$LocalFlashcardsTableTableManager extends RootTableManager<
             createdAt: createdAt,
             isDeleted: isDeleted,
             isSynced: isSynced,
+            folderId: folderId,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -18609,6 +19118,213 @@ typedef $$LocalPreferencesTableProcessedTableManager = ProcessedTableManager<
     ),
     LocalPreference,
     PrefetchHooks Function()>;
+typedef $$LocalFoldersTableCreateCompanionBuilder = LocalFoldersCompanion
+    Function({
+  required String id,
+  required String userId,
+  Value<String?> parentId,
+  required String name,
+  Value<String?> position,
+  required DateTime createdAt,
+  Value<bool> isSynced,
+  Value<int> rowid,
+});
+typedef $$LocalFoldersTableUpdateCompanionBuilder = LocalFoldersCompanion
+    Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String?> parentId,
+  Value<String> name,
+  Value<String?> position,
+  Value<DateTime> createdAt,
+  Value<bool> isSynced,
+  Value<int> rowid,
+});
+
+class $$LocalFoldersTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalFoldersTable> {
+  $$LocalFoldersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get parentId => $composableBuilder(
+      column: $table.parentId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalFoldersTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalFoldersTable> {
+  $$LocalFoldersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get parentId => $composableBuilder(
+      column: $table.parentId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSynced => $composableBuilder(
+      column: $table.isSynced, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalFoldersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalFoldersTable> {
+  $$LocalFoldersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSynced =>
+      $composableBuilder(column: $table.isSynced, builder: (column) => column);
+}
+
+class $$LocalFoldersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalFoldersTable,
+    LocalFolder,
+    $$LocalFoldersTableFilterComposer,
+    $$LocalFoldersTableOrderingComposer,
+    $$LocalFoldersTableAnnotationComposer,
+    $$LocalFoldersTableCreateCompanionBuilder,
+    $$LocalFoldersTableUpdateCompanionBuilder,
+    (
+      LocalFolder,
+      BaseReferences<_$AppDatabase, $LocalFoldersTable, LocalFolder>
+    ),
+    LocalFolder,
+    PrefetchHooks Function()> {
+  $$LocalFoldersTableTableManager(_$AppDatabase db, $LocalFoldersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalFoldersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalFoldersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalFoldersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String?> parentId = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> position = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<bool> isSynced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalFoldersCompanion(
+            id: id,
+            userId: userId,
+            parentId: parentId,
+            name: name,
+            position: position,
+            createdAt: createdAt,
+            isSynced: isSynced,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            Value<String?> parentId = const Value.absent(),
+            required String name,
+            Value<String?> position = const Value.absent(),
+            required DateTime createdAt,
+            Value<bool> isSynced = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalFoldersCompanion.insert(
+            id: id,
+            userId: userId,
+            parentId: parentId,
+            name: name,
+            position: position,
+            createdAt: createdAt,
+            isSynced: isSynced,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$LocalFoldersTable, LocalFolder>(table),
+                    BaseReferences<_$AppDatabase, $LocalFoldersTable,
+                        LocalFolder>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalFoldersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalFoldersTable,
+    LocalFolder,
+    $$LocalFoldersTableFilterComposer,
+    $$LocalFoldersTableOrderingComposer,
+    $$LocalFoldersTableAnnotationComposer,
+    $$LocalFoldersTableCreateCompanionBuilder,
+    $$LocalFoldersTableUpdateCompanionBuilder,
+    (
+      LocalFolder,
+      BaseReferences<_$AppDatabase, $LocalFoldersTable, LocalFolder>
+    ),
+    LocalFolder,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -18659,4 +19375,6 @@ class $AppDatabaseManager {
       $$SyncCursorsTableTableManager(_db, _db.syncCursors);
   $$LocalPreferencesTableTableManager get localPreferences =>
       $$LocalPreferencesTableTableManager(_db, _db.localPreferences);
+  $$LocalFoldersTableTableManager get localFolders =>
+      $$LocalFoldersTableTableManager(_db, _db.localFolders);
 }

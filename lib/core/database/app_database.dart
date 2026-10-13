@@ -65,6 +65,9 @@ class LocalNotes extends Table {
   /// `collate "C"` côté Postgres.
   TextColumn get position => text().nullable()();
 
+  /// Dossier de l'explorateur (v13). `null` : à la racine.
+  TextColumn get folderId => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -159,6 +162,9 @@ class LocalFlashcards extends Table {
   DateTimeColumn get createdAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  /// Dossier de l'explorateur (v13). `null` : à la racine.
+  TextColumn get folderId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -611,6 +617,25 @@ class SyncCursors extends Table {
   Set<Column> get primaryKey => {userId, remoteTable};
 }
 
+/// Dossiers de l'explorateur de fiches et de cartes (v13) : une arborescence
+/// libre, `parentId` nul pour un dossier racine.
+@TableIndex(name: 'local_folders_user_parent', columns: {#userId, #parentId})
+class LocalFolders extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get parentId => text().nullable()();
+  TextColumn get name => text().withLength(min: 1, max: 120)();
+
+  /// Clé d'ordre manuel ; `null` : ordre alphabétique.
+  TextColumn get position => text().nullable()();
+
+  DateTimeColumn get createdAt => dateTime()();
+  BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Préférences gardées sur l'appareil (v12) : réglages et disposition du
 /// Dashboard, une ligne par utilisateur. Chaque colonne contient le JSON tel
 /// qu'il est envoyé dans la colonne jsonb du même nom de `user_preferences` ;
@@ -648,6 +673,7 @@ class LocalPreferences extends Table {
   SyncQueueEntries,
   SyncCursors,
   LocalPreferences,
+  LocalFolders,
 ], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -666,8 +692,10 @@ class AppDatabase extends _$AppDatabase {
   /// v10 : ordre manuel des fiches (LocalNotes.position).
   /// v11 : ordre manuel des habitudes (LocalHabits.position).
   /// v12 : réglages et disposition du Dashboard hors ligne (LocalPreferences).
+  /// v13 : explorateur — dossiers (LocalFolders) et `folderId` des fiches et
+  /// des cartes.
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -813,6 +841,17 @@ class AppDatabase extends _$AppDatabase {
           if (from < 12) {
             if (!await _hasColumn('local_preferences', 'user_id')) {
               await m.createTable(localPreferences);
+            }
+          }
+          if (from < 13) {
+            if (!await _hasColumn('local_folders', 'id')) {
+              await m.createTable(localFolders);
+            }
+            if (!await _hasColumn('local_notes', 'folder_id')) {
+              await m.addColumn(localNotes, localNotes.folderId);
+            }
+            if (!await _hasColumn('local_flashcards', 'folder_id')) {
+              await m.addColumn(localFlashcards, localFlashcards.folderId);
             }
           }
         },
