@@ -371,7 +371,7 @@ class _ReadStep extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.cq.cardColor,
             borderRadius: BorderRadius.circular(AppTheme.radius),
             border: Border.all(color: context.cq.beigeDark),
           ),

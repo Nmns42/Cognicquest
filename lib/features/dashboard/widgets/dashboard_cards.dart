@@ -34,8 +34,8 @@ class GreetingCard extends StatelessWidget {
         children: [
           Text(
             name.isEmpty ? '$greeting !' : '$greeting, $name !',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 22,
               fontWeight: FontWeight.w600,
             ),
@@ -191,8 +191,8 @@ class QuickStartCard extends StatelessWidget {
                 color: context.cq.vert,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.play_arrow_rounded,
-                  color: Colors.white, size: 26),
+              child: Icon(Icons.play_arrow_rounded,
+                  color: context.onAccent, size: 26),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -363,7 +363,7 @@ class HabitPreviewRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: done
-                    ? const Icon(Icons.check, size: 13, color: Colors.white)
+                    ? Icon(Icons.check, size: 13, color: context.onAccent)
                     : null,
               ),
               ),

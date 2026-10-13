@@ -166,8 +166,8 @@ class _RailHeader extends StatelessWidget {
               color: context.cq.vert,
               borderRadius: BorderRadius.circular(9),
             ),
-            child: const Icon(Icons.psychology_outlined,
-                size: 19, color: Colors.white),
+            child: Icon(Icons.psychology_outlined,
+                size: 19, color: context.onAccent),
           ),
           if (extended) ...[
             const SizedBox(width: 10),
@@ -218,8 +218,8 @@ class _NavigationDrawer extends StatelessWidget {
                       color: context.cq.vert,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.psychology_outlined,
-                        size: 20, color: Colors.white),
+                    child: Icon(Icons.psychology_outlined,
+                        size: 20, color: context.onAccent),
                   ),
                   const SizedBox(width: 11),
                   Text(

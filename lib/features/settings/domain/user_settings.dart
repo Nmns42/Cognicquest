@@ -157,7 +157,7 @@ class Routine {
 /// Préférences d'ambiance et d'accessibilité.
 class UserSettings {
   const UserSettings({
-    this.themeVariant = AppThemeVariant.beige,
+    this.themeVariant = AppThemeVariant.light,
     this.textScale = TextScalePreset.standard,
     this.ambientSound = AmbientSound.none,
     this.ambientVolume = 0.5,

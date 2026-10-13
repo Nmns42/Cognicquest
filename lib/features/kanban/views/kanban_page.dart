@@ -141,7 +141,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
         onPressed: _createTask,
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle tâche',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -246,7 +246,7 @@ class _KanbanColumn extends ConsumerWidget {
           duration: Motion.duration(context, const Duration(milliseconds: 160)),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.cq.cardColor,
             borderRadius: BorderRadius.circular(AppTheme.radius),
             border: Border.all(
               color: isHovered ? context.cq.vert : context.cq.beigeDark,
@@ -641,7 +641,7 @@ class _QuadrantTile extends ConsumerWidget {
           duration: Motion.duration(context, const Duration(milliseconds: 160)),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.cq.cardColor,
             borderRadius: BorderRadius.circular(AppTheme.radius),
             border: Border.all(
               color: isHovered ? color : context.cq.beigeDark,

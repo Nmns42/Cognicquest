@@ -47,7 +47,7 @@ class RevisionOrderPage extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: plan.isFeasible
                     ? context.cq.vert.withValues(alpha: 0.08)
-                    : const Color(0xFFE39A3B).withValues(alpha: 0.1),
+                    : context.cq.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -57,7 +57,7 @@ class RevisionOrderPage extends ConsumerWidget {
                   height: 1.4,
                   color: plan.isFeasible
                       ? context.cq.vertDark
-                      : const Color(0xFFE39A3B),
+                      : context.cq.warning,
                 ),
               ),
             ),
@@ -107,7 +107,7 @@ class RevisionOrderPage extends ConsumerWidget {
         },
         backgroundColor: context.cq.vert,
         tooltip: 'Ajouter un chapitre',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -191,7 +191,7 @@ class _RankedRow extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: rank <= 3 ? Colors.white : context.cq.textMuted,
+                    color: rank <= 3 ? context.onAccent : context.cq.textMuted,
                   ),
                 ),
               ),

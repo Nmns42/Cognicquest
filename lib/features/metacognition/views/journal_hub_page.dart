@@ -137,24 +137,24 @@ class _ProfilingPrompt extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE39A3B).withValues(alpha: 0.09),
+        color: context.cq.warning.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-            color: const Color(0xFFE39A3B).withValues(alpha: 0.3)),
+            color: context.cq.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.fingerprint, size: 18, color: Color(0xFFE39A3B)),
+              Icon(Icons.fingerprint, size: 18, color: context.cq.warning),
               SizedBox(width: 8),
               Text(
                 'Ton mode d\'emploi',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFE39A3B),
+                  color: context.cq.warning,
                 ),
               ),
             ],
@@ -212,7 +212,7 @@ class _StrainCard extends StatelessWidget {
                 ? 'Aucun bilan'
                 : insights.strainLevel.label,
             style: TextStyle(
-              color: insights.isEmpty ? context.cq.textMuted : Colors.white,
+              color: insights.isEmpty ? context.cq.textMuted : context.onAccent,
               fontSize: 19,
               fontWeight: FontWeight.w600,
             ),
@@ -279,8 +279,8 @@ class _Metric extends StatelessWidget {
         children: [
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 17,
               fontWeight: FontWeight.w700,
             ),
@@ -351,13 +351,13 @@ class _ToolTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE39A3B),
+                    color: context.cq.warning,
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
                     badge!,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: context.onAccent,
                         fontSize: 10,
                         fontWeight: FontWeight.w700),
                   ),

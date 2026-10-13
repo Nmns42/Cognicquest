@@ -150,7 +150,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
         onPressed: _openEditor,
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle habitude',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -184,8 +184,8 @@ class _SummaryHeader extends StatelessWidget {
         children: [
           Text(
             '$doneToday / ${habits.length} aujourd\'hui',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 22,
               fontWeight: FontWeight.w600,
             ),
@@ -230,8 +230,8 @@ class _MiniStat extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.onAccent,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
@@ -303,7 +303,7 @@ class _HabitTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: isDone
-                          ? const Icon(Icons.check, size: 16, color: Colors.white)
+                          ? Icon(Icons.check, size: 16, color: context.onAccent)
                           : null,
                     ),
                     ),
@@ -445,7 +445,7 @@ class _DayCell extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: done ? Colors.white : context.cq.textMuted,
+              color: done ? context.onAccent : context.cq.textMuted,
             ),
           ),
         ),

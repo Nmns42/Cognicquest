@@ -231,7 +231,7 @@ class _ConfidencePicker extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: level <= value ? Colors.white : context.cq.textMuted,
+                      color: level <= value ? context.onAccent : context.cq.textMuted,
                     ),
                   ),
                 ),

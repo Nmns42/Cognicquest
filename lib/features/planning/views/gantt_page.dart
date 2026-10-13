@@ -58,7 +58,7 @@ class GanttPage extends ConsumerWidget {
         },
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle échéance',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -326,16 +326,16 @@ class _ViolationBanner extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE39A3B).withValues(alpha: 0.1),
+        color: context.cq.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border:
-            Border.all(color: const Color(0xFFE39A3B).withValues(alpha: 0.32)),
+            Border.all(color: context.cq.warning.withValues(alpha: 0.32)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              size: 17, color: Color(0xFFE39A3B)),
+          Icon(Icons.warning_amber_rounded,
+              size: 17, color: context.cq.warning),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -344,8 +344,8 @@ class _ViolationBanner extends StatelessWidget {
               'elle${items.length > 1 ? 's' : ''} dépend'
               '${items.length > 1 ? 'ent' : ''} : '
               '${items.map((i) => i.title).join(', ')}.',
-              style: const TextStyle(
-                  fontSize: 12, color: Color(0xFFE39A3B), height: 1.4),
+              style: TextStyle(
+                  fontSize: 12, color: context.cq.warning, height: 1.4),
             ),
           ),
         ],

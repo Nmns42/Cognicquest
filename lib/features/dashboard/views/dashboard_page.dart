@@ -532,7 +532,7 @@ class _MetacognitionModule extends ConsumerWidget {
 
     final color = switch (insights.strainLevel) {
       StrainLevel.atRisk => context.cq.errorColor,
-      StrainLevel.watch => const Color(0xFFE39A3B),
+      StrainLevel.watch => context.cq.warning,
       StrainLevel.healthy => context.cq.vertDark,
     };
 

@@ -242,8 +242,8 @@ class _Step extends StatelessWidget {
           ),
           child: Text(
             '$number',
-            style: const TextStyle(
-                color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            style: TextStyle(
+                color: context.onAccent, fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: 10),
@@ -301,13 +301,13 @@ class _ReframeRow extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE39A3B).withValues(alpha: 0.12),
+                        color: context.cq.warning.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(7),
                       ),
-                      child: const Text(
+                      child: Text(
                         'à finir',
                         style: TextStyle(
-                            fontSize: 10, color: Color(0xFFE39A3B)),
+                            fontSize: 10, color: context.cq.warning),
                       ),
                     ),
                 ],

@@ -96,7 +96,7 @@ class _ErrorLogsPageState extends ConsumerState<ErrorLogsPage> {
         onPressed: _addError,
         backgroundColor: context.cq.vert,
         tooltip: 'Consigner une erreur',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -466,7 +466,7 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
                         decoration: BoxDecoration(
                           color: _type == type
                               ? context.cq.vert.withValues(alpha: 0.1)
-                              : Colors.white,
+                              : context.cq.cardColor,
                           borderRadius: BorderRadius.circular(11),
                           border: Border.all(
                             color: _type == type

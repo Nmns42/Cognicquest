@@ -67,19 +67,15 @@ void main() {
   });
 
   group('AppTheme — variantes', () {
-    test('chaque variante fournit sa propre palette', () {
-      final palettes = {
-        for (final variant in AppThemeVariant.values)
-          variant: AppTheme.colorsFor(variant),
-      };
-
-      // Les quatre fonds sont distincts : sinon le choix ne servirait à rien.
-      final backgrounds = palettes.values.map((p) => p.beige).toSet();
-      expect(backgrounds, hasLength(AppThemeVariant.values.length));
+    test('deux variantes seulement : clair et sombre', () {
+      expect(AppThemeVariant.values,
+          [AppThemeVariant.light, AppThemeVariant.dark]);
+      expect(AppTheme.colorsFor(AppThemeVariant.light).beige,
+          isNot(AppTheme.colorsFor(AppThemeVariant.dark).beige));
     });
 
     test('le thème sombre inverse réellement le rapport fond / texte', () {
-      final light = AppTheme.colorsFor(AppThemeVariant.beige);
+      final light = AppTheme.colorsFor(AppThemeVariant.light);
       final dark = AppTheme.colorsFor(AppThemeVariant.dark);
 
       double luminance(int argb) => ((argb & 0xFF) +
@@ -105,21 +101,25 @@ void main() {
     });
 
     test('l\'extension de couleurs est attachée au thème', () {
-      final theme = AppTheme.build(AppThemeVariant.brown);
+      final theme = AppTheme.build(AppThemeVariant.dark);
       final extension = theme.extension<CognicColors>();
 
       expect(extension, isNotNull);
-      expect(extension!.vert, AppTheme.colorsFor(AppThemeVariant.brown).vert);
+      expect(extension!.vert, AppTheme.colorsFor(AppThemeVariant.dark).vert);
     });
 
     test('la luminosité est cohérente avec la variante', () {
       expect(AppTheme.build(AppThemeVariant.dark).brightness, Brightness.dark);
-      expect(AppTheme.build(AppThemeVariant.beige).brightness, Brightness.light);
+      expect(AppTheme.build(AppThemeVariant.light).brightness, Brightness.light);
     });
 
-    test('retombe sur le beige pour une valeur inconnue', () {
-      expect(AppThemeVariant.fromValue(null), AppThemeVariant.beige);
-      expect(AppThemeVariant.fromValue('néon'), AppThemeVariant.beige);
+    test('retombe sur le clair pour une valeur inconnue ou ancienne', () {
+      expect(AppThemeVariant.fromValue(null), AppThemeVariant.light);
+      expect(AppThemeVariant.fromValue('néon'), AppThemeVariant.light);
+      // Variantes supprimées par la refonte : réglages déjà enregistrés.
+      for (final old in ['beige', 'sage', 'brown']) {
+        expect(AppThemeVariant.fromValue(old), AppThemeVariant.light);
+      }
       expect(AppThemeVariant.fromValue('dark'), AppThemeVariant.dark);
     });
   });
@@ -148,7 +148,7 @@ void main() {
     test('retombe sur les valeurs par défaut pour un JSON vide', () {
       final restored = UserSettings.fromJson(const {});
 
-      expect(restored.themeVariant, AppThemeVariant.beige);
+      expect(restored.themeVariant, AppThemeVariant.light);
       expect(restored.textScale, TextScalePreset.standard);
       expect(restored.ambientSound, AmbientSound.none);
       expect(restored.keyboardShortcutsEnabled, isTrue);
@@ -159,7 +159,7 @@ void main() {
         'theme': 'néon',
         'reglage_inexistant': 42,
       });
-      expect(restored.themeVariant, AppThemeVariant.beige);
+      expect(restored.themeVariant, AppThemeVariant.light);
     });
 
     test('borne le volume entre 0 et 1', () {

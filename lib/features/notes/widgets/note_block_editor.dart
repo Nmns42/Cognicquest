@@ -190,7 +190,7 @@ class _BlockRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: block.isChecked
-                      ? const Icon(Icons.check, size: 12, color: Colors.white)
+                      ? Icon(Icons.check, size: 12, color: context.onAccent)
                       : null,
                 ),
               ),

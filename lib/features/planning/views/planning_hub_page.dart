@@ -147,8 +147,8 @@ class _NextDeadlineCard extends StatelessWidget {
             days == 0
                 ? "Aujourd'hui"
                 : (days == 1 ? 'Demain' : 'Dans $days jours'),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 24,
               fontWeight: FontWeight.w700,
             ),
@@ -156,8 +156,8 @@ class _NextDeadlineCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             next.title,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
+            style: TextStyle(
+                color: context.onAccent, fontSize: 15, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 2),
           Text(
@@ -199,7 +199,7 @@ class _PlanSummaryCard extends ConsumerWidget {
                 Icon(
                   feasible ? Icons.event_available : Icons.warning_amber_rounded,
                   size: 18,
-                  color: feasible ? context.cq.vertDark : const Color(0xFFE39A3B),
+                  color: feasible ? context.cq.vertDark : context.cq.warning,
                 ),
                 const SizedBox(width: 9),
                 Expanded(
@@ -280,8 +280,8 @@ class _GoalRow extends ConsumerWidget {
                     Tooltip(
                       message:
                           '${goal.missingCriteria.length} critère(s) SMART manquant(s)',
-                      child: const Icon(Icons.info_outline,
-                          size: 15, color: Color(0xFFE39A3B)),
+                      child: Icon(Icons.info_outline,
+                          size: 15, color: context.cq.warning),
                     ),
                 ],
               ),

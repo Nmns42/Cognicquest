@@ -105,7 +105,7 @@ class _StudySpeedPageState extends ConsumerState<StudySpeedPage> {
         onPressed: _addSample,
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle mesure',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -140,7 +140,7 @@ class _EstimateCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: estimate.isReliable
                         ? context.cq.vert.withValues(alpha: 0.12)
-                        : const Color(0xFFE39A3B).withValues(alpha: 0.12),
+                        : context.cq.warning.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: Text(
@@ -150,7 +150,7 @@ class _EstimateCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: estimate.isReliable
                           ? context.cq.vertDark
-                          : const Color(0xFFE39A3B),
+                          : context.cq.warning,
                     ),
                   ),
                 ),

@@ -163,7 +163,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
         onPressed: _createNote,
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle fiche',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -258,8 +258,8 @@ class _FilterButton extends ConsumerWidget {
               ),
               child: Text(
                 '$activeCount',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: context.onAccent,
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                 ),
@@ -412,7 +412,7 @@ class _NoteCard extends ConsumerWidget {
                       note.isFavorite ? Icons.star : Icons.star_border,
                       size: 18,
                       color: note.isFavorite
-                          ? const Color(0xFFE39A3B)
+                          ? context.cq.warning
                           : context.cq.textHint,
                     ),
                     onPressed: () =>

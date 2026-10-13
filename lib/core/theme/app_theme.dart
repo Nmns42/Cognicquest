@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Variantes de thème — « Choix du thème (beige, vert sauge, brun,
-/// sombre) » (CdC).
+import 'tokens.dart';
+
+/// Variantes de thème : clair et sombre uniquement (refonte « zen »).
+///
+/// Les anciennes variantes beige, vert sauge et brun sont fondues dans le
+/// thème clair : un choix de moins, et deux palettes seulement à tenir au
+/// contraste WCAG (4,5:1), vérifié par `test/core/theme/contrast_test.dart`.
 enum AppThemeVariant {
-  beige('beige', 'Beige', 'Le thème d\'origine, chaud et clair'),
-  sage('sage', 'Vert sauge', 'Plus végétal, contrastes doux'),
-  brown('brown', 'Brun', 'Terreux, reposant en soirée'),
-  dark('dark', 'Sombre', 'Pour travailler la nuit');
+  light('light', 'Clair', 'Beige et vert, pour la journée'),
+  dark('dark', 'Sombre', 'Pour travailler le soir');
 
   const AppThemeVariant(this.value, this.label, this.description);
 
@@ -16,12 +19,10 @@ enum AppThemeVariant {
 
   bool get isDark => this == AppThemeVariant.dark;
 
-  static AppThemeVariant fromValue(String? value) {
-    for (final variant in values) {
-      if (variant.value == value) return variant;
-    }
-    return AppThemeVariant.beige;
-  }
+  /// `beige`, `sage` et `brown`, enregistrés avant la refonte, deviennent
+  /// le thème clair ; toute valeur inconnue aussi.
+  static AppThemeVariant fromValue(String? value) =>
+      value == dark.value ? dark : light;
 }
 
 /// Jetons de marque qui n'ont pas d'équivalent dans [ColorScheme].
@@ -160,60 +161,41 @@ class CognicColors extends ThemeExtension<CognicColors> {
 extension CognicColorsX on BuildContext {
   CognicColors get cq =>
       Theme.of(this).extension<CognicColors>() ?? AppTheme.fallbackColors;
+
+  /// Texte et icônes posés sur l'accent plein : blanc en clair, sombre en
+  /// sombre (le blanc sur le vert clair du thème sombre est illisible).
+  Color get onAccent => Theme.of(this).colorScheme.onPrimary;
 }
 
 class AppTheme {
   AppTheme._();
 
-  /// Rayon des cartes et champs. Reste une constante : ce n'est pas une
-  /// couleur, elle ne dépend pas du thème.
-  static const double radius = 16;
+  /// Rayon des cartes et boutons ; alias de [Radii.md] pour les écrans pas
+  /// encore repris (Phase 4).
+  static const double radius = Radii.md;
 
   /// Palette utilisée si l'extension est absente (tests de widget isolés).
-  static const CognicColors fallbackColors = _beigeColors;
+  static const CognicColors fallbackColors = _lightColors;
 
   // ── Palettes ───────────────────────────────────────────────────────────
+  //
+  // Contrastes mesurés (WCAG), sur le fond et sur les cartes :
+  // texte ≥ 10:1, texte secondaire, accent en texte, erreur et
+  // avertissement ≥ 4,5:1, texte sur l'accent ≥ 4,5:1. Le vert de l'accent a
+  // été assombri (#7A9E7E → #5F7B62) : le blanc posé dessus plafonnait à 3:1.
 
-  static const CognicColors _beigeColors = CognicColors(
-    vert: Color(0xFF7A9E7E),
-    vertDark: Color(0xFF5F8163),
+  static const CognicColors _lightColors = CognicColors(
+    vert: Color(0xFF5F7B62),
+    vertDark: Color(0xFF4F6B53),
     beige: Color(0xFFF9F6F0),
-    beigeDark: Color(0xFFEFECE6),
+    beigeDark: Color(0xFFEAE5DC),
     textPrimary: Color(0xFF2C3E50),
-    textMuted: Color(0xFF7F8C8D),
-    textHint: Color(0xFFBDC3C7),
-    errorColor: Color(0xFFE74C3C),
-    onVertMuted: Color(0xFFE4EEE5),
-    warning: Color(0xFFE39A3B),
-    cardColor: Colors.white,
-  );
-
-  static const CognicColors _sageColors = CognicColors(
-    vert: Color(0xFF6E9B77),
-    vertDark: Color(0xFF4F7557),
-    beige: Color(0xFFF2F5F0),
-    beigeDark: Color(0xFFE2E9E0),
-    textPrimary: Color(0xFF26352B),
-    textMuted: Color(0xFF6C7D70),
-    textHint: Color(0xFFAFBCB2),
-    errorColor: Color(0xFFC0503F),
-    onVertMuted: Color(0xFFE2EFE4),
-    warning: Color(0xFFCE8A34),
-    cardColor: Color(0xFFFBFDFA),
-  );
-
-  static const CognicColors _brownColors = CognicColors(
-    vert: Color(0xFF8A7A5C),
-    vertDark: Color(0xFF665A41),
-    beige: Color(0xFFF7F2EA),
-    beigeDark: Color(0xFFE9E0D2),
-    textPrimary: Color(0xFF3A2F24),
-    textMuted: Color(0xFF837567),
-    textHint: Color(0xFFC0B3A3),
-    errorColor: Color(0xFFB4503C),
-    onVertMuted: Color(0xFFEFE8DA),
-    warning: Color(0xFFC98A33),
-    cardColor: Color(0xFFFFFCF6),
+    textMuted: Color(0xFF677172),
+    textHint: Color(0xFF888C8F),
+    errorColor: Color(0xFFC44133),
+    onVertMuted: Color(0xFFF1F6F1),
+    warning: Color(0xFF966627),
+    cardColor: Color(0xFFFFFDF9),
   );
 
   /// Palette sombre.
@@ -236,35 +218,54 @@ class AppTheme {
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {
-        AppThemeVariant.beige => _beigeColors,
-        AppThemeVariant.sage => _sageColors,
-        AppThemeVariant.brown => _brownColors,
+        AppThemeVariant.light => _lightColors,
         AppThemeVariant.dark => _darkColors,
       };
 
-  /// Thème clair d'origine, conservé pour les tests et les écrans hors
-  /// préférences (démarrage, erreur fatale).
-  static final ThemeData light = build(AppThemeVariant.beige);
+  /// Texte et icônes posés sur l'accent plein (boutons, pastilles).
+  static Color onAccentFor(AppThemeVariant variant) =>
+      variant.isDark ? _darkColors.beige : Colors.white;
+
+  /// Thème clair, conservé pour les tests et les écrans hors préférences
+  /// (démarrage, erreur fatale).
+  static final ThemeData light = build(AppThemeVariant.light);
 
   // ── Construction ───────────────────────────────────────────────────────
 
   static ThemeData build(AppThemeVariant variant) {
     final cq = colorsFor(variant);
     final brightness = variant.isDark ? Brightness.dark : Brightness.light;
+    final onAccent = onAccentFor(variant);
 
     final scheme = ColorScheme.fromSeed(
       seedColor: cq.vert,
       brightness: brightness,
       primary: cq.vert,
-      onPrimary: variant.isDark ? cq.onVertMuted : Colors.white,
+      onPrimary: onAccent,
       surface: cq.beige,
       onSurface: cq.textPrimary,
+      onSurfaceVariant: cq.textMuted,
+      outline: cq.beigeDark,
+      outlineVariant: cq.beigeDark,
       error: cq.errorColor,
+    );
+
+    final field = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Radii.sm),
+      borderSide: BorderSide(color: cq.beigeDark),
+    );
+    final control = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.md),
+    );
+    const buttonLabel = TextStyle(
+      fontSize: TypeScale.bodyLarge,
+      fontWeight: FontWeight.w600,
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
+      fontFamily: appFontFamily,
       colorScheme: scheme,
       scaffoldBackgroundColor: cq.beige,
       primaryColor: cq.vert,
@@ -275,21 +276,25 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: IconThemeData(color: cq.textPrimary),
         titleTextStyle: TextStyle(
+          fontFamily: appFontFamily,
           color: cq.textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+          fontSize: TypeScale.title,
+          fontWeight: FontWeight.w600,
+          height: TypeScale.titleHeight,
         ),
       ),
 
+      // Surfaces tonales, sans ombre : le calme vient de la retenue.
       cardTheme: CardThemeData(
         color: cq.cardColor,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
+          borderRadius: BorderRadius.circular(Radii.md),
           side: BorderSide(color: cq.beigeDark),
         ),
       ),
@@ -297,56 +302,48 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: cq.cardColor,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: TextStyle(color: cq.textHint, fontSize: 14),
-        labelStyle: TextStyle(color: cq.textMuted, fontSize: 14),
-        helperStyle: TextStyle(color: cq.textMuted, fontSize: 11),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide(color: cq.beigeDark),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide(color: cq.beigeDark),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide(color: cq.vert, width: 1.6),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide(color: cq.errorColor),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radius),
-          borderSide: BorderSide(color: cq.errorColor, width: 1.6),
-        ),
-        errorStyle: TextStyle(color: cq.errorColor, fontSize: 12),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: Space.lg, vertical: Space.md),
+        // Le texte indicatif est lu : contraste du texte secondaire, pas
+        // celui des éléments décoratifs.
+        hintStyle: TextStyle(color: cq.textMuted, fontSize: TypeScale.body),
+        labelStyle: TextStyle(color: cq.textMuted, fontSize: TypeScale.body),
+        helperStyle:
+            TextStyle(color: cq.textMuted, fontSize: TypeScale.caption),
+        border: field,
+        enabledBorder: field,
+        focusedBorder: field.copyWith(
+            borderSide: BorderSide(color: cq.vert, width: 2)),
+        errorBorder:
+            field.copyWith(borderSide: BorderSide(color: cq.errorColor)),
+        focusedErrorBorder: field.copyWith(
+            borderSide: BorderSide(color: cq.errorColor, width: 2)),
+        errorStyle:
+            TextStyle(color: cq.errorColor, fontSize: TypeScale.caption),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: cq.vert,
-          foregroundColor: scheme.onPrimary,
-          disabledBackgroundColor: cq.vert.withValues(alpha: 0.45),
-          disabledForegroundColor: scheme.onPrimary,
+          foregroundColor: onAccent,
+          disabledBackgroundColor: cq.beigeDark,
+          disabledForegroundColor: cq.textMuted,
           elevation: 0,
           minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          shape: control,
+          textStyle: buttonLabel,
         ),
       ),
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: cq.vert,
+          foregroundColor: onAccent,
+          disabledBackgroundColor: cq.beigeDark,
+          disabledForegroundColor: cq.textMuted,
           minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          shape: control,
+          textStyle: buttonLabel,
         ),
       ),
 
@@ -355,29 +352,63 @@ class AppTheme {
           foregroundColor: cq.textPrimary,
           minimumSize: const Size.fromHeight(52),
           side: BorderSide(color: cq.beigeDark),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radius),
-          ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          shape: control,
+          textStyle: buttonLabel,
         ),
       ),
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: cq.vert,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          // L'accent foncé tient 4,5:1 en texte ; l'accent plein, non.
+          foregroundColor: cq.vertDark,
+          minimumSize: const Size(48, 48),
+          textStyle: const TextStyle(
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+      ),
+
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: cq.vert,
+        foregroundColor: onAccent,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        shape: control,
       ),
 
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
+        elevation: 0,
         backgroundColor: variant.isDark ? cq.beigeDark : cq.textPrimary,
         contentTextStyle: TextStyle(
+          fontFamily: appFontFamily,
           color: variant.isDark ? cq.textPrimary : cq.beige,
-          fontSize: 14,
+          fontSize: TypeScale.body,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(Radii.md),
+        ),
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: cq.cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.lg),
+        ),
+      ),
+
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cq.cardColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        dragHandleColor: cq.textHint,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),
         ),
       ),
 
@@ -388,67 +419,98 @@ class AppTheme {
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: cq.cardColor,
-        indicatorColor: cq.vert.withValues(alpha: 0.18),
-        elevation: 3,
+        backgroundColor: cq.beige,
+        indicatorColor: cq.vert.withValues(alpha: 0.16),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
         // par valeur (une closure ne l'est que par identité, ce qui rendait
         // deux thèmes identiques différents). Première clé satisfaite gagnante.
         labelTextStyle: WidgetStateProperty.fromMap({
           WidgetState.selected: TextStyle(
-            fontSize: 11,
+            fontSize: TypeScale.caption,
             fontWeight: FontWeight.w600,
             color: cq.vertDark,
           ),
           WidgetState.any: TextStyle(
-            fontSize: 11,
+            fontSize: TypeScale.caption,
             fontWeight: FontWeight.w500,
             color: cq.textMuted,
           ),
         }),
         iconTheme: WidgetStateProperty.fromMap({
-          WidgetState.selected: IconThemeData(size: 22, color: cq.vertDark),
-          WidgetState.any: IconThemeData(size: 22, color: cq.textMuted),
+          WidgetState.selected: IconThemeData(size: 24, color: cq.vertDark),
+          WidgetState.any: IconThemeData(size: 24, color: cq.textMuted),
         }),
       ),
 
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: cq.cardColor,
-        indicatorColor: cq.vert.withValues(alpha: 0.18),
-        selectedIconTheme: IconThemeData(size: 22, color: cq.vertDark),
-        unselectedIconTheme: IconThemeData(size: 22, color: cq.textMuted),
+        backgroundColor: cq.beige,
+        indicatorColor: cq.vert.withValues(alpha: 0.16),
+        selectedIconTheme: IconThemeData(size: 24, color: cq.vertDark),
+        unselectedIconTheme: IconThemeData(size: 24, color: cq.textMuted),
         selectedLabelTextStyle: TextStyle(
-          fontSize: 12,
+          fontSize: TypeScale.caption,
           fontWeight: FontWeight.w600,
           color: cq.vertDark,
         ),
         unselectedLabelTextStyle: TextStyle(
-          fontSize: 12,
+          fontSize: TypeScale.caption,
           color: cq.textMuted,
         ),
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: cq.cardColor,
-        selectedColor: cq.vert.withValues(alpha: 0.15),
+        selectedColor: cq.vert.withValues(alpha: 0.16),
         side: BorderSide(color: cq.beigeDark),
-        labelStyle: TextStyle(color: cq.textPrimary, fontSize: 12),
-        secondaryLabelStyle: TextStyle(color: cq.vertDark, fontSize: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.sm),
+        ),
+        labelStyle:
+            TextStyle(color: cq.textPrimary, fontSize: TypeScale.caption),
+        secondaryLabelStyle:
+            TextStyle(color: cq.vertDark, fontSize: TypeScale.caption),
       ),
 
-      // Le texte tire désormais ses couleurs de la palette active. C'est ce
-      // qui débloque réellement les thèmes : auparavant `textTheme` figeait
-      // `textPrimary` clair, et le mode sombre affichait du texte sombre sur
-      // fond sombre.
+      // Six tailles (cf. [TypeScale]) réparties sur les rôles Material. Le
+      // texte tire ses couleurs de la palette active : c'est ce qui rend le
+      // thème sombre lisible.
       textTheme: TextTheme(
-        titleLarge: TextStyle(
-            fontSize: 24, fontWeight: FontWeight.bold, color: cq.textPrimary),
-        titleMedium: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.w600, color: cq.textPrimary),
-        bodyLarge: TextStyle(fontSize: 16, color: cq.textPrimary),
-        bodyMedium: TextStyle(fontSize: 14, color: cq.textPrimary),
-        bodySmall: TextStyle(fontSize: 12, color: cq.textMuted),
+        displaySmall: _title(TypeScale.display, cq.textPrimary),
+        headlineSmall: _title(TypeScale.headline, cq.textPrimary),
+        titleLarge: _title(TypeScale.title, cq.textPrimary),
+        titleMedium: _title(TypeScale.bodyLarge, cq.textPrimary),
+        titleSmall: _title(TypeScale.body, cq.textPrimary),
+        bodyLarge: _body(TypeScale.bodyLarge, cq.textPrimary),
+        bodyMedium: _body(TypeScale.body, cq.textPrimary),
+        bodySmall: _body(TypeScale.caption, cq.textMuted),
+        labelLarge: TextStyle(
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w600,
+            color: cq.textPrimary),
+        labelMedium: TextStyle(
+            fontSize: TypeScale.caption,
+            fontWeight: FontWeight.w600,
+            color: cq.textPrimary),
+        labelSmall: TextStyle(
+            fontSize: TypeScale.caption,
+            fontWeight: FontWeight.w500,
+            color: cq.textMuted),
       ),
     );
   }
+
+  static TextStyle _title(double size, Color color) => TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.w600,
+        height: TypeScale.titleHeight,
+        color: color,
+      );
+
+  static TextStyle _body(double size, Color color) => TextStyle(
+        fontSize: size,
+        height: TypeScale.bodyHeight,
+        color: color,
+      );
 }

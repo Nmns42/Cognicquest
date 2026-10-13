@@ -160,7 +160,7 @@ class _Checkbox extends StatelessWidget {
               borderRadius: BorderRadius.circular(5),
             ),
             child: done
-                ? const Icon(Icons.check, size: 13, color: Colors.white)
+                ? Icon(Icons.check, size: 13, color: context.onAccent)
                 : null,
           ),
         ),

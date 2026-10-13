@@ -348,7 +348,7 @@ class _BlockerOption extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? context.cq.vert.withValues(alpha: 0.1)
-              : Colors.white,
+              : context.cq.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? context.cq.vert : context.cq.beigeDark,
@@ -455,7 +455,7 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = warning
-        ? const Color(0xFFE39A3B)
+        ? context.cq.warning
         : (highlighted ? context.cq.vertDark : context.cq.textMuted);
 
     return Container(

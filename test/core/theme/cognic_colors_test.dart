@@ -60,7 +60,7 @@ void main() {
   });
 
   test('barre de navigation : mêmes styles qu\'avant pour chaque état', () {
-    final theme = AppTheme.build(AppThemeVariant.beige);
+    final theme = AppTheme.build(AppThemeVariant.light);
     final cq = theme.extension<CognicColors>()!;
     final nav = theme.navigationBarTheme;
 
@@ -73,13 +73,13 @@ void main() {
     ]) {
       final selected = {...states, WidgetState.selected};
       expect(nav.labelTextStyle!.resolve(selected),
-          TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: cq.vertDark));
+          TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cq.vertDark));
       expect(nav.labelTextStyle!.resolve(states),
-          TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: cq.textMuted));
+          TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: cq.textMuted));
       expect(nav.iconTheme!.resolve(selected),
-          IconThemeData(size: 22, color: cq.vertDark));
+          IconThemeData(size: 24, color: cq.vertDark));
       expect(nav.iconTheme!.resolve(states),
-          IconThemeData(size: 22, color: cq.textMuted));
+          IconThemeData(size: 24, color: cq.textMuted));
     }
   });
 

@@ -203,7 +203,7 @@ class _Controls extends StatelessWidget {
             tooltip: state.isRunning ? 'Mettre en pause' : 'Démarrer',
             child: Icon(
               state.isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              color: Colors.white,
+              color: context.onAccent,
               size: 40,
             ),
           ),

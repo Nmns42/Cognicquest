@@ -152,7 +152,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
         onPressed: _createCard,
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvelle carte',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -177,8 +177,8 @@ class _DueCard extends StatelessWidget {
         children: [
           Text(
             stats.hasWork ? '${stats.dueCount}' : '✓',
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 34,
               fontWeight: FontWeight.w700,
               height: 1.1,
@@ -208,7 +208,7 @@ class _DueCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
+                  backgroundColor: context.cq.cardColor,
                   foregroundColor: context.cq.vertDark,
                 ),
                 onPressed: () => context.push(AppRoute.reviewSession),

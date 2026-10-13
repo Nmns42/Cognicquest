@@ -47,7 +47,7 @@ class GoalsPage extends ConsumerWidget {
         },
         backgroundColor: context.cq.vert,
         tooltip: 'Nouvel objectif',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: context.onAccent),
       ),
     );
   }
@@ -187,14 +187,14 @@ class _GoalCard extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE39A3B)
+                            color: context.cq.warning
                                 .withValues(alpha: 0.11),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             criterion.label,
-                            style: const TextStyle(
-                                fontSize: 10.5, color: Color(0xFFE39A3B)),
+                            style: TextStyle(
+                                fontSize: 10.5, color: context.cq.warning),
                           ),
                         ),
                       ),

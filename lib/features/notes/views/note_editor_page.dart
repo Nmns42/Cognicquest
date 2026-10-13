@@ -160,7 +160,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
             icon: Icon(
               draft.isFavorite ? Icons.star : Icons.star_border,
               color: draft.isFavorite
-                  ? const Color(0xFFE39A3B)
+                  ? context.cq.warning
                   : context.cq.textMuted,
             ),
             onPressed: () => _updateDraft(

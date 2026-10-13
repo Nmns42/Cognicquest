@@ -164,7 +164,7 @@ class _OptionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? context.cq.vert.withValues(alpha: 0.1)
-              : Colors.white,
+              : context.cq.cardColor,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? context.cq.vert : context.cq.beigeDark,
@@ -338,12 +338,12 @@ class _TraitCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 26, color: Colors.white),
+          Icon(icon, size: 26, color: context.onAccent),
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.onAccent,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),

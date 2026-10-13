@@ -93,7 +93,7 @@ class ScalePicker extends StatelessWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: level <= value
-                                  ? Colors.white
+                                  ? context.onAccent
                                   : context.cq.textMuted,
                             ),
                           ),

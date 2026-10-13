@@ -409,7 +409,7 @@ class _NodeChip extends StatelessWidget {
                   fontSize: 12 * scale,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
-                  color: isIsolated ? context.cq.textMuted : Colors.white,
+                  color: isIsolated ? context.cq.textMuted : context.onAccent,
                 ),
               ),
               if (node.note.subject != null)
