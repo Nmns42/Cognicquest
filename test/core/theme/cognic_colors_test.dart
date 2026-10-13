@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cognicquest/core/theme/app_theme.dart';
+import 'package:cognicquest/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -73,9 +74,17 @@ void main() {
     ]) {
       final selected = {...states, WidgetState.selected};
       expect(nav.labelTextStyle!.resolve(selected),
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cq.vertDark));
+          TextStyle(
+              fontFamily: appFontFamily,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: cq.vertDark));
       expect(nav.labelTextStyle!.resolve(states),
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: cq.textMuted));
+          TextStyle(
+              fontFamily: appFontFamily,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: cq.textMuted));
       expect(nav.iconTheme!.resolve(selected),
           IconThemeData(size: 24, color: cq.vertDark));
       expect(nav.iconTheme!.resolve(states),

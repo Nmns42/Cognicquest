@@ -117,8 +117,7 @@ class AdaptiveShell extends StatelessWidget {
                         icon: Icon(s.icon),
                         selectedIcon: Icon(s.selectedIcon),
                         label: Text(s.label),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: Space.xs),
+                        padding: const EdgeInsets.symmetric(vertical: Space.xs),
                       ),
                   ],
                 ),
@@ -161,9 +160,8 @@ class _Collapsible extends StatelessWidget {
       child: AnimatedSize(
         duration: CqMotion.base,
         curve: CqMotion.standard,
-        alignment: axis == Axis.vertical
-            ? Alignment.topCenter
-            : Alignment.centerRight,
+        alignment:
+            axis == Axis.vertical ? Alignment.topCenter : Alignment.centerRight,
         child: shown,
       ),
     );
@@ -200,8 +198,7 @@ class _SectionTabsFrame extends StatelessWidget {
         SafeArea(
           bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-                Space.lg, Space.sm, Space.lg, 0),
+            padding: const EdgeInsets.fromLTRB(Space.lg, Space.sm, Space.lg, 0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: SingleChildScrollView(
@@ -250,7 +247,7 @@ class _SectionTab extends StatelessWidget {
       button: true,
       child: Material(
         color: selected
-            ? context.cq.vert.withValues(alpha: 0.16)
+            ? context.cq.vert.withValues(alpha: Tints.selected)
             : Colors.transparent,
         shape: const StadiumBorder(),
         child: InkWell(
@@ -305,8 +302,8 @@ class _RailHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-          vertical: Space.lg, horizontal: Space.md),
+      padding:
+          const EdgeInsets.symmetric(vertical: Space.lg, horizontal: Space.md),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -258,6 +258,7 @@ class AppTheme {
       borderRadius: BorderRadius.circular(Radii.md),
     );
     const buttonLabel = TextStyle(
+      fontFamily: appFontFamily,
       fontSize: TypeScale.bodyLarge,
       fontWeight: FontWeight.w600,
     );
@@ -306,20 +307,30 @@ class AppTheme {
             horizontal: Space.lg, vertical: Space.md),
         // Le texte indicatif est lu : contraste du texte secondaire, pas
         // celui des éléments décoratifs.
-        hintStyle: TextStyle(color: cq.textMuted, fontSize: TypeScale.body),
-        labelStyle: TextStyle(color: cq.textMuted, fontSize: TypeScale.body),
-        helperStyle:
-            TextStyle(color: cq.textMuted, fontSize: TypeScale.caption),
+        hintStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.textMuted,
+            fontSize: TypeScale.body),
+        labelStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.textMuted,
+            fontSize: TypeScale.body),
+        helperStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.textMuted,
+            fontSize: TypeScale.caption),
         border: field,
         enabledBorder: field,
-        focusedBorder: field.copyWith(
-            borderSide: BorderSide(color: cq.vert, width: 2)),
+        focusedBorder:
+            field.copyWith(borderSide: BorderSide(color: cq.vert, width: 2)),
         errorBorder:
             field.copyWith(borderSide: BorderSide(color: cq.errorColor)),
         focusedErrorBorder: field.copyWith(
             borderSide: BorderSide(color: cq.errorColor, width: 2)),
-        errorStyle:
-            TextStyle(color: cq.errorColor, fontSize: TypeScale.caption),
+        errorStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.errorColor,
+            fontSize: TypeScale.caption),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -363,6 +374,7 @@ class AppTheme {
           foregroundColor: cq.vertDark,
           minimumSize: const Size(48, 48),
           textStyle: const TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.body,
             fontWeight: FontWeight.w600,
           ),
@@ -420,7 +432,7 @@ class AppTheme {
 
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert.withValues(alpha: 0.16),
+        indicatorColor: cq.vert.withValues(alpha: Tints.selected),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
@@ -428,11 +440,13 @@ class AppTheme {
         // deux thèmes identiques différents). Première clé satisfaite gagnante.
         labelTextStyle: WidgetStateProperty.fromMap({
           WidgetState.selected: TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w600,
             color: cq.vertDark,
           ),
           WidgetState.any: TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w500,
             color: cq.textMuted,
@@ -446,15 +460,17 @@ class AppTheme {
 
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert.withValues(alpha: 0.16),
+        indicatorColor: cq.vert.withValues(alpha: Tints.selected),
         selectedIconTheme: IconThemeData(size: 24, color: cq.vertDark),
         unselectedIconTheme: IconThemeData(size: 24, color: cq.textMuted),
         selectedLabelTextStyle: TextStyle(
+          fontFamily: appFontFamily,
           fontSize: TypeScale.caption,
           fontWeight: FontWeight.w600,
           color: cq.vertDark,
         ),
         unselectedLabelTextStyle: TextStyle(
+          fontFamily: appFontFamily,
           fontSize: TypeScale.caption,
           color: cq.textMuted,
         ),
@@ -462,15 +478,19 @@ class AppTheme {
 
       chipTheme: ChipThemeData(
         backgroundColor: cq.cardColor,
-        selectedColor: cq.vert.withValues(alpha: 0.16),
+        selectedColor: cq.vert.withValues(alpha: Tints.selected),
         side: BorderSide(color: cq.beigeDark),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.sm),
         ),
-        labelStyle:
-            TextStyle(color: cq.textPrimary, fontSize: TypeScale.caption),
-        secondaryLabelStyle:
-            TextStyle(color: cq.vertDark, fontSize: TypeScale.caption),
+        labelStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.textPrimary,
+            fontSize: TypeScale.caption),
+        secondaryLabelStyle: TextStyle(
+            fontFamily: appFontFamily,
+            color: cq.vertDark,
+            fontSize: TypeScale.caption),
       ),
 
       // Six tailles (cf. [TypeScale]) réparties sur les rôles Material. Le
@@ -486,14 +506,17 @@ class AppTheme {
         bodyMedium: _body(TypeScale.body, cq.textPrimary),
         bodySmall: _body(TypeScale.caption, cq.textMuted),
         labelLarge: TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.body,
             fontWeight: FontWeight.w600,
             color: cq.textPrimary),
         labelMedium: TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w600,
             color: cq.textPrimary),
         labelSmall: TextStyle(
+            fontFamily: appFontFamily,
             fontSize: TypeScale.caption,
             fontWeight: FontWeight.w500,
             color: cq.textMuted),
@@ -502,6 +525,7 @@ class AppTheme {
   }
 
   static TextStyle _title(double size, Color color) => TextStyle(
+        fontFamily: appFontFamily,
         fontSize: size,
         fontWeight: FontWeight.w600,
         height: TypeScale.titleHeight,
@@ -509,6 +533,7 @@ class AppTheme {
       );
 
   static TextStyle _body(double size, Color color) => TextStyle(
+        fontFamily: appFontFamily,
         fontSize: size,
         height: TypeScale.bodyHeight,
         color: color,

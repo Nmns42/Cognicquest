@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cognicquest/core/theme/app_theme.dart';
+import 'package:cognicquest/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,6 +53,24 @@ void main() {
           expect(ratio(cq.textHint, bg), greaterThanOrEqualTo(3));
         });
       }
+
+      test("boutons, puces et navigation utilisent la police de l'app", () {
+        // Leurs styles ne fusionnent pas avec le texte par défaut : sans
+        // police explicite, ils retombaient sur celle du système.
+        final theme = AppTheme.build(variant);
+        final styles = [
+          theme.filledButtonTheme.style!.textStyle!.resolve({}),
+          theme.outlinedButtonTheme.style!.textStyle!.resolve({}),
+          theme.textButtonTheme.style!.textStyle!.resolve({}),
+          theme.navigationBarTheme.labelTextStyle!.resolve({}),
+          theme.chipTheme.labelStyle,
+          theme.inputDecorationTheme.hintStyle,
+          theme.snackBarTheme.contentTextStyle,
+        ];
+        for (final style in styles) {
+          expect(style?.fontFamily, appFontFamily);
+        }
+      });
 
       test('le thème Material utilise bien ces couleurs', () {
         final theme = AppTheme.build(variant);

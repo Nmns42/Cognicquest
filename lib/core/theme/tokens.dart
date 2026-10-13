@@ -59,6 +59,41 @@ abstract final class TypeScale {
   static const double titleHeight = 1.25;
 }
 
+/// Dimensions des contrôles.
+abstract final class Sizes {
+  /// Cible tactile minimale (Android 48 dp ; iOS 44 pt, couvert).
+  static const double touchTarget = 48;
+
+  /// Hauteur des boutons et des champs principaux.
+  static const double control = 52;
+
+  static const double iconSm = 16;
+  static const double iconMd = 20;
+  static const double iconLg = 24;
+
+  /// Icône d'illustration d'un état vide : présente, jamais décorative à
+  /// l'excès.
+  static const double iconXl = 32;
+
+  /// Épaisseur d'un indicateur de chargement dans un bouton.
+  static const double spinnerStroke = 2;
+}
+
+/// Épaisseurs de trait.
+abstract final class Borders {
+  static const double thin = 1;
+
+  /// Champ actif : plus marqué, pour un focus visible sans couleur seule.
+  static const double focus = 2;
+}
+
+/// Opacités des teintes d'accent.
+abstract final class Tints {
+  /// Fond d'un élément sélectionné (onglet, ligne, puce, indicateur de
+  /// navigation) : l'accent assez dilué pour garder le texte lisible.
+  static const double selected = 0.16;
+}
+
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`).
 const String appFontFamily = 'AtkinsonHyperlegibleNext';
 
