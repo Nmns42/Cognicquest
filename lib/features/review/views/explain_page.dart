@@ -72,7 +72,7 @@ class _ExplainPageState extends ConsumerState<ExplainPage> {
 
     if (note == null) {
       return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vert)),
+        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
 

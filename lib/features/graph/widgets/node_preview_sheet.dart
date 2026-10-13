@@ -23,7 +23,6 @@ class NodePreviewSheet extends ConsumerWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => NodePreviewSheet(noteId: noteId),
     );
   }
@@ -40,7 +39,6 @@ class NodePreviewSheet extends ConsumerWidget {
         maxHeight: MediaQuery.sizeOf(context).height * 0.8,
       ),
       decoration:  BoxDecoration(
-        color: context.cq.beige,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -179,7 +177,6 @@ class NodePreviewSheet extends ConsumerWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => _LinkPickerSheet(source: note, candidates: candidates),
     );
   }
@@ -267,7 +264,6 @@ class _LinkPickerSheetState extends ConsumerState<_LinkPickerSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.8,
         ),
         decoration:  BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),

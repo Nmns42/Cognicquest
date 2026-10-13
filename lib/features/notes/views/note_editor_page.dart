@@ -139,7 +139,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
 
     if (stored == null && !_initialised) {
       return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vert)),
+        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
     if (stored != null) _hydrate(stored);
@@ -147,7 +147,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     final draft = _draft;
     if (draft == null) {
       return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vert)),
+        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
 

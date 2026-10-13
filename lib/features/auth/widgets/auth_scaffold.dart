@@ -72,7 +72,7 @@ class AuthMessageBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isError ? context.cq.errorColor : context.cq.vert;
+    final color = isError ? context.cq.errorColor : context.cq.vertDark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

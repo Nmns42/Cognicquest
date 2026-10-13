@@ -7,6 +7,7 @@ import 'package:cognicquest/features/kanban/providers/task_provider.dart';
 import 'package:cognicquest/features/kanban/views/kanban_page.dart';
 import 'package:cognicquest/shared/models/task_model.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -198,6 +199,37 @@ void main() {
       await _dropOn(tester, gesture, find.text('D1').hitTestable());
 
       expect(_column(repository.tasks, TaskStatus.done), ['D0', 'A0', 'D1']);
+    });
+
+    testWidgets(
+        '(a quater) grand écran, à la souris : glisser horizontal d’une '
+        'colonne à l’autre', (tester) async {
+      final repository = await _pumpBoard(
+        tester,
+        [
+          _task('A0', TaskStatus.todo, 0),
+          _task('D0', TaskStatus.done, 0),
+        ],
+        size: const Size(1280, 800),
+      );
+      final from = tester.getCenter(_card('A0'));
+      final to = tester.getCenter(find.text('D0'));
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: from - const Offset(0, 40));
+      await mouse.moveTo(from);
+      await tester.pump();
+      await mouse.down(from);
+      // Mouvement horizontal, celui qu'un balayage de suppression capterait.
+      for (var i = 1; i <= 10; i++) {
+        await mouse.moveTo(Offset.lerp(from, to, i / 10)!);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await mouse.up();
+      await tester.pumpAndSettle();
+
+      expect(repository.tasks.firstWhere((t) => t.id == 'A0').status,
+          TaskStatus.done);
     });
 
     testWidgets(

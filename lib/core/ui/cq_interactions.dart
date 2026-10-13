@@ -155,6 +155,11 @@ class _CqDraggableState<T extends Object> extends State<CqDraggable<T>> {
   bool _mouseOver = false;
   bool _dragging = false;
 
+  /// Garde l'enfant (et son état, par exemple « survolé ») quand on passe
+  /// du mode doigt au mode souris : sans elle, l'enfant était recréé et
+  /// oubliait le survol en cours.
+  final GlobalKey _childKey = GlobalKey();
+
   void _setDragging(bool value) {
     if (mounted) setState(() => _dragging = value);
   }
@@ -178,7 +183,7 @@ class _CqDraggableState<T extends Object> extends State<CqDraggable<T>> {
           _setDragging(false);
           widget.onDragEnd?.call(details);
         },
-        child: widget.child,
+        child: KeyedSubtree(key: _childKey, child: widget.child),
       );
     } else {
       draggable = LongPressDraggable<T>(
@@ -192,7 +197,7 @@ class _CqDraggableState<T extends Object> extends State<CqDraggable<T>> {
           _setDragging(false);
           widget.onDragEnd?.call(details);
         },
-        child: widget.child,
+        child: KeyedSubtree(key: _childKey, child: widget.child),
       );
     }
 

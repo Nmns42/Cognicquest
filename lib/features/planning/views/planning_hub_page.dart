@@ -37,7 +37,7 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Planification')),
       body: RefreshIndicator(
-        color: context.cq.vert,
+        color: context.cq.vertDark,
         onRefresh: () => ref.read(planningActionsProvider).sync(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),

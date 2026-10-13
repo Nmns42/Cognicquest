@@ -475,6 +475,23 @@ class AppTheme {
             TypeScale.captionEm, cq.textMuted),
       ),
 
+      // Éteint, l'interrupteur se perdait sur une carte blanche (piste et
+      // contour au gris des séparateurs) : contour et pastille plus marqués.
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: onAccent,
+          WidgetState.any: cq.textMuted,
+        }),
+        trackColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: cq.vert,
+          WidgetState.any: cq.beigeDark,
+        }),
+        trackOutlineColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: cq.vert,
+          WidgetState.any: cq.textHint,
+        }),
+      ),
+
       chipTheme: ChipThemeData(
         backgroundColor: cq.cardColor,
         selectedColor: cq.vert,

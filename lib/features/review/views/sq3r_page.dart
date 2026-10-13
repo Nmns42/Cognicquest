@@ -123,7 +123,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
 
     if (session == null || note == null) {
       return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vert)),
+        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
 
@@ -138,7 +138,7 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
             value: session.progress,
             minHeight: 3,
             backgroundColor: context.cq.beigeDark,
-            color: context.cq.vert,
+            color: context.cq.vertDark,
           ),
         ),
       ),

@@ -65,7 +65,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
             value: queue.isEmpty ? 0 : _index / queue.length,
             minHeight: 3,
             backgroundColor: context.cq.beigeDark,
-            color: context.cq.vert,
+            color: context.cq.vertDark,
           ),
         ),
       ),
@@ -354,7 +354,7 @@ class _Finished extends StatelessWidget {
             Icon(
               hadNothing ? Icons.inbox_outlined : Icons.celebration_outlined,
               size: 48,
-              color: hadNothing ? context.cq.textHint : context.cq.vert,
+              color: hadNothing ? context.cq.textHint : context.cq.vertDark,
             ),
             const SizedBox(height: 16),
             Text(

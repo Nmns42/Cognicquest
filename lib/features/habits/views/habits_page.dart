@@ -22,7 +22,6 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => _HabitEditorSheet(habit: habit),
     );
     if (result == null) return;
@@ -88,7 +87,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       body: habitsAsync.when(
         skipLoadingOnRefresh: true,
         loading: () => Center(
-          child: CircularProgressIndicator(color: context.cq.vert),
+          child: CircularProgressIndicator(color: context.cq.vertDark),
         ),
         error: (error, _) => Center(
           child: Padding(
@@ -116,7 +115,7 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
           ),
         ),
         data: (habits) => RefreshIndicator(
-          color: context.cq.vert,
+          color: context.cq.vertDark,
           onRefresh: () => ref.read(habitProvider.notifier).refresh(),
           child: habits.isEmpty
               ? const _EmptyHabits()
@@ -540,7 +539,6 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
-          color: context.cq.beige,
           borderRadius:
               const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),

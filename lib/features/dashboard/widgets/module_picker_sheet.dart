@@ -57,8 +57,9 @@ class ModulePickerSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Choisis ce que tu veux voir. Maintiens un module appuyé sur le '
-                'tableau de bord pour le déplacer.',
+                'Choisis ce que tu veux voir. Pour déplacer un module : '
+                'survole-le et attrape sa poignée, ou maintiens-le appuyé au '
+                'doigt.',
                 style: TextStyle(
                     fontSize: TypeScale.caption,
                     color: context.cq.textMuted,

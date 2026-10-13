@@ -42,7 +42,6 @@ class RoutineEditor extends StatelessWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => _StepsSheet(title: title, steps: routine.steps),
     );
     if (steps != null) onChanged(routine.copyWith(steps: steps));
@@ -192,7 +191,6 @@ class _StepsSheetState extends State<_StepsSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.85,
         ),
         decoration: BoxDecoration(
-          color: context.cq.beige,
           borderRadius:
               const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),

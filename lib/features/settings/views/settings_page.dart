@@ -338,7 +338,7 @@ class _SoundPicker extends ConsumerWidget {
               Expanded(
                 child: Slider(
                   value: settings.ambientVolume,
-                  activeColor: context.cq.vert,
+                  activeColor: context.cq.vertDark,
                   onChanged: (value) {
                     notifier.setAmbientVolume(value);
                     engine.setVolume(value);

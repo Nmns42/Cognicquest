@@ -20,7 +20,6 @@ class PlanItemSheet extends ConsumerStatefulWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => PlanItemSheet(item: item),
     );
   }
@@ -124,7 +123,6 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.88,
         ),
         decoration:  BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -224,7 +222,7 @@ class _PlanItemSheetState extends ConsumerState<PlanItemSheet> {
                 Slider(
                   value: _progress,
                   divisions: 10,
-                  activeColor: context.cq.vert,
+                  activeColor: context.cq.vertDark,
                   onChanged: (value) => setState(() => _progress = value),
                 ),
                 const SizedBox(height: 8),

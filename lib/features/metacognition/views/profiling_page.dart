@@ -71,7 +71,7 @@ class _ProfilingPageState extends ConsumerState<ProfilingPage> {
 
     if (profile == null) {
       return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vert)),
+        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
     _hydrate(profile);
@@ -104,7 +104,7 @@ class _ProfilingPageState extends ConsumerState<ProfilingPage> {
             value: _index / total,
             minHeight: 3,
             backgroundColor: context.cq.beigeDark,
-            color: context.cq.vert,
+            color: context.cq.vertDark,
           ),
         ),
       ),

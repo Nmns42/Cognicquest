@@ -108,7 +108,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
           Expanded(
             child: notesAsync.when(
               loading: () =>  Center(
-                child: CircularProgressIndicator(color: context.cq.vert),
+                child: CircularProgressIndicator(color: context.cq.vertDark),
               ),
               error: (error, _) => Center(
                 child: Padding(
@@ -131,7 +131,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                   );
                 }
                 return RefreshIndicator(
-                  color: context.cq.vert,
+                  color: context.cq.vertDark,
                   onRefresh: () => ref.read(noteActionsProvider).sync(),
                   // Glisser-déposer seulement en tri « Manuel », sans recherche
                   // ni filtre (cf. canReorderNotesProvider).

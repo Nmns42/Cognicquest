@@ -9,7 +9,7 @@ import '../../../core/ui/cq_interactions.dart';
 Color priorityColor(BuildContext context, TaskPriority priority) =>
     switch (priority) {
       TaskPriority.high => context.cq.errorColor,
-      TaskPriority.medium => context.cq.vert,
+      TaskPriority.medium => context.cq.vertDark,
       TaskPriority.low => context.cq.textHint,
     };
 
@@ -101,7 +101,7 @@ class TaskCard extends StatelessWidget {
                             if (task.isUrgent)
                                _Badge(label: 'Urgent', color: context.cq.errorColor),
                             if (task.isImportant)
-                               _Badge(label: 'Important', color: context.cq.vert),
+                               _Badge(label: 'Important', color: context.cq.vertDark),
                           ],
                         ),
                       ],

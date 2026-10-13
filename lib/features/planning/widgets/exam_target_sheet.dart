@@ -20,7 +20,6 @@ class ExamTargetSheet extends ConsumerStatefulWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => ExamTargetSheet(target: target),
     );
   }
@@ -117,7 +116,6 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.9,
         ),
         decoration:  BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
@@ -350,7 +348,7 @@ class _Slider extends StatelessWidget {
           min: min,
           max: max,
           divisions: divisions,
-          activeColor: context.cq.vert,
+          activeColor: context.cq.vertDark,
           onChanged: onChanged,
         ),
       ],

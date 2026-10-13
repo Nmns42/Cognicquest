@@ -230,7 +230,7 @@ class _BlockRow extends StatelessWidget {
           padding: const EdgeInsets.only(left: 10),
           decoration: BoxDecoration(
             border: Border(
-              left: BorderSide(color: context.cq.vert, width: 3),
+              left: BorderSide(color: context.cq.vertDark, width: 3),
             ),
           ),
           child: field,

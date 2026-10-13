@@ -48,7 +48,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
       appBar: AppBar(title: const Text('Réviser')),
       body: cardsAsync.when(
         loading: () =>  Center(
-          child: CircularProgressIndicator(color: context.cq.vert),
+          child: CircularProgressIndicator(color: context.cq.vertDark),
         ),
         error: (error, _) => Center(
           child: Padding(
@@ -59,7 +59,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
           ),
         ),
         data: (cards) => RefreshIndicator(
-          color: context.cq.vert,
+          color: context.cq.vertDark,
           onRefresh: () => ref.read(reviewActionsProvider).sync(),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),

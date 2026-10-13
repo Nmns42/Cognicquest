@@ -145,7 +145,7 @@ class _CapacitySlider extends StatelessWidget {
           min: 0.5,
           max: 8,
           divisions: 15,
-          activeColor: context.cq.vert,
+          activeColor: context.cq.vertDark,
           onChanged: onChanged,
         ),
       ],

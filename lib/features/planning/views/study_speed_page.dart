@@ -32,7 +32,6 @@ class _StudySpeedPageState extends ConsumerState<StudySpeedPage> {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => const _SampleSheet(),
     );
   }
@@ -296,7 +295,6 @@ class _SampleSheetState extends ConsumerState<_SampleSheet> {
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration:  BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),

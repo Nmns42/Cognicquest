@@ -26,7 +26,6 @@ class _ErrorLogsPageState extends ConsumerState<ErrorLogsPage> {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => const _ErrorEditorSheet(),
     );
   }
@@ -302,7 +301,7 @@ class _ErrorRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                    Icon(Icons.check_circle_outline,
-                      size: 14, color: context.cq.vert),
+                      size: 14, color: context.cq.vertDark),
                   const SizedBox(width: 7),
                   Expanded(
                     child: Text(
@@ -404,7 +403,6 @@ class _ErrorEditorSheetState extends ConsumerState<_ErrorEditorSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.88,
         ),
         decoration: BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),

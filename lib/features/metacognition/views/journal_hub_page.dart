@@ -39,7 +39,7 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Journal & ressenti')),
       body: RefreshIndicator(
-        color: context.cq.vert,
+        color: context.cq.vertDark,
         onRefresh: () => ref.read(metacognitionActionsProvider).sync(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
@@ -191,7 +191,7 @@ class _StrainCard extends StatelessWidget {
   Color _color(BuildContext context) => switch (insights.strainLevel) {
         StrainLevel.atRisk => context.cq.errorColor,
         StrainLevel.watch => context.cq.warning,
-        StrainLevel.healthy => context.cq.vert,
+        StrainLevel.healthy => context.cq.vertDark,
       };
 
   @override

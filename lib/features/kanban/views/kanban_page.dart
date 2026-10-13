@@ -109,7 +109,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
       body: tasksAsync.when(
         skipLoadingOnRefresh: true,
         loading: () => Center(
-          child: CircularProgressIndicator(color: context.cq.vert),
+          child: CircularProgressIndicator(color: context.cq.vertDark),
         ),
         error: (error, _) => _ErrorState(
           message: error.toString(),
@@ -137,7 +137,7 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
             ),
             Expanded(
               child: RefreshIndicator(
-                color: context.cq.vert,
+                color: context.cq.vertDark,
                 onRefresh: () => ref.read(taskProvider.notifier).refresh(),
                 child: AnimatedSwitcher(
                   duration: Motion.duration(context, CqMotion.base),
@@ -489,7 +489,7 @@ class _KanbanColumn extends ConsumerWidget {
 
   (IconData, Color) _style(BuildContext context) => switch (status) {
         TaskStatus.todo => (Icons.circle_outlined, context.cq.textHint),
-        TaskStatus.doing => (Icons.timelapse, context.cq.vert),
+        TaskStatus.doing => (Icons.timelapse, context.cq.vertDark),
         TaskStatus.done => (Icons.check_circle, context.cq.textMuted),
       };
 
@@ -645,10 +645,35 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
     super.dispose();
   }
 
+  Widget _swipeToDelete(BuildContext context, Widget child) {
+    final task = widget.task;
+    return Dismissible(
+      key: ValueKey(task.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async {
+        widget.onDelete(task);
+        // La suppression effective passe par le provider : on ne laisse
+        // jamais Dismissible retirer la carte de sa propre autorité, sinon
+        // l'UI diverge de l'état réel.
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: Space.lg),
+        margin: const EdgeInsets.only(bottom: Space.sm),
+        decoration: BoxDecoration(
+          color: context.cq.errorColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(Radii.md),
+        ),
+        child: Icon(Icons.delete_outline, color: context.cq.errorColor),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-    final onDelete = widget.onDelete;
     TaskCard cardWith({required bool grip}) => TaskCard(
           task: task,
           gripVisible: grip,
@@ -661,8 +686,14 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
             count: widget.count,
           ),
         );
+    // Le balayage pour supprimer est un geste tactile : à la souris, il
+    // captait le mouvement horizontal et empêchait de glisser la tâche vers
+    // une autre colonne. Survolée, la carte n'a donc pas de balayage (la
+    // suppression reste dans le menu de la carte et dans l'éditeur).
     final card = HoverBuilder(
-      builder: (context, hovered) => cardWith(grip: hovered),
+      builder: (context, hovered) => hovered
+          ? cardWith(grip: true)
+          : _swipeToDelete(context, cardWith(grip: false)),
     );
 
     return DragTarget<Task>(
@@ -695,29 +726,7 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
                 onTap: () {},
                 onToggleDone: () {},
               ),
-              child: Dismissible(
-                key: ValueKey(task.id),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (_) async {
-                  onDelete(task);
-                  // La suppression effective passe par le provider : on ne
-                  // laisse jamais Dismissible retirer la carte de sa propre
-                  // autorité, sinon l'UI diverge de l'état réel.
-                  return false;
-                },
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: context.cq.errorColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppTheme.radius),
-                  ),
-                  child:
-                      Icon(Icons.delete_outline, color: context.cq.errorColor),
-                ),
-                child: card,
-              ),
+              child: card,
             ),
           ],
         );
@@ -816,7 +825,7 @@ class _EisenhowerBoard extends StatelessWidget {
 
   static Map<EisenhowerQuadrant, Color> _colorsOf(BuildContext context) => {
         EisenhowerQuadrant.doNow: context.cq.errorColor,
-        EisenhowerQuadrant.schedule: context.cq.vert,
+        EisenhowerQuadrant.schedule: context.cq.vertDark,
         EisenhowerQuadrant.delegate: context.cq.warning,
         EisenhowerQuadrant.eliminate: context.cq.textHint,
       };

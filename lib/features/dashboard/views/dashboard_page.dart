@@ -169,7 +169,7 @@ class DashboardPage extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        color: context.cq.vert,
+        color: context.cq.vertDark,
         onRefresh: () => _refreshAll(ref),
         // `ReorderableListView` porte le glisser-déposer des modules demandé
         // par le CdC, sans dépendance supplémentaire.
@@ -178,7 +178,10 @@ class DashboardPage extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           // L'accueil n'est pas un module : il reste en tête, non déplaçable.
           header: Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            // Même bord droit que les modules, qui réservent la place de leur
+            // poignée (visible au survol).
+            padding: const EdgeInsets.only(
+                bottom: Space.lg, right: Sizes.iconLg + Space.xs),
             child: PanelSettle(
               child: GreetingCard(
                 greeting: _greeting(now),
@@ -348,7 +351,7 @@ class _ChartPlaceholder extends StatelessWidget {
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
-                strokeWidth: 2, color: context.cq.vert),
+                strokeWidth: 2, color: context.cq.vertDark),
           ),
         ),
       ),

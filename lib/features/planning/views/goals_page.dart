@@ -248,7 +248,6 @@ class _GoalSheet extends ConsumerStatefulWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (_) => _GoalSheet(goal: goal),
     );
   }
@@ -335,7 +334,6 @@ class _GoalSheetState extends ConsumerState<_GoalSheet> {
           maxHeight: MediaQuery.sizeOf(context).height * 0.9,
         ),
         decoration:  BoxDecoration(
-          color: context.cq.beige,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
