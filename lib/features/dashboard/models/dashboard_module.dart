@@ -57,6 +57,12 @@ enum DashboardModule {
     label: 'Prochaines échéances',
     description: 'Examens, rendus et objectifs à venir',
     icon: Icons.event_outlined,
+  ),
+  reviews(
+    id: 'reviews',
+    label: 'Révisions du jour',
+    description: "Cartes à revoir aujourd'hui",
+    icon: Icons.style_outlined,
   );
 
   const DashboardModule({
@@ -86,10 +92,34 @@ enum DashboardModule {
 class DashboardLayout {
   const DashboardLayout({required this.order, required this.hidden});
 
-  /// Ordre par défaut : ce qu'on veut voir en premier le matin.
+  /// Les trois blocs affichés par défaut (refonte « zen ») : la prochaine
+  /// action, les révisions dues, les habitudes du jour. Les autres restent
+  /// disponibles dans « Personnaliser », masqués.
+  static const List<DashboardModule> essentials = [
+    DashboardModule.quickStart,
+    DashboardModule.reviews,
+    DashboardModule.habits,
+  ];
+
+  /// Disposition par défaut : les [essentials] d'abord, le reste masqué.
   static const DashboardLayout initial = DashboardLayout(
-    order: DashboardModule.values,
-    hidden: <DashboardModule>{},
+    order: [
+      ...essentials,
+      DashboardModule.stats,
+      DashboardModule.weeklyFocus,
+      DashboardModule.tasks,
+      DashboardModule.notes,
+      DashboardModule.metacognition,
+      DashboardModule.planning,
+    ],
+    hidden: {
+      DashboardModule.stats,
+      DashboardModule.weeklyFocus,
+      DashboardModule.tasks,
+      DashboardModule.notes,
+      DashboardModule.metacognition,
+      DashboardModule.planning,
+    },
   );
 
   final List<DashboardModule> order;

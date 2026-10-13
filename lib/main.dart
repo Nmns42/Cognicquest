@@ -133,11 +133,11 @@ class GoRouteIntent extends Intent {
 }
 
 final Map<LogicalKeyboardKey, String> _shortcutRoutes = {
+  // Un chiffre par espace, dans l'ordre de la barre de navigation.
   LogicalKeyboardKey.digit1: AppRoute.home,
-  LogicalKeyboardKey.digit2: AppRoute.pomodoro,
+  LogicalKeyboardKey.digit2: AppRoute.notes,
   LogicalKeyboardKey.digit3: AppRoute.kanban,
-  LogicalKeyboardKey.digit4: AppRoute.notes,
-  LogicalKeyboardKey.digit5: AppRoute.review,
+  LogicalKeyboardKey.digit4: AppRoute.journal,
   LogicalKeyboardKey.comma: AppRoute.settings,
 };
 

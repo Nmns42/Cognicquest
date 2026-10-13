@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../../../shared/models/note_model.dart';
@@ -17,6 +18,7 @@ import '../../notes/providers/note_provider.dart';
 import '../../planning/providers/planning_provider.dart';
 import '../../../shared/models/planning_model.dart';
 import '../../profile/providers/profile_provider.dart';
+import '../../review/providers/review_provider.dart';
 import '../models/dashboard_module.dart';
 import '../providers/dashboard_layout_provider.dart';
 import '../providers/dashboard_stats_provider.dart';
@@ -133,6 +135,13 @@ class DashboardPage extends ConsumerWidget {
             icon: const Icon(Icons.tune),
             onPressed: () => ModulePickerSheet.show(context),
           ),
+          // Sur téléphone, les réglages ne sont pas dans la barre du bas
+          // (quatre espaces seulement) : on les atteint d'ici.
+          IconButton(
+            tooltip: 'Réglages',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.go(AppRoute.settings),
+          ),
           IconButton(
             tooltip: 'Se déconnecter',
             icon: const Icon(Icons.logout),
@@ -198,6 +207,7 @@ class _ModuleSection extends ConsumerWidget {
       DashboardModule.notes => const _NotesModule(),
       DashboardModule.metacognition => const _MetacognitionModule(),
       DashboardModule.planning => const _PlanningModule(),
+      DashboardModule.reviews => const _ReviewsModule(),
     };
   }
 }
@@ -429,6 +439,48 @@ class _HabitsModule extends ConsumerWidget {
               onToggle: () =>
                   ref.read(habitProvider.notifier).toggleToday(habit),
             ),
+      ],
+    );
+  }
+}
+
+// ─── Révisions du jour ──────────────────────────────────────────────────────
+
+class _ReviewsModule extends ConsumerWidget {
+  const _ReviewsModule();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(reviewStatsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(
+          title: 'Révisions du jour',
+          onMore: () => context.go(AppRoute.review),
+        ),
+        const SizedBox(height: Space.sm),
+        if (stats.totalCards == 0)
+          EmptySection(
+            icon: Icons.style_outlined,
+            message: 'Crée tes premières cartes de révision',
+            onAction: () => context.go(AppRoute.review),
+            actionLabel: 'Commencer',
+          )
+        else if (!stats.hasWork)
+          EmptySection(
+            icon: Icons.check_circle_outline,
+            message: "Rien à revoir aujourd'hui",
+          )
+        else
+          FilledButton(
+            onPressed: () => context.go(AppRoute.reviewSession),
+            child: Text(
+              '${stats.dueCount} carte${stats.dueCount > 1 ? 's' : ''} '
+              'à revoir',
+            ),
+          ),
       ],
     );
   }

@@ -38,7 +38,7 @@ void main() {
     'fontSize hors échelle': (
       () => count((v) => notIn(TypeScale.sizes, v),
           RegExp(r'fontSize:\s*([0-9]+(?:\.[0-9]+)?)\b(?!\s*\*)')),
-      190,
+      189,
     ),
     // Espacements hors de la grille de 4 de [Space].
     'espacement hors grille': (
@@ -46,13 +46,13 @@ void main() {
           (v) => notIn(Space.scale, v),
           RegExp(r'(?:EdgeInsets\.\w+\([^)]*?|SizedBox\((?:height|width):\s*)'
               r'([0-9]+(?:\.[0-9]+)?)\b')),
-      425,
+      420,
     ),
     // Rayons hors de [Radii].
     'rayon hors échelle': (
       () => count((v) => notIn([Radii.sm, Radii.md, Radii.lg], v),
           RegExp(r'Radius\.circular\(([0-9]+(?:\.[0-9]+)?)\)')),
-      83,
+      81,
     ),
     // Couleurs écrites en dur au lieu des jetons du thème. Reste : la
     // couleur des pauses du Pomodoro, reprise avec son écran.

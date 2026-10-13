@@ -371,7 +371,7 @@ class _ShortcutList extends StatelessWidget {
   const _ShortcutList();
 
   static const List<(String, String)> _shortcuts = [
-    ('Ctrl + 1 … 5', 'Aller à la section correspondante'),
+    ('Ctrl + 1 … 4', "Aller à l'espace correspondant"),
     ('Ctrl + N', 'Nouvelle fiche'),
     ('Ctrl + K', 'Rechercher dans les fiches'),
     ('Ctrl + ,', 'Ouvrir les réglages'),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/config/app_config.dart';
 import '../core/navigation/adaptive_shell.dart';
+import '../core/navigation/app_destinations.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/providers/auth_provider.dart';
 import '../features/auth/views/forgot_password_page.dart';
@@ -29,6 +30,7 @@ import '../features/planning/views/goals_page.dart';
 import '../features/planning/views/planning_hub_page.dart';
 import '../features/planning/views/revision_order_page.dart';
 import '../features/planning/views/study_speed_page.dart';
+import '../features/pomodoro/providers/pomodoro_provider.dart';
 import '../features/pomodoro/views/pomodoro_page.dart';
 import '../features/review/views/explain_page.dart';
 import '../features/review/views/review_home_page.dart';
@@ -166,15 +168,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ResetPasswordPage(),
       ),
       ShellRoute(
-        builder: (context, state, child) => AdaptiveShell(
-          currentLocation: state.matchedLocation,
-          // Le bandeau hors ligne vit au-dessus de toutes les sections : la
-          // synchronisation concerne l'app entière, pas un écran.
-          child: Column(
-            children: [
-              Expanded(child: child),
-              const OfflineBanner(),
-            ],
+        builder: (context, state, child) => Consumer(
+          builder: (context, ref, _) => AdaptiveShell(
+            currentLocation: state.matchedLocation,
+            // Mode concentration : seulement sur l'écran du Pomodoro, pour
+            // qu'une session en cours n'emprisonne pas le reste de l'app.
+            focusMode: ref.watch(focusModeProvider) &&
+                state.matchedLocation == focusRoute,
+            // Le bandeau hors ligne vit au-dessus de toutes les sections : la
+            // synchronisation concerne l'app entière, pas un écran.
+            child: Column(
+              children: [
+                Expanded(child: child),
+                const OfflineBanner(),
+              ],
+            ),
           ),
         ),
         routes: [

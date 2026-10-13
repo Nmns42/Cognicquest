@@ -9,49 +9,51 @@ import 'package:cognicquest/features/settings/domain/user_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('AppDestinations', () {
-    test('expose cinq destinations principales et le reste en secondaire', () {
-      expect(AppDestinations.primary, hasLength(5));
-      expect(AppDestinations.secondary, isNotEmpty);
-      expect(
-        AppDestinations.primary.length + AppDestinations.secondary.length,
-        AppDestinations.all.length,
-      );
+  group('AppSpace', () {
+    test("quatre espaces dans la barre : Aujourd'hui, Apprendre, Organiser, "
+        'Réfléchir', () {
+      expect(AppSpace.values.map((s) => s.label),
+          ["Aujourd'hui", 'Apprendre', 'Organiser', 'Réfléchir']);
     });
 
-    test('toutes les sections du projet sont atteignables', () {
-      // Avant le Lot 9, graphe, journal et planification n'avaient aucune
-      // entrée de navigation : ils empruntaient l'onglet d'une autre section.
-      final routes = AppDestinations.all.map((d) => d.route).toSet();
-      expect(routes, containsAll(['/graph', '/journal', '/planning', '/settings']));
+    test('toutes les sections du projet appartiennent à un espace', () {
+      final routes = {
+        for (final space in AppSpace.values)
+          for (final section in space.sections) section.route,
+      };
+      expect(routes, {
+        '/home', '/pomodoro', '/habits', // Aujourd'hui
+        '/notes', '/review', '/graph', // Apprendre
+        '/kanban', '/planning', // Organiser
+        '/journal', // Réfléchir
+      });
     });
 
-    test('retient la route la plus longue qui préfixe l\'emplacement', () {
-      // `/planning/gantt` doit désigner « Planification », pas une autre
-      // destination dont la route serait aussi un préfixe.
-      expect(AppDestinations.matching('/planning/gantt')?.route, '/planning');
-      expect(AppDestinations.matching('/journal/why')?.route, '/journal');
-      expect(AppDestinations.matching('/review/session')?.route, '/review');
-      expect(AppDestinations.matching('/notes/abc-123')?.route, '/notes');
+    test("retient la section la plus longue qui préfixe l'emplacement", () {
+      expect(AppSpace.sectionOf('/planning/gantt')?.route, '/planning');
+      expect(AppSpace.sectionOf('/journal/why')?.route, '/journal');
+      expect(AppSpace.sectionOf('/review/session')?.route, '/review');
+      expect(AppSpace.sectionOf('/notes/abc-123')?.route, '/notes');
     });
 
-    test('rend null pour un emplacement inconnu', () {
-      expect(AppDestinations.matching('/login'), isNull);
-      expect(AppDestinations.primaryIndexOf('/login'), isNull);
+    test('associe chaque emplacement à son espace', () {
+      expect(AppSpace.of('/pomodoro'), AppSpace.today);
+      expect(AppSpace.of('/notes/abc'), AppSpace.learn);
+      expect(AppSpace.of('/planning/goals'), AppSpace.organize);
+      expect(AppSpace.of('/journal/errors'), AppSpace.reflect);
     });
 
-    test('n\'attribue pas d\'onglet principal à une section secondaire', () {
-      // La barre du bas ne doit pas prétendre qu'on est dans « Accueil »
-      // alors qu'on consulte le graphe.
-      expect(AppDestinations.primaryIndexOf('/graph'), isNull);
-      expect(AppDestinations.primaryIndexOf('/journal'), isNull);
-      expect(AppDestinations.primaryIndexOf('/home'), 0);
+    test('réglages et routes publiques sont hors des espaces', () {
+      expect(AppSpace.of(settingsRoute), isNull);
+      expect(AppSpace.of('/login'), isNull);
+      // Pas de faux préfixe : « /homework » n'est pas « /home ».
+      expect(AppSpace.of('/homework'), isNull);
     });
 
-    test('indexOf couvre toutes les destinations du rail', () {
-      for (final destination in AppDestinations.all) {
-        expect(AppDestinations.indexOf(destination.route), isNotNull);
-      }
+    test("les onglets ne s'affichent qu'à la racine d'une section", () {
+      expect(AppSpace.isSectionRoot('/notes'), isTrue);
+      expect(AppSpace.isSectionRoot('/notes/abc'), isFalse);
+      expect(AppSpace.isSectionRoot('/review/session'), isFalse);
     });
   });
 

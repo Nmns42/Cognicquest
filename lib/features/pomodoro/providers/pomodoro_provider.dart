@@ -325,3 +325,9 @@ class PomodoroCompletions extends Notifier<int> {
 
 final pomodoroCompletionsProvider =
     NotifierProvider<PomodoroCompletions, int>(PomodoroCompletions.new);
+
+/// Mode concentration : vrai pendant qu'une session tourne. La coquille
+/// masque alors toute la navigation sur l'écran du Pomodoro.
+final focusModeProvider = Provider<bool>(
+  (ref) => ref.watch(pomodoroProvider.select((s) => s.isRunning)),
+);

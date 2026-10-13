@@ -1,139 +1,126 @@
 import 'package:flutter/material.dart';
 
-/// Une destination de navigation.
-class AppDestination {
-  const AppDestination({
+/// Une section de l'application : un écran racine et ses sous-pages.
+class AppSection {
+  const AppSection({
     required this.route,
     required this.label,
     required this.icon,
-    required this.selectedIcon,
-    this.isPrimary = true,
   });
 
   final String route;
   final String label;
   final IconData icon;
-  final IconData selectedIcon;
-
-  /// `true` pour les destinations qui tiennent dans la barre du bas sur
-  /// mobile. Les autres restent accessibles par le tiroir et par le rail.
-  final bool isPrimary;
 }
 
-/// Catalogue unique des destinations de l'application.
+/// Les quatre espaces de la navigation (refonte « zen », Phase 1).
 ///
-/// Auparavant, la liste était dupliquée dans `_MainShell` et trois sections
-/// (graphe, journal, planification) n'y figuraient pas du tout : elles
-/// empruntaient l'onglet d'une autre section, ce qui rendait la barre du bas
-/// menteuse. Tout est désormais déclaré ici, une seule fois.
-abstract final class AppDestinations {
-  static const List<AppDestination> all = [
-    AppDestination(
-      route: '/home',
-      label: 'Accueil',
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home,
-    ),
-    AppDestination(
-      route: '/pomodoro',
-      label: 'Pomodoro',
-      icon: Icons.timer_outlined,
-      selectedIcon: Icons.timer,
-    ),
-    AppDestination(
-      route: '/kanban',
-      label: 'Tâches',
-      icon: Icons.view_kanban_outlined,
-      selectedIcon: Icons.view_kanban,
-    ),
-    AppDestination(
-      route: '/notes',
-      label: 'Fiches',
-      icon: Icons.auto_stories_outlined,
-      selectedIcon: Icons.auto_stories,
-    ),
-    AppDestination(
-      route: '/review',
-      label: 'Réviser',
-      icon: Icons.style_outlined,
-      selectedIcon: Icons.style,
-    ),
-    // ── Secondaires : hors barre du bas, présentes partout ailleurs ────────
-    AppDestination(
-      route: '/habits',
-      label: 'Habitudes',
-      icon: Icons.check_circle_outline,
-      selectedIcon: Icons.check_circle,
-      isPrimary: false,
-    ),
-    AppDestination(
-      route: '/graph',
-      label: 'Graphe',
-      icon: Icons.hub_outlined,
-      selectedIcon: Icons.hub,
-      isPrimary: false,
-    ),
-    AppDestination(
-      route: '/planning',
-      label: 'Planification',
-      icon: Icons.event_outlined,
-      selectedIcon: Icons.event,
-      isPrimary: false,
-    ),
-    AppDestination(
-      route: '/journal',
-      label: 'Journal',
-      icon: Icons.self_improvement_outlined,
-      selectedIcon: Icons.self_improvement,
-      isPrimary: false,
-    ),
-    AppDestination(
-      route: '/settings',
-      label: 'Réglages',
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-      isPrimary: false,
-    ),
-  ];
+/// Dix destinations au même niveau, c'était dix décisions possibles à chaque
+/// regard sur la barre. On les regroupe par intention : ce que je fais
+/// aujourd'hui, ce que j'apprends, ce que j'organise, ce sur quoi je reviens.
+/// La barre du bas tient ainsi en quatre entrées (UI UX Pro Max : « bottom
+/// nav ≤ 5 »). Les réglages sont hors espaces, accessibles depuis l'accueil
+/// et le rail.
+enum AppSpace {
+  today(
+    label: "Aujourd'hui",
+    icon: Icons.wb_sunny_outlined,
+    selectedIcon: Icons.wb_sunny,
+    sections: [
+      AppSection(route: '/home', label: 'Accueil', icon: Icons.home_outlined),
+      AppSection(
+          route: '/pomodoro', label: 'Concentration', icon: Icons.timer_outlined),
+      AppSection(
+          route: '/habits',
+          label: 'Habitudes',
+          icon: Icons.check_circle_outline),
+    ],
+  ),
+  learn(
+    label: 'Apprendre',
+    icon: Icons.auto_stories_outlined,
+    selectedIcon: Icons.auto_stories,
+    sections: [
+      AppSection(
+          route: '/notes', label: 'Fiches', icon: Icons.auto_stories_outlined),
+      AppSection(route: '/review', label: 'Réviser', icon: Icons.style_outlined),
+      AppSection(route: '/graph', label: 'Graphe', icon: Icons.hub_outlined),
+    ],
+  ),
+  organize(
+    label: 'Organiser',
+    icon: Icons.view_kanban_outlined,
+    selectedIcon: Icons.view_kanban,
+    sections: [
+      AppSection(
+          route: '/kanban', label: 'Tâches', icon: Icons.view_kanban_outlined),
+      AppSection(
+          route: '/planning', label: 'Planification', icon: Icons.event_outlined),
+    ],
+  ),
+  reflect(
+    label: 'Réfléchir',
+    icon: Icons.self_improvement_outlined,
+    selectedIcon: Icons.self_improvement,
+    sections: [
+      AppSection(
+          route: '/journal',
+          label: 'Journal',
+          icon: Icons.self_improvement_outlined),
+    ],
+  );
 
-  /// Destinations affichées dans la barre du bas sur mobile.
-  static List<AppDestination> get primary =>
-      all.where((d) => d.isPrimary).toList();
+  const AppSpace({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+    required this.sections,
+  });
 
-  static List<AppDestination> get secondary =>
-      all.where((d) => !d.isPrimary).toList();
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+  final List<AppSection> sections;
 
-  /// Destination correspondant à l'emplacement courant.
-  ///
-  /// On retient la route **la plus longue** qui préfixe l'emplacement :
-  /// sinon `/journal` serait capté par `/j…` et, surtout, `/planning/gantt`
-  /// doit désigner « Planification » et non la première route qui matche.
-  static AppDestination? matching(String location) {
-    AppDestination? best;
-    for (final destination in all) {
-      if (!location.startsWith(destination.route)) continue;
-      if (best == null || destination.route.length > best.route.length) {
-        best = destination;
+  /// Écran d'arrivée de l'espace.
+  String get route => sections.first.route;
+
+  /// Section qui contient [location] : la route **la plus longue** qui la
+  /// préfixe, pour que `/planning/gantt` désigne « Planification ».
+  static AppSection? sectionOf(String location) {
+    AppSection? best;
+    for (final space in values) {
+      for (final section in space.sections) {
+        final matches = location == section.route ||
+            location.startsWith('${section.route}/');
+        if (!matches) continue;
+        if (best == null || section.route.length > best.route.length) {
+          best = section;
+        }
       }
     }
     return best;
   }
 
-  /// Index dans [primary], ou `null` si l'emplacement relève d'une section
-  /// secondaire — la barre du bas n'affiche alors aucune sélection plutôt
-  /// que d'en inventer une.
-  static int? primaryIndexOf(String location) {
-    final destination = matching(location);
-    if (destination == null || !destination.isPrimary) return null;
-    return primary.indexWhere((d) => d.route == destination.route);
+  /// Espace qui contient [location], ou `null` (réglages, route inconnue).
+  static AppSpace? of(String location) {
+    final section = sectionOf(location);
+    if (section == null) return null;
+    return values.firstWhere((s) => s.sections.contains(section));
   }
 
-  static int? indexOf(String location) {
-    final destination = matching(location);
-    if (destination == null) return null;
-    return all.indexWhere((d) => d.route == destination.route);
-  }
+  /// `true` sur l'écran racine d'une section : c'est là, et seulement là,
+  /// que s'affichent les onglets de l'espace. Dans une sous-page (une fiche
+  /// ouverte, une session de révision), rien ne doit distraire.
+  static bool isSectionRoot(String location) =>
+      sectionOf(location)?.route == location;
 }
+
+/// Réglages : hors des quatre espaces.
+const String settingsRoute = '/settings';
+
+/// Route du Pomodoro : seule à déclencher le mode concentration.
+const String focusRoute = '/pomodoro';
 
 /// Points de rupture de la mise en page.
 ///

@@ -1,11 +1,35 @@
 import 'package:cognicquest/features/dashboard/models/dashboard_module.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Tous les modules visibles : les règles de réordonnancement se testent
+/// indépendamment de la disposition par défaut.
+const all = DashboardLayout(
+  order: DashboardModule.values,
+  hidden: <DashboardModule>{},
+);
+
 void main() {
+  group('DashboardLayout.initial (refonte zen)', () {
+    test('affiche trois blocs : prochaine action, révisions, habitudes', () {
+      expect(DashboardLayout.initial.visibleModules, [
+        DashboardModule.quickStart,
+        DashboardModule.reviews,
+        DashboardModule.habits,
+      ]);
+    });
+
+    test('garde tous les autres modules, masqués mais réactivables', () {
+      expect(DashboardLayout.initial.order.toSet(),
+          DashboardModule.values.toSet());
+      expect(DashboardLayout.initial.order,
+          hasLength(DashboardModule.values.length));
+    });
+  });
+
   group('DashboardLayout.reorder', () {
     test('déplace un module vers le bas', () {
       // newIndex est l'index final, après retrait : contrat de onReorderItem.
-      final layout = DashboardLayout.initial.reorder(0, 2);
+      final layout = all.reorder(0, 2);
 
       expect(layout.order[0], DashboardModule.weeklyFocus);
       expect(layout.order[1], DashboardModule.quickStart);
@@ -13,28 +37,28 @@ void main() {
     });
 
     test('déplace un module vers le haut', () {
-      final layout = DashboardLayout.initial.reorder(3, 0);
+      final layout = all.reorder(3, 0);
 
       expect(layout.order.first, DashboardModule.tasks);
       expect(layout.order[1], DashboardModule.stats);
     });
 
     test('conserve tous les modules, sans perte ni doublon', () {
-      final layout = DashboardLayout.initial.reorder(4, 1);
+      final layout = all.reorder(4, 1);
 
       expect(layout.order.toSet(), DashboardModule.values.toSet());
       expect(layout.order, hasLength(DashboardModule.values.length));
     });
 
     test('ignore un index hors bornes plutôt que de planter', () {
-      expect(DashboardLayout.initial.reorder(99, 0), DashboardLayout.initial);
-      expect(DashboardLayout.initial.reorder(-1, 0), DashboardLayout.initial);
+      expect(all.reorder(99, 0), all);
+      expect(all.reorder(-1, 0), all);
     });
 
     test('réordonne sur les seuls modules visibles, sans perdre les masqués', () {
       // Compté sur l'énumération : ajouter un module ne doit pas casser ce test.
       final total = DashboardModule.values.length;
-      final hidden = DashboardLayout.initial.toggle(DashboardModule.stats);
+      final hidden = all.toggle(DashboardModule.stats);
       expect(hidden.visibleModules, hasLength(total - 1));
 
       final reordered = hidden.reorder(0, 2);
@@ -48,7 +72,7 @@ void main() {
 
   group('DashboardLayout.toggle', () {
     test('masque puis réaffiche un module', () {
-      final hidden = DashboardLayout.initial.toggle(DashboardModule.habits);
+      final hidden = all.toggle(DashboardModule.habits);
       expect(hidden.isVisible(DashboardModule.habits), isFalse);
       expect(hidden.visibleModules, isNot(contains(DashboardModule.habits)));
 
@@ -57,7 +81,7 @@ void main() {
     });
 
     test('n\'altère pas l\'instance d\'origine', () {
-      const original = DashboardLayout.initial;
+      const original = all;
       original.toggle(DashboardModule.tasks);
       expect(original.isVisible(DashboardModule.tasks), isTrue);
     });
@@ -65,7 +89,7 @@ void main() {
 
   group('DashboardLayout sérialisation', () {
     test('fait l\'aller-retour JSON', () {
-      final layout = DashboardLayout.initial
+      final layout = all
           .reorder(0, 3)
           .toggle(DashboardModule.quickStart);
 
