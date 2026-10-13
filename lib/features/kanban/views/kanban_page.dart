@@ -119,17 +119,20 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Une seule vue à la fois, sur les mêmes tâches : le tableau par
-            // état d'avancement, ou la matrice par urgence et importance.
+            // état d'avancement, ou la matrice par urgence et importance. Deux
+            // petites icônes à droite, au-dessus de la colonne « Terminé ».
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
-              child: CqSegmentedControl<_BoardView>(
-                options: const {
-                  _BoardView.kanban: 'Kanban',
-                  _BoardView.eisenhower: 'Matrice',
-                },
-                selected: _view,
-                onChanged: (view) => setState(() => _view = view),
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.sizeOf(context).width >= kanbanWideMin
+                    ? Space.xl
+                    : Space.lg,
+              ),
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: _ViewToggle(
+                  selected: _view,
+                  onChanged: (view) => setState(() => _view = view),
+                ),
               ),
             ),
             Expanded(
@@ -162,6 +165,48 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
         tooltip: 'Nouvelle tâche',
         child: Icon(Icons.add, color: context.onAccent),
       ),
+    );
+  }
+}
+
+/// Bascule discrète entre le Kanban et la matrice : deux icônes, sans texte
+/// (les infobulles et les lecteurs d'écran portent les noms).
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.selected, required this.onChanged});
+
+  final _BoardView selected;
+  final ValueChanged<_BoardView> onChanged;
+
+  static const Map<_BoardView, (IconData, String)> _views = {
+    _BoardView.kanban: (Icons.view_week_outlined, 'Vue Kanban'),
+    _BoardView.eisenhower: (Icons.grid_view, "Matrice d'Eisenhower"),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final MapEntry(key: view, value: (icon, label)) in _views.entries)
+          IconButton(
+            tooltip: label,
+            isSelected: view == selected,
+            onPressed: view == selected ? null : () => onChanged(view),
+            style: IconButton.styleFrom(
+              backgroundColor:
+                  view == selected ? context.cq.vert : Colors.transparent,
+              disabledBackgroundColor: context.cq.vert,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(Radii.sm),
+              ),
+            ),
+            icon: Icon(
+              icon,
+              size: Sizes.iconMd,
+              color: view == selected ? context.onAccent : context.cq.textMuted,
+            ),
+          ),
+      ],
     );
   }
 }

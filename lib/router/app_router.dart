@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/config/app_config.dart';
 import '../core/navigation/adaptive_shell.dart';
+import '../core/motion/entrance.dart';
 import '../core/navigation/app_destinations.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/providers/auth_provider.dart';
@@ -106,7 +107,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // Le routeur est construit une seule fois : on ne `watch` pas la session ici
   // (cela recréerait le GoRouter et réinitialiserait la pile de navigation).
   // On se contente de le notifier via refreshListenable.
-  final refreshListenable = _GoRouterRefreshStream(client.auth.onAuthStateChange);
+  final refreshListenable =
+      _GoRouterRefreshStream(client.auth.onAuthStateChange);
   ref.onDispose(refreshListenable.dispose);
 
   // Le drapeau de récupération est mis à jour par le même flux que
@@ -123,8 +125,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           client.auth.currentSession != null || AppConfig.devBypassAuth;
       final isOnPublicRoute =
           AppRoute.publicRoutes.contains(state.matchedLocation);
-      final isOnResetPassword =
-          state.matchedLocation == AppRoute.resetPassword;
+      final isOnResetPassword = state.matchedLocation == AppRoute.resetPassword;
 
       // Lien « mot de passe oublié » ouvert : la session existe déjà, mais
       // l'utilisateur doit choisir son nouveau mot de passe avant tout.
@@ -188,73 +189,80 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: AppRoute.home,
-            builder: (_, __) => const DashboardPage(),
+            builder: (_, __) => const PanelSettle(child: DashboardPage()),
           ),
           GoRoute(
             path: AppRoute.pomodoro,
-            builder: (_, __) => const PomodoroPage(),
+            builder: (_, __) => const PanelSettle(child: PomodoroPage()),
           ),
           GoRoute(
             path: AppRoute.kanban,
-            builder: (_, __) => const KanbanPage(),
+            builder: (_, __) => const PanelSettle(child: KanbanPage()),
           ),
           GoRoute(
             path: AppRoute.habits,
-            builder: (_, __) => const HabitsPage(),
+            builder: (_, __) => const PanelSettle(child: HabitsPage()),
           ),
           GoRoute(
             path: AppRoute.settings,
-            builder: (_, __) => const SettingsPage(),
+            builder: (_, __) => const PanelSettle(child: SettingsPage()),
           ),
           GoRoute(
             path: AppRoute.planning,
-            builder: (_, __) => const PlanningHubPage(),
+            builder: (_, __) => const PanelSettle(child: PlanningHubPage()),
             routes: [
-              GoRoute(path: 'gantt', builder: (_, __) => const GanttPage()),
+              GoRoute(
+                  path: 'gantt',
+                  builder: (_, __) => const PanelSettle(child: GanttPage())),
               GoRoute(
                 path: 'order',
-                builder: (_, __) => const RevisionOrderPage(),
+                builder: (_, __) =>
+                    const PanelSettle(child: RevisionOrderPage()),
               ),
               GoRoute(
                 path: 'speed',
-                builder: (_, __) => const StudySpeedPage(),
+                builder: (_, __) => const PanelSettle(child: StudySpeedPage()),
               ),
-              GoRoute(path: 'goals', builder: (_, __) => const GoalsPage()),
+              GoRoute(
+                  path: 'goals',
+                  builder: (_, __) => const PanelSettle(child: GoalsPage())),
             ],
           ),
           GoRoute(
             path: AppRoute.journal,
-            builder: (_, __) => const JournalHubPage(),
+            builder: (_, __) => const PanelSettle(child: JournalHubPage()),
             routes: [
               GoRoute(
                 path: 'entry',
-                builder: (_, __) => const JournalEntryPage(),
+                builder: (_, __) =>
+                    const PanelSettle(child: JournalEntryPage()),
               ),
               GoRoute(
                 path: 'reframe',
-                builder: (_, __) => const ReframePage(),
+                builder: (_, __) => const PanelSettle(child: ReframePage()),
               ),
               GoRoute(
                 path: 'why',
-                builder: (_, __) => const WhyChainPage(),
+                builder: (_, __) => const PanelSettle(child: WhyChainPage()),
               ),
               GoRoute(
                 path: 'errors',
-                builder: (_, __) => const ErrorLogsPage(),
+                builder: (_, __) => const PanelSettle(child: ErrorLogsPage()),
               ),
               GoRoute(
                 path: 'profile',
-                builder: (_, __) => const ProfilingPage(),
+                builder: (_, __) => const PanelSettle(child: ProfilingPage()),
               ),
             ],
           ),
           GoRoute(
             path: AppRoute.review,
-            builder: (_, __) => const ReviewHomePage(),
+            builder: (_, __) => const PanelSettle(child: ReviewHomePage()),
             routes: [
               GoRoute(
                 path: 'session',
-                builder: (_, __) => const ReviewSessionPage(),
+                builder: (_, __) =>
+                    const PanelSettle(child: ReviewSessionPage()),
               ),
               GoRoute(
                 path: 'sq3r',
@@ -267,8 +275,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':noteId',
-                    builder: (context, state) =>
-                        Sq3rPage(noteId: state.pathParameters['noteId']!),
+                    builder: (context, state) => PanelSettle(
+                        child:
+                            Sq3rPage(noteId: state.pathParameters['noteId']!)),
                   ),
                 ],
               ),
@@ -283,8 +292,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: ':noteId',
-                    builder: (context, state) =>
-                        ExplainPage(noteId: state.pathParameters['noteId']!),
+                    builder: (context, state) => PanelSettle(
+                        child: ExplainPage(
+                            noteId: state.pathParameters['noteId']!)),
                   ),
                 ],
               ),
@@ -292,26 +302,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoute.graph,
-            builder: (_, __) => const GraphPage(),
+            builder: (_, __) => const PanelSettle(child: GraphPage()),
           ),
           GoRoute(
             path: AppRoute.notes,
-            builder: (_, __) => const NotesPage(),
+            builder: (_, __) => const PanelSettle(child: NotesPage()),
             routes: [
               // Route enfant : l'éditeur reste sous /notes, donc l'onglet
               // « Fiches » demeure sélectionné quand une fiche est ouverte.
               GoRoute(
                 path: ':noteId',
-                builder: (context, state) => NoteEditorPage(
+                builder: (context, state) => PanelSettle(
+                    child: NoteEditorPage(
                   noteId: state.pathParameters['noteId']!,
-                ),
+                )),
               ),
             ],
           ),
         ],
       ),
     ],
-    errorBuilder: (context, state) => _RouteErrorPage(location: state.uri.toString()),
+    errorBuilder: (context, state) =>
+        _RouteErrorPage(location: state.uri.toString()),
   );
 });
 
@@ -329,7 +341,7 @@ class _RouteErrorPage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-               Icon(Icons.explore_off_outlined,
+              Icon(Icons.explore_off_outlined,
                   size: 48, color: context.cq.textHint),
               const SizedBox(height: 16),
               Text(
