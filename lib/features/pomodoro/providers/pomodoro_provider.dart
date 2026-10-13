@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
+import '../../settings/domain/user_settings.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../data/pomodoro_repository.dart';
 
 enum PomodoroStatus { idle, running, paused }
@@ -30,11 +32,13 @@ class PomodoroState {
     required this.completedSessions,
     required this.cyclePosition,
     required this.coins,
+    this.cycleLength = 4,
   });
 
-  factory PomodoroState.initial() {
-    const duration = AppConfig.defaultWorkDurationMinutes * 60;
-    return const PomodoroState(
+  factory PomodoroState.initial(
+      [PomodoroSettings config = PomodoroSettings.defaults]) {
+    final duration = config.workMinutes * 60;
+    return PomodoroState(
       status: PomodoroStatus.idle,
       phase: PomodoroPhase.work,
       remainingSeconds: duration,
@@ -42,6 +46,7 @@ class PomodoroState {
       completedSessions: 0,
       cyclePosition: 0,
       coins: 0,
+      cycleLength: config.sessionsBeforeLongBreak,
     );
   }
 
@@ -54,8 +59,11 @@ class PomodoroState {
   /// local au lancement, plus remis à zéro à chaque ouverture de l'app).
   final int completedSessions;
 
-  /// Position dans le cycle de 4 sessions avant la pause longue.
+  /// Position dans le cycle de sessions avant la pause longue.
   final int cyclePosition;
+
+  /// Sessions de travail avant la pause longue (réglage).
+  final int cycleLength;
 
   final int coins;
 
@@ -74,8 +82,7 @@ class PomodoroState {
   }
 
   /// Nombre de sessions restantes avant la pause longue.
-  int get sessionsUntilLongBreak =>
-      AppConfig.sessionsBeforeLongBreak - cyclePosition;
+  int get sessionsUntilLongBreak => cycleLength - cyclePosition;
 
   PomodoroState copyWith({
     PomodoroStatus? status,
@@ -85,6 +92,7 @@ class PomodoroState {
     int? completedSessions,
     int? cyclePosition,
     int? coins,
+    int? cycleLength,
   }) {
     return PomodoroState(
       status: status ?? this.status,
@@ -94,6 +102,7 @@ class PomodoroState {
       completedSessions: completedSessions ?? this.completedSessions,
       cyclePosition: cyclePosition ?? this.cyclePosition,
       coins: coins ?? this.coins,
+      cycleLength: cycleLength ?? this.cycleLength,
     );
   }
 }
@@ -115,15 +124,32 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   @override
   PomodoroState build() {
     ref.onDispose(() => _timer?.cancel());
+    // Les réglages arrivent de la base locale après le premier build : un
+    // minuteur qui n'a pas commencé sa phase prend la nouvelle durée.
+    ref.listen(settingsProvider.select((s) => s.pomodoro), (_, next) {
+      final untouched = !state.isRunning &&
+          state.remainingSeconds == state.totalSeconds;
+      final duration = _durationOf(state.phase, next);
+      state = state.copyWith(
+        cycleLength: next.sessionsBeforeLongBreak,
+        remainingSeconds: untouched ? duration : null,
+        totalSeconds: untouched ? duration : null,
+      );
+    });
     unawaited(_seedFromHistory());
-    return PomodoroState.initial();
+    return PomodoroState.initial(_config);
   }
 
-  int get _phaseDurationSeconds => switch (state.phase) {
-        PomodoroPhase.work => AppConfig.defaultWorkDurationMinutes * 60,
-        PomodoroPhase.shortBreak => AppConfig.defaultShortBreakDurationMinutes * 60,
-        PomodoroPhase.longBreak => AppConfig.defaultLongBreakDurationMinutes * 60,
+  PomodoroSettings get _config => ref.read(settingsProvider).pomodoro;
+
+  static int _durationOf(PomodoroPhase phase, PomodoroSettings config) =>
+      switch (phase) {
+        PomodoroPhase.work => config.workMinutes * 60,
+        PomodoroPhase.shortBreak => config.shortBreakMinutes * 60,
+        PomodoroPhase.longBreak => config.longBreakMinutes * 60,
       };
+
+  int get _phaseDurationSeconds => _durationOf(state.phase, _config);
 
   void start() {
     if (state.isRunning) return;
@@ -220,19 +246,15 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       if (sessionCompleted) cyclePosition += 1;
       // Pause longue tous les N cycles — absente de la version précédente,
       // qui alternait indéfiniment travail / pause courte.
-      final dueLongBreak =
-          cyclePosition > 0 && cyclePosition % AppConfig.sessionsBeforeLongBreak == 0;
+      final dueLongBreak = cyclePosition > 0 &&
+          cyclePosition % _config.sessionsBeforeLongBreak == 0;
       nextPhase = dueLongBreak ? PomodoroPhase.longBreak : PomodoroPhase.shortBreak;
     } else {
       nextPhase = PomodoroPhase.work;
       if (state.phase == PomodoroPhase.longBreak) cyclePosition = 0;
     }
 
-    final duration = switch (nextPhase) {
-      PomodoroPhase.work => AppConfig.defaultWorkDurationMinutes * 60,
-      PomodoroPhase.shortBreak => AppConfig.defaultShortBreakDurationMinutes * 60,
-      PomodoroPhase.longBreak => AppConfig.defaultLongBreakDurationMinutes * 60,
-    };
+    final duration = _durationOf(nextPhase, _config);
 
     state = state.copyWith(
       status: PomodoroStatus.idle,
@@ -240,6 +262,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       remainingSeconds: duration,
       totalSeconds: duration,
       cyclePosition: cyclePosition,
+      cycleLength: _config.sessionsBeforeLongBreak,
       completedSessions:
           sessionCompleted ? state.completedSessions + 1 : state.completedSessions,
       coins: sessionCompleted
@@ -266,7 +289,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       // à jour d'elles-mêmes, réseau ou pas.
       await repository.record(
         startedAt: startedAt,
-        durationSeconds: AppConfig.defaultWorkDurationMinutes * 60,
+        durationSeconds: _config.workMinutes * 60,
       );
     } catch (_) {
       // L'archivage est du confort : une session perdue ne doit jamais
@@ -282,7 +305,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       final stats = PomodoroStats.fromSessions(await repository.fetchRecent());
       state = state.copyWith(
         completedSessions: stats.sessionsToday,
-        cyclePosition: stats.sessionsToday % AppConfig.sessionsBeforeLongBreak,
+        cyclePosition: stats.sessionsToday % _config.sessionsBeforeLongBreak,
         coins: stats.coins(AppConfig.coinsPerWorkSession),
       );
     } catch (_) {

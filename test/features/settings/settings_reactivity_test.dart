@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cognicquest/core/theme/app_theme.dart';
 import 'package:cognicquest/features/auth/providers/auth_provider.dart';
+import 'package:cognicquest/features/pomodoro/providers/pomodoro_provider.dart';
 import 'package:cognicquest/features/settings/data/ambient_sound_engine.dart';
 import 'package:cognicquest/features/settings/domain/user_settings.dart';
 import 'package:cognicquest/features/settings/providers/settings_provider.dart';
@@ -82,20 +83,18 @@ void main() {
     expect(themes, hasLength(2));
   });
 
-  testWidgets('le curseur de volume applique la valeur au moteur sans délai',
-      (tester) async {
-    final engine = _FakeAmbientEngine();
+  testWidgets(
+      'réglages Pomodoro : « + » allonge la session, et le minuteur au repos '
+      'prend la nouvelle durée', (tester) async {
     final client = offlineClient();
-    // Créé dans le temps simulé : sa fermeture n'est pas attendue.
     addTearDown(() => unawaited(client.dispose()));
     final container = ProviderContainer(overrides: [
-      ambientSoundEngineProvider.overrideWithValue(engine),
+      ambientSoundEngineProvider.overrideWithValue(_FakeAmbientEngine()),
       supabaseClientProvider.overrideWithValue(client),
     ]);
     addTearDown(container.dispose);
-    container
-        .read(settingsProvider.notifier)
-        .setAmbientSound(AmbientSound.pinkNoise);
+    // Le minuteur existe déjà, au repos (25 min par défaut).
+    expect(container.read(pomodoroProvider).totalSeconds, 25 * 60);
 
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
@@ -103,24 +102,34 @@ void main() {
     ));
     await tester.pump();
 
-    // Page en liste paresseuse : le curseur n'est construit qu'une fois
-    // amené à l'écran.
-    final slider = find.byType(Slider);
-    await tester.scrollUntilVisible(slider, 200,
+    final plus = find.byTooltip('Augmenter : Session de travail');
+    await tester.scrollUntilVisible(plus, 200,
         scrollable: find.byType(Scrollable).first);
+    await tester.ensureVisible(plus);
     await tester.pump();
-    final before = container.read(settingsProvider).ambientVolume;
-    await tester.tapAt(tester.getTopLeft(slider) +
-        Offset(tester.getSize(slider).width * 0.9,
-            tester.getSize(slider).height / 2));
+    await tester.tap(plus);
     await tester.pump();
 
-    final after = container.read(settingsProvider).ambientVolume;
-    expect(after, isNot(before));
-    expect(engine.volumes, isNotEmpty);
-    expect(engine.volumes.last, after);
+    expect(container.read(settingsProvider).pomodoro.workMinutes, 30);
+    expect(container.read(pomodoroProvider).totalSeconds, 30 * 60);
+    expect(container.read(pomodoroProvider).remainingSeconds, 30 * 60);
+
+    // Plus de section « Ambiance sonore » dans les réglages.
+    expect(find.text('Ambiance sonore'), findsNothing);
 
     // Laisse partir la sauvegarde différée des réglages.
     await tester.pump(const Duration(seconds: 5));
+  });
+
+  test('sessions avant la pause longue : bornées, plus figées à 4', () {
+    const config = PomodoroSettings.defaults;
+    expect(config.copyWith(sessionsBeforeLongBreak: 7).sessionsBeforeLongBreak,
+        7);
+    expect(config.copyWith(sessionsBeforeLongBreak: 99).sessionsBeforeLongBreak,
+        PomodoroSettings.sessionsRange.$2);
+    final restored = UserSettings.fromJson(
+        const UserSettings(pomodoro: PomodoroSettings(workMinutes: 50))
+            .toJson());
+    expect(restored.pomodoro.workMinutes, 50);
   });
 }

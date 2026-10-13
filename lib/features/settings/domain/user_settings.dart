@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/theme/app_theme.dart';
 
 /// Ambiances sonores — « Playlist de bruits ambiants (pluie, café, vent,
@@ -154,6 +156,86 @@ class Routine {
   );
 }
 
+/// Réglages du Pomodoro : durées et nombre de sessions avant la pause
+/// longue, librement choisis (bornés pour rester raisonnables).
+@immutable
+class PomodoroSettings {
+  const PomodoroSettings({
+    this.workMinutes = 25,
+    this.shortBreakMinutes = 5,
+    this.longBreakMinutes = 15,
+    this.sessionsBeforeLongBreak = 4,
+  });
+
+  static const PomodoroSettings defaults = PomodoroSettings();
+
+  static const (int, int) workRange = (5, 120);
+  static const (int, int) shortBreakRange = (1, 30);
+  static const (int, int) longBreakRange = (5, 60);
+  static const (int, int) sessionsRange = (1, 12);
+
+  final int workMinutes;
+  final int shortBreakMinutes;
+  final int longBreakMinutes;
+
+  /// Sessions de travail avant la pause longue (n'est plus figé à 4).
+  final int sessionsBeforeLongBreak;
+
+  PomodoroSettings copyWith({
+    int? workMinutes,
+    int? shortBreakMinutes,
+    int? longBreakMinutes,
+    int? sessionsBeforeLongBreak,
+  }) =>
+      PomodoroSettings(
+        workMinutes: _clamp(workMinutes ?? this.workMinutes, workRange),
+        shortBreakMinutes:
+            _clamp(shortBreakMinutes ?? this.shortBreakMinutes, shortBreakRange),
+        longBreakMinutes:
+            _clamp(longBreakMinutes ?? this.longBreakMinutes, longBreakRange),
+        sessionsBeforeLongBreak: _clamp(
+            sessionsBeforeLongBreak ?? this.sessionsBeforeLongBreak,
+            sessionsRange),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'work_minutes': workMinutes,
+        'short_break_minutes': shortBreakMinutes,
+        'long_break_minutes': longBreakMinutes,
+        'sessions_before_long_break': sessionsBeforeLongBreak,
+      };
+
+  factory PomodoroSettings.fromJson(Map<String, dynamic> json) {
+    int read(String key, int fallback, (int, int) range) {
+      final value = json[key];
+      return value is num ? _clamp(value.round(), range) : fallback;
+    }
+
+    return PomodoroSettings(
+      workMinutes: read('work_minutes', 25, workRange),
+      shortBreakMinutes: read('short_break_minutes', 5, shortBreakRange),
+      longBreakMinutes: read('long_break_minutes', 15, longBreakRange),
+      sessionsBeforeLongBreak:
+          read('sessions_before_long_break', 4, sessionsRange),
+    );
+  }
+
+  static int _clamp(int value, (int, int) range) =>
+      value.clamp(range.$1, range.$2);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PomodoroSettings &&
+      other.workMinutes == workMinutes &&
+      other.shortBreakMinutes == shortBreakMinutes &&
+      other.longBreakMinutes == longBreakMinutes &&
+      other.sessionsBeforeLongBreak == sessionsBeforeLongBreak;
+
+  @override
+  int get hashCode => Object.hash(workMinutes, shortBreakMinutes,
+      longBreakMinutes, sessionsBeforeLongBreak);
+}
+
 /// Préférences d'ambiance et d'accessibilité.
 class UserSettings {
   const UserSettings({
@@ -166,6 +248,7 @@ class UserSettings {
     this.morningRoutine = Routine.morningDefault,
     this.eveningRoutine = Routine.eveningDefault,
     this.manualNoteOrder = false,
+    this.pomodoro = PomodoroSettings.defaults,
   });
 
   static const UserSettings defaults = UserSettings();
@@ -189,6 +272,8 @@ class UserSettings {
   /// « Récentes ». Mémorisé et synchronisé avec les autres préférences.
   final bool manualNoteOrder;
 
+  final PomodoroSettings pomodoro;
+
   UserSettings copyWith({
     AppThemeVariant? themeVariant,
     TextScalePreset? textScale,
@@ -199,6 +284,7 @@ class UserSettings {
     Routine? morningRoutine,
     Routine? eveningRoutine,
     bool? manualNoteOrder,
+    PomodoroSettings? pomodoro,
   }) =>
       UserSettings(
         themeVariant: themeVariant ?? this.themeVariant,
@@ -211,6 +297,7 @@ class UserSettings {
         morningRoutine: morningRoutine ?? this.morningRoutine,
         eveningRoutine: eveningRoutine ?? this.eveningRoutine,
         manualNoteOrder: manualNoteOrder ?? this.manualNoteOrder,
+        pomodoro: pomodoro ?? this.pomodoro,
       );
 
   Map<String, dynamic> toJson() => {
@@ -223,6 +310,7 @@ class UserSettings {
         'morning_routine': morningRoutine.toJson(),
         'evening_routine': eveningRoutine.toJson(),
         'notes_manual_order': manualNoteOrder,
+        'pomodoro': pomodoro.toJson(),
       };
 
   /// Tolérant par construction : une préférence inconnue ou absente retombe
@@ -252,6 +340,10 @@ class UserSettings {
       manualNoteOrder: json['notes_manual_order'] is bool
           ? json['notes_manual_order'] as bool
           : false,
+      pomodoro: json['pomodoro'] is Map
+          ? PomodoroSettings.fromJson(
+              Map<String, dynamic>.from(json['pomodoro'] as Map))
+          : PomodoroSettings.defaults,
     );
   }
 
@@ -264,7 +356,8 @@ class UserSettings {
       other.ambientVolume == ambientVolume &&
       other.keyboardShortcutsEnabled == keyboardShortcutsEnabled &&
       other.reduceMotion == reduceMotion &&
-      other.manualNoteOrder == manualNoteOrder;
+      other.manualNoteOrder == manualNoteOrder &&
+      other.pomodoro == pomodoro;
 
   @override
   int get hashCode => Object.hash(
@@ -275,5 +368,6 @@ class UserSettings {
         keyboardShortcutsEnabled,
         reduceMotion,
         manualNoteOrder,
+        pomodoro,
       );
 }

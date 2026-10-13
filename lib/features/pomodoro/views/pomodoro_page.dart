@@ -231,14 +231,15 @@ class _CycleIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = state.cyclePosition % AppConfig.sessionsBeforeLongBreak;
+    final cycle = state.cycleLength;
+    final done = state.cyclePosition % cycle;
 
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var i = 0; i < AppConfig.sessionsBeforeLongBreak; i++)
+            for (var i = 0; i < cycle; i++)
               Container(
                 width: 10,
                 height: 10,
@@ -253,9 +254,9 @@ class _CycleIndicator extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           done == 0
-              ? 'Pause longue après ${AppConfig.sessionsBeforeLongBreak} sessions'
-              : 'Plus que ${AppConfig.sessionsBeforeLongBreak - done} '
-                  'session${AppConfig.sessionsBeforeLongBreak - done > 1 ? 's' : ''} '
+              ? 'Pause longue après $cycle session${cycle > 1 ? 's' : ''}'
+              : 'Plus que ${cycle - done} '
+                  'session${cycle - done > 1 ? 's' : ''} '
                   'avant la pause longue',
           style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.caption),
         ),

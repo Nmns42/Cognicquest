@@ -54,6 +54,9 @@ class SettingsNotifier extends Notifier<UserSettings> {
   void setManualNoteOrder(bool manual) =>
       _update(state.copyWith(manualNoteOrder: manual));
 
+  void setPomodoro(PomodoroSettings pomodoro) =>
+      _update(state.copyWith(pomodoro: pomodoro));
+
   void setMorningRoutine(Routine routine) =>
       _update(state.copyWith(morningRoutine: routine));
 

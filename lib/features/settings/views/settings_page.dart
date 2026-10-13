@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../data/ambient_sound_engine.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
@@ -74,17 +73,24 @@ class SettingsPage extends ConsumerWidget {
           ),
           const SizedBox(height: 26),
 
-          const _SectionLabel('Ambiance sonore'),
-          const SizedBox(height: 4),
+          // Ambiance sonore : retirée de l'interface en attendant une
+          // intégration externe (le moteur reste en place, inactif).
+          const _SectionLabel('Pomodoro'),
+          const SizedBox(height: Space.xs),
           Text(
-            'Un fond sonore constant masque les bruits parasites et aide à '
-            'rester en place.',
+            'Règle tes cycles de concentration : durées et nombre de '
+            'sessions avant la pause longue.',
             style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption,
+                color: context.cq.textMuted,
+                height: 1.4),
           ),
-          const SizedBox(height: 10),
-          _SoundPicker(settings: settings, notifier: notifier),
-          const SizedBox(height: 26),
+          const SizedBox(height: Space.sm),
+          _PomodoroSettings(
+            config: settings.pomodoro,
+            onChanged: notifier.setPomodoro,
+          ),
+          const SizedBox(height: Space.xl),
 
           const _SectionLabel('Confort et accessibilité'),
           const SizedBox(height: 6),
@@ -178,6 +184,112 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 10),
             const DeleteAccountButton(),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Durées et cycles du Pomodoro, chacun avec – / + (bornes de
+/// [PomodoroSettings]).
+class _PomodoroSettings extends StatelessWidget {
+  const _PomodoroSettings({required this.config, required this.onChanged});
+
+  final PomodoroSettings config;
+  final ValueChanged<PomodoroSettings> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _Stepper(
+          label: 'Session de travail',
+          value: config.workMinutes,
+          unit: 'min',
+          range: PomodoroSettings.workRange,
+          step: 5,
+          onChanged: (v) => onChanged(config.copyWith(workMinutes: v)),
+        ),
+        _Stepper(
+          label: 'Pause courte',
+          value: config.shortBreakMinutes,
+          unit: 'min',
+          range: PomodoroSettings.shortBreakRange,
+          step: 1,
+          onChanged: (v) => onChanged(config.copyWith(shortBreakMinutes: v)),
+        ),
+        _Stepper(
+          label: 'Pause longue',
+          value: config.longBreakMinutes,
+          unit: 'min',
+          range: PomodoroSettings.longBreakRange,
+          step: 5,
+          onChanged: (v) => onChanged(config.copyWith(longBreakMinutes: v)),
+        ),
+        _Stepper(
+          label: 'Sessions avant la pause longue',
+          value: config.sessionsBeforeLongBreak,
+          unit: '',
+          range: PomodoroSettings.sessionsRange,
+          step: 1,
+          onChanged: (v) =>
+              onChanged(config.copyWith(sessionsBeforeLongBreak: v)),
+        ),
+      ],
+    );
+  }
+}
+
+class _Stepper extends StatelessWidget {
+  const _Stepper({
+    required this.label,
+    required this.value,
+    required this.unit,
+    required this.range,
+    required this.step,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final String unit;
+  final (int, int) range;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = unit.isEmpty ? '$value' : '$value $unit';
+    return Semantics(
+      label: label,
+      value: text,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+          IconButton(
+            tooltip: 'Diminuer : $label',
+            onPressed: value <= range.$1
+                ? null
+                : () => onChanged((value - step).clamp(range.$1, range.$2)),
+            icon: const Icon(Icons.remove, size: Sizes.iconMd),
+          ),
+          SizedBox(
+            width: Space.xxxl + Space.lg,
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Augmenter : $label',
+            onPressed: value >= range.$2
+                ? null
+                : () => onChanged((value + step).clamp(range.$1, range.$2)),
+            icon: const Icon(Icons.add, size: Sizes.iconMd),
+          ),
         ],
       ),
     );
@@ -297,74 +409,6 @@ class _Swatch extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SoundPicker extends ConsumerWidget {
-  const _SoundPicker({required this.settings, required this.notifier});
-
-  final UserSettings settings;
-  final SettingsNotifier notifier;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final engine = ref.watch(ambientSoundEngineProvider);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final sound in AmbientSound.available)
-              ChoiceChip(
-                label: Text(sound.label, style: const TextStyle(fontSize: TypeScale.caption)),
-                selected: settings.ambientSound == sound,
-                onSelected: (_) {
-                  notifier.setAmbientSound(sound);
-                  engine.play(sound, volume: settings.ambientVolume);
-                },
-              ),
-          ],
-        ),
-        if (!settings.ambientSound.isSilent) ...[
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Icon(Icons.volume_down,
-                  size: 18, color: context.cq.textMuted),
-              Expanded(
-                child: Slider(
-                  value: settings.ambientVolume,
-                  activeColor: context.cq.vertDark,
-                  onChanged: (value) {
-                    notifier.setAmbientVolume(value);
-                    engine.setVolume(value);
-                  },
-                ),
-              ),
-              Icon(Icons.volume_up, size: 18, color: context.cq.textMuted),
-            ],
-          ),
-        ],
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: context.cq.beigeDark.withValues(alpha: 0.45),
-            borderRadius: BorderRadius.circular(Radii.md),
-          ),
-          child: Text(
-            'Ces ambiances sont générées par l\'application : aucun fichier à '
-            'télécharger. Pluie, café et vent demandent des enregistrements '
-            'à déposer dans assets/sounds/.',
-            style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
-          ),
-        ),
-      ],
     );
   }
 }
