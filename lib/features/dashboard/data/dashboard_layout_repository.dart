@@ -57,7 +57,9 @@ class SupabaseDashboardLayoutRepository implements DashboardLayoutRepository {
 
 final dashboardLayoutRepositoryProvider =
     Provider<DashboardLayoutRepository?>((ref) {
-  final userId = ref.watch(currentUserIdProvider);
+  // Purement serveur : sans vraie session (mode `DEV_BYPASS_AUTH`), pas de
+  // repository, plutôt que des requêtes refusées avec l'utilisateur fictif.
+  final userId = ref.watch(currentUserProvider)?.id;
   if (userId == null) return null;
   return SupabaseDashboardLayoutRepository(
     ref.watch(supabaseClientProvider),

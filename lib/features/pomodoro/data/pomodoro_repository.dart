@@ -34,15 +34,21 @@ class LocalFirstPomodoroRepository implements PomodoroRepository {
     required AppDatabase database,
     required SupabaseClient client,
     required String userId,
+    bool syncEnabled = true,
   })  : _db = database,
         _queue = SyncQueue(database),
         _client = client,
-        _userId = userId;
+        _userId = userId,
+        _syncEnabled = syncEnabled;
 
   final AppDatabase _db;
   final SyncQueue _queue;
   final SupabaseClient _client;
   final String _userId;
+
+  /// `false` sans vraie session (mode `DEV_BYPASS_AUTH`) : tout reste local,
+  /// aucune requête ne part avec l'utilisateur fictif.
+  final bool _syncEnabled;
 
   static const String table = 'pomodoro_sessions';
 
@@ -112,7 +118,10 @@ class LocalFirstPomodoroRepository implements PomodoroRepository {
   });
 
   @override
-  Future<void> sync() => _serialSync();
+  Future<void> sync() async {
+    if (!_syncEnabled) return;
+    await _serialSync();
+  }
 
   Future<void> _push(SyncQueueEntry entry) async {
     final row = await (_db.select(_db.localPomodoroSessions)
@@ -197,5 +206,6 @@ final pomodoroRepositoryProvider = Provider<PomodoroRepository?>((ref) {
     database: ref.watch(appDatabaseProvider),
     client: ref.watch(supabaseClientProvider),
     userId: userId,
+    syncEnabled: ref.watch(currentUserProvider) != null,
   );
 });

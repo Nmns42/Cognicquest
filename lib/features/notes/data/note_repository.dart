@@ -43,13 +43,19 @@ class LocalFirstNoteRepository implements NoteRepository {
     required AppDatabase database,
     required SupabaseClient client,
     required String userId,
+    bool syncEnabled = true,
   })  : _db = database,
         _client = client,
-        _userId = userId;
+        _userId = userId,
+        _syncEnabled = syncEnabled;
 
   final AppDatabase _db;
   final SupabaseClient _client;
   final String _userId;
+
+  /// `false` sans vraie session (mode `DEV_BYPASS_AUTH`) : tout reste local,
+  /// aucune requête ne part avec l'utilisateur fictif.
+  final bool _syncEnabled;
 
   static const String _notesTable = 'notes';
   static const String _blocksTable = 'note_blocks';
@@ -287,7 +293,10 @@ class LocalFirstNoteRepository implements NoteRepository {
   });
 
   @override
-  Future<void> sync() => _serialSync();
+  Future<void> sync() async {
+    if (!_syncEnabled) return;
+    await _serialSync();
+  }
 
   Future<void> _pushQueue() async {
     final pending = await (_db.select(_db.syncQueueEntries)
@@ -543,5 +552,6 @@ final noteRepositoryProvider = Provider<NoteRepository?>((ref) {
     database: ref.watch(appDatabaseProvider),
     client: ref.watch(supabaseClientProvider),
     userId: userId,
+    syncEnabled: ref.watch(currentUserProvider) != null,
   );
 });

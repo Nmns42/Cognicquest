@@ -41,15 +41,21 @@ class LocalFirstHabitRepository implements HabitRepository {
     required AppDatabase database,
     required SupabaseClient client,
     required String userId,
+    bool syncEnabled = true,
   })  : _db = database,
         _queue = SyncQueue(database),
         _client = client,
-        _userId = userId;
+        _userId = userId,
+        _syncEnabled = syncEnabled;
 
   final AppDatabase _db;
   final SyncQueue _queue;
   final SupabaseClient _client;
   final String _userId;
+
+  /// `false` sans vraie session (mode `DEV_BYPASS_AUTH`) : tout reste local,
+  /// aucune requête ne part avec l'utilisateur fictif.
+  final bool _syncEnabled;
 
   static const String habitsTable = 'habits';
   static const String logsTable = 'habit_logs';
@@ -214,7 +220,10 @@ class LocalFirstHabitRepository implements HabitRepository {
   });
 
   @override
-  Future<void> sync() => _serialSync();
+  Future<void> sync() async {
+    if (!_syncEnabled) return;
+    await _serialSync();
+  }
 
   Future<void> _pushHabit(SyncQueueEntry entry) async {
     if (entry.operation == 'delete') {
@@ -409,5 +418,6 @@ final habitRepositoryProvider = Provider<HabitRepository?>((ref) {
     database: ref.watch(appDatabaseProvider),
     client: ref.watch(supabaseClientProvider),
     userId: userId,
+    syncEnabled: ref.watch(currentUserProvider) != null,
   );
 });
