@@ -2,15 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/dashboard_layout_repository.dart';
+import '../../settings/data/preferences_repository.dart';
 import '../models/dashboard_module.dart';
 
-/// Disposition du Dashboard, synchronisée entre appareils.
+/// Disposition du Dashboard, gardée sur l'appareil et synchronisée entre
+/// appareils.
 ///
 /// L'état est volontairement synchrone ([Notifier] et non [AsyncNotifier]) : le
 /// Dashboard s'affiche immédiatement avec la disposition par défaut, puis se
-/// réorganise si une disposition personnalisée existe en base. On évite ainsi
-/// un écran de chargement pour un simple ordre d'affichage.
+/// réorganise dès que la disposition enregistrée est lue. On évite ainsi un
+/// écran de chargement pour un simple ordre d'affichage.
 class DashboardLayoutNotifier extends Notifier<DashboardLayout> {
   Timer? _saveDebounce;
 
@@ -18,20 +19,17 @@ class DashboardLayoutNotifier extends Notifier<DashboardLayout> {
   DashboardLayout build() {
     ref.onDispose(() => _saveDebounce?.cancel());
     // Se relance à la connexion / déconnexion.
-    ref.watch(dashboardLayoutRepositoryProvider);
-    unawaited(_load());
-    return DashboardLayout.initial;
-  }
-
-  Future<void> _load() async {
-    final repository = ref.read(dashboardLayoutRepositoryProvider);
-    if (repository == null) return;
-    try {
-      final stored = await repository.fetch();
-      if (stored != null) state = stored;
-    } catch (_) {
-      // Hors ligne ou table absente : la disposition par défaut fait l'affaire.
+    final repository = ref.watch(preferencesRepositoryProvider);
+    if (repository != null) {
+      final subscription =
+          repository.watch(PreferenceKey.dashboardLayout).listen((json) {
+        // Un glisser-déposer en cours d'enregistrement l'emporte.
+        if (json == null || (_saveDebounce?.isActive ?? false)) return;
+        state = DashboardLayout.fromJson(json);
+      });
+      ref.onDispose(subscription.cancel);
     }
+    return DashboardLayout.initial;
   }
 
   void reorder(int oldIndex, int newIndex) {
@@ -52,7 +50,7 @@ class DashboardLayoutNotifier extends Notifier<DashboardLayout> {
   }
 
   /// Un glisser-déposer produit plusieurs mouvements rapprochés : on ne veut
-  /// pas une écriture réseau par image.
+  /// pas une écriture par image.
   void _scheduleSave() {
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 700), () {
@@ -61,13 +59,13 @@ class DashboardLayoutNotifier extends Notifier<DashboardLayout> {
   }
 
   Future<void> _persist(DashboardLayout layout) async {
-    final repository = ref.read(dashboardLayoutRepositoryProvider);
+    final repository = ref.read(preferencesRepositoryProvider);
     if (repository == null) return;
     try {
-      await repository.save(layout);
+      await repository.save(PreferenceKey.dashboardLayout, layout.toJson());
     } catch (_) {
-      // La personnalisation reste appliquée localement pour cette session ;
-      // une préférence d'affichage ne justifie pas d'alerter l'utilisateur.
+      // La personnalisation reste appliquée pour cette session ; une
+      // préférence d'affichage ne justifie pas d'alerter l'utilisateur.
     }
   }
 }

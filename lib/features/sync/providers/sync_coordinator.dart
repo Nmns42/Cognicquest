@@ -16,6 +16,7 @@ import '../../notes/data/note_repository.dart';
 import '../../planning/data/planning_repository.dart';
 import '../../pomodoro/data/pomodoro_repository.dart';
 import '../../review/data/review_repository.dart';
+import '../../settings/data/preferences_repository.dart';
 
 /// État de la synchronisation, affiché discrètement par la coquille.
 class SyncStatus {
@@ -130,6 +131,7 @@ class SyncCoordinator extends Notifier<SyncStatus> {
         ref.read(reviewRepositoryProvider)?.sync,
         ref.read(metacognitionRepositoryProvider)?.sync,
         ref.read(planningRepositoryProvider)?.sync,
+        ref.read(preferencesRepositoryProvider)?.sync,
       ];
 
   /// Lance une synchronisation complète. Si une synchronisation est déjà en

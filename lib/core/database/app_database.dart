@@ -611,6 +611,19 @@ class SyncCursors extends Table {
   Set<Column> get primaryKey => {userId, remoteTable};
 }
 
+/// Préférences gardées sur l'appareil (v12) : réglages et disposition du
+/// Dashboard, une ligne par utilisateur. Chaque colonne contient le JSON tel
+/// qu'il est envoyé dans la colonne jsonb du même nom de `user_preferences` ;
+/// `null` tant que rien n'a été choisi.
+class LocalPreferences extends Table {
+  TextColumn get userId => text()();
+  TextColumn get settings => text().nullable()();
+  TextColumn get dashboardLayout => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {userId};
+}
+
 @DriftDatabase(tables: [
   LocalNotes,
   LocalNoteBlocks,
@@ -634,6 +647,7 @@ class SyncCursors extends Table {
   LocalPomodoroSessions,
   SyncQueueEntries,
   SyncCursors,
+  LocalPreferences,
 ], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -651,8 +665,9 @@ class AppDatabase extends _$AppDatabase {
   /// v9 : compteur de révision des blocs (LocalNotes.revision + triggers).
   /// v10 : ordre manuel des fiches (LocalNotes.position).
   /// v11 : ordre manuel des habitudes (LocalHabits.position).
+  /// v12 : réglages et disposition du Dashboard hors ligne (LocalPreferences).
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -793,6 +808,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 11) {
             if (!await _hasColumn('local_habits', 'position')) {
               await m.addColumn(localHabits, localHabits.position);
+            }
+          }
+          if (from < 12) {
+            if (!await _hasColumn('local_preferences', 'user_id')) {
+              await m.createTable(localPreferences);
             }
           }
         },

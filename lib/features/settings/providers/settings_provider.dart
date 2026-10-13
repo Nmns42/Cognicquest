@@ -2,94 +2,35 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/errors/data_failure.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../data/preferences_repository.dart';
 import '../domain/user_settings.dart';
-
-abstract interface class SettingsRepository {
-  Future<UserSettings?> fetch();
-  Future<void> save(UserSettings settings);
-}
-
-/// Persistance dans `user_preferences.settings` (jsonb).
-///
-/// La table a été créée au Lot 3 en la disant « volontairement générique :
-/// le Lot 9 y ajoutera ses colonnes sans nouvelle migration structurelle ».
-/// C'est exactement ce qui se passe : une colonne jsonb de plus.
-class SupabaseSettingsRepository implements SettingsRepository {
-  const SupabaseSettingsRepository(this._client, this._userId);
-
-  final SupabaseClient _client;
-  final String _userId;
-
-  static const String _table = 'user_preferences';
-
-  @override
-  Future<UserSettings?> fetch() async {
-    try {
-      final row = await _client
-          .from(_table)
-          .select('settings')
-          .eq('user_id', _userId)
-          .maybeSingle();
-
-      final raw = row?['settings'];
-      if (raw is! Map || raw.isEmpty) return null;
-      return UserSettings.fromJson(Map<String, dynamic>.from(raw));
-    } catch (error) {
-      throw DataFailure.from(error);
-    }
-  }
-
-  @override
-  Future<void> save(UserSettings settings) async {
-    try {
-      await _client.from(_table).upsert(
-        {'user_id': _userId, 'settings': settings.toJson()},
-        onConflict: 'user_id',
-      );
-    } catch (error) {
-      throw DataFailure.from(error);
-    }
-  }
-}
-
-final settingsRepositoryProvider = Provider<SettingsRepository?>((ref) {
-  // Purement serveur : sans vraie session (mode `DEV_BYPASS_AUTH`), pas de
-  // repository, plutôt que des requêtes refusées avec l'utilisateur fictif.
-  final userId = ref.watch(currentUserProvider)?.id;
-  if (userId == null) return null;
-  return SupabaseSettingsRepository(ref.watch(supabaseClientProvider), userId);
-});
 
 /// Préférences actives.
 ///
 /// Synchrone comme le layout du Dashboard : l'application démarre sur le
-/// thème par défaut et bascule dès que les préférences arrivent. Attendre le
-/// réseau pour choisir une couleur produirait un écran blanc au lancement.
+/// thème par défaut et bascule dès que la valeur enregistrée sur l'appareil
+/// est lue (quelques millisecondes, sans réseau). Les choix faits sur un autre
+/// appareil arrivent ensuite par la synchronisation.
 class SettingsNotifier extends Notifier<UserSettings> {
   Timer? _saveDebounce;
 
   @override
   UserSettings build() {
     ref.onDispose(() => _saveDebounce?.cancel());
-    ref.watch(settingsRepositoryProvider);
-    unawaited(_load());
-    return UserSettings.defaults;
-  }
-
-  Future<void> _load() async {
-    final repository = ref.read(settingsRepositoryProvider);
-    if (repository == null) return;
-    try {
-      final stored = await repository.fetch();
-      if (stored != null) state = stored;
-    } catch (_) {
-      // Hors ligne : les valeurs par défaut font l'affaire.
+    final repository = ref.watch(preferencesRepositoryProvider);
+    if (repository != null) {
+      final subscription =
+          repository.watch(PreferenceKey.settings).listen((json) {
+        // Un choix en cours d'enregistrement l'emporte sur une valeur lue
+        // entre-temps (ex. un pull arrivé pendant le glissement du volume).
+        if (json == null || (_saveDebounce?.isActive ?? false)) return;
+        state = UserSettings.fromJson(json);
+      });
+      ref.onDispose(subscription.cancel);
     }
+    return UserSettings.defaults;
   }
 
   void setTheme(AppThemeVariant variant) =>
@@ -124,7 +65,7 @@ class SettingsNotifier extends Notifier<UserSettings> {
   void _update(UserSettings settings) {
     state = settings;
     // Faire glisser un curseur de volume ne doit pas produire une écriture
-    // réseau par image.
+    // par image.
     _saveDebounce?.cancel();
     _saveDebounce = Timer(const Duration(milliseconds: 600), () {
       unawaited(_persist(state));
@@ -132,12 +73,13 @@ class SettingsNotifier extends Notifier<UserSettings> {
   }
 
   Future<void> _persist(UserSettings settings) async {
-    final repository = ref.read(settingsRepositoryProvider);
+    final repository = ref.read(preferencesRepositoryProvider);
     if (repository == null) return;
     try {
-      await repository.save(settings);
+      await repository.save(PreferenceKey.settings, settings.toJson());
     } catch (_) {
-      // Préférence d'affichage : appliquée localement, pas de quoi alerter.
+      // Préférence d'affichage : appliquée pour cette session, pas de quoi
+      // alerter.
     }
   }
 }

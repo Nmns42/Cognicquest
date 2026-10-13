@@ -10703,6 +10703,247 @@ class SyncCursorsCompanion extends UpdateCompanion<SyncCursor> {
   }
 }
 
+class $LocalPreferencesTable extends LocalPreferences
+    with TableInfo<$LocalPreferencesTable, LocalPreference> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalPreferencesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _settingsMeta =
+      const VerificationMeta('settings');
+  @override
+  late final GeneratedColumn<String> settings = GeneratedColumn<String>(
+      'settings', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _dashboardLayoutMeta =
+      const VerificationMeta('dashboardLayout');
+  @override
+  late final GeneratedColumn<String> dashboardLayout = GeneratedColumn<String>(
+      'dashboard_layout', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [userId, settings, dashboardLayout];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_preferences';
+  @override
+  VerificationContext validateIntegrity(Insertable<LocalPreference> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('settings')) {
+      context.handle(_settingsMeta,
+          settings.isAcceptableOrUnknown(data['settings']!, _settingsMeta));
+    }
+    if (data.containsKey('dashboard_layout')) {
+      context.handle(
+          _dashboardLayoutMeta,
+          dashboardLayout.isAcceptableOrUnknown(
+              data['dashboard_layout']!, _dashboardLayoutMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {userId};
+  @override
+  LocalPreference map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalPreference(
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      settings: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}settings']),
+      dashboardLayout: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}dashboard_layout']),
+    );
+  }
+
+  @override
+  $LocalPreferencesTable createAlias(String alias) {
+    return $LocalPreferencesTable(attachedDatabase, alias);
+  }
+}
+
+class LocalPreference extends DataClass implements Insertable<LocalPreference> {
+  final String userId;
+  final String? settings;
+  final String? dashboardLayout;
+  const LocalPreference(
+      {required this.userId, this.settings, this.dashboardLayout});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['user_id'] = Variable<String>(userId);
+    if (!nullToAbsent || settings != null) {
+      map['settings'] = Variable<String>(settings);
+    }
+    if (!nullToAbsent || dashboardLayout != null) {
+      map['dashboard_layout'] = Variable<String>(dashboardLayout);
+    }
+    return map;
+  }
+
+  LocalPreferencesCompanion toCompanion(bool nullToAbsent) {
+    return LocalPreferencesCompanion(
+      userId: Value(userId),
+      settings: settings == null && nullToAbsent
+          ? const Value.absent()
+          : Value(settings),
+      dashboardLayout: dashboardLayout == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dashboardLayout),
+    );
+  }
+
+  factory LocalPreference.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalPreference(
+      userId: serializer.fromJson<String>(json['userId']),
+      settings: serializer.fromJson<String?>(json['settings']),
+      dashboardLayout: serializer.fromJson<String?>(json['dashboardLayout']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'userId': serializer.toJson<String>(userId),
+      'settings': serializer.toJson<String?>(settings),
+      'dashboardLayout': serializer.toJson<String?>(dashboardLayout),
+    };
+  }
+
+  LocalPreference copyWith(
+          {String? userId,
+          Value<String?> settings = const Value.absent(),
+          Value<String?> dashboardLayout = const Value.absent()}) =>
+      LocalPreference(
+        userId: userId ?? this.userId,
+        settings: settings.present ? settings.value : this.settings,
+        dashboardLayout: dashboardLayout.present
+            ? dashboardLayout.value
+            : this.dashboardLayout,
+      );
+  LocalPreference copyWithCompanion(LocalPreferencesCompanion data) {
+    return LocalPreference(
+      userId: data.userId.present ? data.userId.value : this.userId,
+      settings: data.settings.present ? data.settings.value : this.settings,
+      dashboardLayout: data.dashboardLayout.present
+          ? data.dashboardLayout.value
+          : this.dashboardLayout,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalPreference(')
+          ..write('userId: $userId, ')
+          ..write('settings: $settings, ')
+          ..write('dashboardLayout: $dashboardLayout')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(userId, settings, dashboardLayout);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalPreference &&
+          other.userId == this.userId &&
+          other.settings == this.settings &&
+          other.dashboardLayout == this.dashboardLayout);
+}
+
+class LocalPreferencesCompanion extends UpdateCompanion<LocalPreference> {
+  final Value<String> userId;
+  final Value<String?> settings;
+  final Value<String?> dashboardLayout;
+  final Value<int> rowid;
+  const LocalPreferencesCompanion({
+    this.userId = const Value.absent(),
+    this.settings = const Value.absent(),
+    this.dashboardLayout = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalPreferencesCompanion.insert({
+    required String userId,
+    this.settings = const Value.absent(),
+    this.dashboardLayout = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : userId = Value(userId);
+  static Insertable<LocalPreference> custom({
+    Expression<String>? userId,
+    Expression<String>? settings,
+    Expression<String>? dashboardLayout,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (userId != null) 'user_id': userId,
+      if (settings != null) 'settings': settings,
+      if (dashboardLayout != null) 'dashboard_layout': dashboardLayout,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalPreferencesCompanion copyWith(
+      {Value<String>? userId,
+      Value<String?>? settings,
+      Value<String?>? dashboardLayout,
+      Value<int>? rowid}) {
+    return LocalPreferencesCompanion(
+      userId: userId ?? this.userId,
+      settings: settings ?? this.settings,
+      dashboardLayout: dashboardLayout ?? this.dashboardLayout,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (settings.present) {
+      map['settings'] = Variable<String>(settings.value);
+    }
+    if (dashboardLayout.present) {
+      map['dashboard_layout'] = Variable<String>(dashboardLayout.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalPreferencesCompanion(')
+          ..write('userId: $userId, ')
+          ..write('settings: $settings, ')
+          ..write('dashboardLayout: $dashboardLayout, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10749,6 +10990,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyncQueueEntriesTable syncQueueEntries =
       $SyncQueueEntriesTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
+  late final $LocalPreferencesTable localPreferences =
+      $LocalPreferencesTable(this);
   late final Index localNotesUserUpdated = Index('local_notes_user_updated',
       'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
   late final Index localNoteBlocksNotePosition = Index(
@@ -10847,6 +11090,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localPomodoroSessions,
         syncQueueEntries,
         syncCursors,
+        localPreferences,
         localNotesUserUpdated,
         localNoteBlocksNotePosition,
         localNoteLinksUserCreated,
@@ -18215,6 +18459,156 @@ typedef $$SyncCursorsTableProcessedTableManager = ProcessedTableManager<
     (SyncCursor, BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>),
     SyncCursor,
     PrefetchHooks Function()>;
+typedef $$LocalPreferencesTableCreateCompanionBuilder
+    = LocalPreferencesCompanion Function({
+  required String userId,
+  Value<String?> settings,
+  Value<String?> dashboardLayout,
+  Value<int> rowid,
+});
+typedef $$LocalPreferencesTableUpdateCompanionBuilder
+    = LocalPreferencesCompanion Function({
+  Value<String> userId,
+  Value<String?> settings,
+  Value<String?> dashboardLayout,
+  Value<int> rowid,
+});
+
+class $$LocalPreferencesTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalPreferencesTable> {
+  $$LocalPreferencesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get settings => $composableBuilder(
+      column: $table.settings, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get dashboardLayout => $composableBuilder(
+      column: $table.dashboardLayout,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalPreferencesTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalPreferencesTable> {
+  $$LocalPreferencesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get settings => $composableBuilder(
+      column: $table.settings, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get dashboardLayout => $composableBuilder(
+      column: $table.dashboardLayout,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalPreferencesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalPreferencesTable> {
+  $$LocalPreferencesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get settings =>
+      $composableBuilder(column: $table.settings, builder: (column) => column);
+
+  GeneratedColumn<String> get dashboardLayout => $composableBuilder(
+      column: $table.dashboardLayout, builder: (column) => column);
+}
+
+class $$LocalPreferencesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalPreferencesTable,
+    LocalPreference,
+    $$LocalPreferencesTableFilterComposer,
+    $$LocalPreferencesTableOrderingComposer,
+    $$LocalPreferencesTableAnnotationComposer,
+    $$LocalPreferencesTableCreateCompanionBuilder,
+    $$LocalPreferencesTableUpdateCompanionBuilder,
+    (
+      LocalPreference,
+      BaseReferences<_$AppDatabase, $LocalPreferencesTable, LocalPreference>
+    ),
+    LocalPreference,
+    PrefetchHooks Function()> {
+  $$LocalPreferencesTableTableManager(
+      _$AppDatabase db, $LocalPreferencesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalPreferencesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalPreferencesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalPreferencesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> userId = const Value.absent(),
+            Value<String?> settings = const Value.absent(),
+            Value<String?> dashboardLayout = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalPreferencesCompanion(
+            userId: userId,
+            settings: settings,
+            dashboardLayout: dashboardLayout,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String userId,
+            Value<String?> settings = const Value.absent(),
+            Value<String?> dashboardLayout = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalPreferencesCompanion.insert(
+            userId: userId,
+            settings: settings,
+            dashboardLayout: dashboardLayout,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$LocalPreferencesTable, LocalPreference>(table),
+                    BaseReferences<_$AppDatabase, $LocalPreferencesTable,
+                        LocalPreference>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalPreferencesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalPreferencesTable,
+    LocalPreference,
+    $$LocalPreferencesTableFilterComposer,
+    $$LocalPreferencesTableOrderingComposer,
+    $$LocalPreferencesTableAnnotationComposer,
+    $$LocalPreferencesTableCreateCompanionBuilder,
+    $$LocalPreferencesTableUpdateCompanionBuilder,
+    (
+      LocalPreference,
+      BaseReferences<_$AppDatabase, $LocalPreferencesTable, LocalPreference>
+    ),
+    LocalPreference,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -18263,4 +18657,6 @@ class $AppDatabaseManager {
       $$SyncQueueEntriesTableTableManager(_db, _db.syncQueueEntries);
   $$SyncCursorsTableTableManager get syncCursors =>
       $$SyncCursorsTableTableManager(_db, _db.syncCursors);
+  $$LocalPreferencesTableTableManager get localPreferences =>
+      $$LocalPreferencesTableTableManager(_db, _db.localPreferences);
 }
