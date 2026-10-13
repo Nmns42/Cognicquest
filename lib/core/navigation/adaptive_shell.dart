@@ -70,11 +70,20 @@ class AdaptiveShell extends StatelessWidget {
           visible: !focusMode,
           axis: Axis.vertical,
           child: NavigationBar(
-            // Hors des espaces (réglages), on reste sur « Aujourd'hui », d'où
-            // l'on y accède.
-            selectedIndex: (space ?? AppSpace.today).index,
-            onDestinationSelected: (index) =>
-                _goToSpace(context, AppSpace.values[index]),
+            // Quatre espaces, puis les réglages : leur seule entrée sur
+            // téléphone (sur grand écran, en bas du rail).
+            selectedIndex: currentLocation.startsWith(settingsRoute)
+                ? AppSpace.values.length
+                : (space ?? AppSpace.today).index,
+            onDestinationSelected: (index) {
+              if (index == AppSpace.values.length) {
+                if (!currentLocation.startsWith(settingsRoute)) {
+                  context.go(settingsRoute);
+                }
+                return;
+              }
+              _goToSpace(context, AppSpace.values[index]);
+            },
             height: 64,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             destinations: [
@@ -84,6 +93,11 @@ class AdaptiveShell extends StatelessWidget {
                   selectedIcon: Icon(s.selectedIcon),
                   label: s.label,
                 ),
+              const NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: 'Réglages',
+              ),
             ],
           ),
         ),

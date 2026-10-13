@@ -95,9 +95,6 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes tâches'),
-      ),
       body: tasksAsync.when(
         skipLoadingOnRefresh: true,
         loading: () => Center(

@@ -61,7 +61,8 @@ void main() {
     await pumpShell(tester, location: '/home');
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    // Quatre espaces, puis les réglages (leur seule entrée sur téléphone).
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
     for (final space in AppSpace.values) {
       expect(find.text(space.label), findsOneWidget);
     }
@@ -72,7 +73,7 @@ void main() {
 
     expect(find.text('Fiches'), findsOneWidget);
     expect(find.text('Réviser'), findsOneWidget);
-    expect(find.text('Graphe'), findsOneWidget);
+    expect(find.text('Graphe'), findsNothing);
 
     await tester.tap(find.text('Réviser'));
     await tester.pumpAndSettle();
@@ -108,7 +109,7 @@ void main() {
       (tester) async {
     await pumpShell(tester, location: '/pomodoro');
 
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.text('Concentration'), findsOneWidget);
   });
 
@@ -128,7 +129,7 @@ void main() {
       (tester) async {
     await pumpShell(tester, location: '/notes');
 
-    await tester.tap(find.text('Graphe'));
+    await tester.tap(find.text('Réviser'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Organiser'));
     await tester.pumpAndSettle();
@@ -136,7 +137,7 @@ void main() {
 
     await tester.tap(find.text('Apprendre'));
     await tester.pumpAndSettle();
-    expect(find.text('page /graph'), findsOneWidget);
+    expect(find.text('page /review'), findsOneWidget);
 
     // Toucher l'espace courant ramène à sa racine.
     await tester.tap(find.text('Apprendre'));

@@ -30,10 +30,8 @@ enum AppSpace {
       AppSection(route: '/home', label: 'Accueil', icon: Icons.home_outlined),
       AppSection(
           route: '/pomodoro', label: 'Concentration', icon: Icons.timer_outlined),
-      AppSection(
-          route: '/habits',
-          label: 'Habitudes',
-          icon: Icons.check_circle_outline),
+      // Habitudes : retirées de l'interface pour l'instant (code et données
+      // conservés, route toujours valide).
     ],
   ),
   learn(
@@ -44,7 +42,8 @@ enum AppSpace {
       AppSection(
           route: '/notes', label: 'Fiches', icon: Icons.auto_stories_outlined),
       AppSection(route: '/review', label: 'Réviser', icon: Icons.style_outlined),
-      AppSection(route: '/graph', label: 'Graphe', icon: Icons.hub_outlined),
+      // Graphe de connaissances : retiré de la navigation (les liens entre
+      // fiches restent, visibles dans les fiches elles-mêmes).
     ],
   ),
   organize(

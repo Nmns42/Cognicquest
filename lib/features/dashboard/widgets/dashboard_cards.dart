@@ -39,7 +39,7 @@ class GreetingCard extends StatelessWidget {
             child: Text(
               name.isEmpty ? '$greeting !' : '$greeting, $name !',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: context.onAccent, fontWeight: FontWeight.w800),
+                  color: context.onAccent, fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(height: Space.xs),
@@ -247,22 +247,18 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        // Le titre cède la place au bouton sur un écran étroit (deux lignes
-        // au plus, puis points de suspension), au lieu de le pousser hors de
-        // l'écran.
-        Expanded(
-          child: Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
-        const SizedBox(width: Space.sm),
-        TextButton(onPressed: onMore, child: Text(trailingLabel)),
-      ],
+    // Pas de titre affiché sur l'accueil (épure) : le contenu parle de
+    // lui-même. Une flèche discrète ouvre la section ; son nom reste
+    // annoncé par l'infobulle et les lecteurs d'écran.
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: IconButton(
+        tooltip: '$trailingLabel : $title',
+        visualDensity: VisualDensity.compact,
+        onPressed: onMore,
+        icon: Icon(Icons.arrow_outward,
+            size: Sizes.iconMd, color: context.cq.textMuted),
+      ),
     );
   }
 }

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Fond de l'application : le beige du thème et, dans les angles, quelques
-/// feuilles dessinées au trait, à peine visibles.
+/// Fond de l'application : le gris clair du thème et, dans les marges, des
+/// rameaux, de l'eucalyptus et quelques feuilles au trait, à peine visibles.
 ///
 /// Un rappel du végétal pour apaiser l'œil, jamais un motif qui attire le
 /// regard : traits fins, opacité très basse, aucun mouvement. Peint une seule
@@ -17,7 +17,7 @@ class ZenBackground extends StatelessWidget {
   final Widget child;
 
   /// Opacité du trait : sous le seuil où il ferait concurrence au texte.
-  static const double inkOpacity = 0.07;
+  static const double inkOpacity = 0.09;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +80,69 @@ class LeafPainter extends CustomPainter {
       length: unit * 0.45,
       leafSize: unit * 0.075,
     );
+
+    // Eucalyptus à feuilles rondes, en haut à gauche et en bas à droite :
+    // une autre silhouette, pour que le motif ne paraisse pas répété.
+    _roundSprig(
+      canvas,
+      stroke,
+      origin: Offset(-unit * 0.02, unit * 0.18),
+      angle: -math.pi * 0.06,
+      length: unit * 0.32,
+      leafRadius: unit * 0.032,
+    );
+    _roundSprig(
+      canvas,
+      stroke,
+      origin: Offset(size.width + unit * 0.02, size.height - unit * 0.12),
+      angle: math.pi * 1.1,
+      length: unit * 0.38,
+      leafRadius: unit * 0.038,
+    );
+
+    // Quelques feuilles tombées, isolées, vers le centre des marges.
+    for (final (dx, dy, turn, scale) in const [
+      (0.12, 0.55, 0.15, 0.9),
+      (0.88, 0.38, -0.35, 0.7),
+      (0.64, 0.92, 0.6, 0.8),
+    ]) {
+      canvas.save();
+      canvas.translate(size.width * dx, size.height * dy);
+      canvas.rotate(math.pi * turn);
+      _leaf(canvas, stroke, unit * 0.06 * scale, 1);
+      canvas.restore();
+    }
+  }
+
+  /// Tige d'eucalyptus : feuilles rondes alternées, de plus en plus petites.
+  void _roundSprig(
+    Canvas canvas,
+    Paint paint, {
+    required Offset origin,
+    required double angle,
+    required double length,
+    required double leafRadius,
+  }) {
+    canvas.save();
+    canvas.translate(origin.dx, origin.dy);
+    canvas.rotate(angle);
+    final stem = Path()
+      ..moveTo(0, 0)
+      ..quadraticBezierTo(length * 0.5, -length * 0.08, length, 0);
+    canvas.drawPath(stem, paint);
+
+    const leaves = 7;
+    for (var i = 1; i <= leaves; i++) {
+      final t = i / (leaves + 1);
+      final side = i.isEven ? 1.0 : -1.0;
+      final r = leafRadius * (1 - t * 0.5);
+      final center = Offset(length * t, -length * 0.08 * 4 * t * (1 - t) * 0.5)
+          .translate(0, side * r * 1.15);
+      canvas.drawOval(
+          Rect.fromCenter(center: center, width: r * 2, height: r * 1.7),
+          paint);
+    }
+    canvas.restore();
   }
 
   /// Une tige légèrement courbe et des paires de feuilles alternées.

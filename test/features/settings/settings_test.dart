@@ -22,8 +22,8 @@ void main() {
           for (final section in space.sections) section.route,
       };
       expect(routes, {
-        '/home', '/pomodoro', '/habits', // Aujourd'hui
-        '/notes', '/review', '/graph', // Apprendre
+        '/home', '/pomodoro', // Aujourd'hui (habitudes retirées)
+        '/notes', '/review', // Apprendre (graphe retiré)
         '/kanban', '/planning', // Organiser
         '/journal', // Réfléchir
       });

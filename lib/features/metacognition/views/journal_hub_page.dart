@@ -34,93 +34,91 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
     final todayEntry = ref.watch(todayJournalEntryProvider);
     final errorPattern = ref.watch(errorPatternProvider);
     final unfinished = ref.watch(unfinishedReframesProvider);
-    final entries = ref.watch(journalProvider).valueOrNull ?? const <JournalEntry>[];
+    final entries =
+        ref.watch(journalProvider).valueOrNull ?? const <JournalEntry>[];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Journal & ressenti')),
-      body: RefreshIndicator(
-        color: context.cq.vertDark,
-        onRefresh: () => ref.read(metacognitionActionsProvider).sync(),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            if (profile != null && !profile.isComplete)
-              _ProfilingPrompt(progress: profile.progress),
-
-            _StrainCard(insights: insights, hasEntryToday: todayEntry != null),
-            const SizedBox(height: 20),
-
-            if (insights.entryCount > 0) ...[
-              MoodTrendChart(trend: insights.moodTrend),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          color: context.cq.vertDark,
+          onRefresh: () => ref.read(metacognitionActionsProvider).sync(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (profile != null && !profile.isComplete)
+                _ProfilingPrompt(progress: profile.progress),
+              _StrainCard(
+                  insights: insights, hasEntryToday: todayEntry != null),
               const SizedBox(height: 20),
-            ],
-
-            const _SectionLabel('Outils'),
-            const SizedBox(height: 10),
-            _ToolTile(
-              icon: Icons.edit_note_outlined,
-              title: todayEntry == null
-                  ? 'Faire le bilan de ma session'
-                  : 'Modifier le bilan du jour',
-              subtitle: 'Humeur, effort ressenti, ce qui a marché',
-              onTap: () => context.push(AppRoute.journalEntry),
-            ),
-            const SizedBox(height: 8),
-            _ToolTile(
-              icon: Icons.psychology_alt_outlined,
-              title: 'Recadrage cognitif',
-              subtitle: 'Transformer une pensée bloquante en objectif',
-              badge: unfinished.isEmpty ? null : '${unfinished.length}',
-              onTap: () => context.push(AppRoute.reframe),
-            ),
-            const SizedBox(height: 8),
-            _ToolTile(
-              icon: Icons.account_tree_outlined,
-              title: 'Les 5 Pourquoi',
-              subtitle: 'Remonter d\'un blocage à sa cause réelle',
-              onTap: () => context.push(AppRoute.whyChain),
-            ),
-            const SizedBox(height: 8),
-            _ToolTile(
-              icon: Icons.rule_outlined,
-              title: 'Analyse des erreurs',
-              subtitle: errorPattern.isEmpty
-                  ? 'Distinguer inattention et incompréhension'
-                  : '${errorPattern.total} erreur'
-                      '${errorPattern.total > 1 ? 's' : ''} consignée'
-                      '${errorPattern.total > 1 ? 's' : ''}',
-              onTap: () => context.push(AppRoute.errorLogs),
-            ),
-            const SizedBox(height: 8),
-            _ToolTile(
-              icon: Icons.fingerprint,
-              title: 'Mon profil d\'apprentissage',
-              subtitle: profile?.isComplete ?? false
-                  ? [
-                      profile!.processingStyle?.label,
-                      profile.preferredChannel?.label,
-                    ].whereType<String>().join(' · ')
-                  : 'Découvrir mon mode d\'emploi',
-              onTap: () => context.push(AppRoute.profiling),
-            ),
-
-            if (!errorPattern.isEmpty) ...[
-              const SizedBox(height: 24),
-              _InsightBanner(
-                icon: Icons.rule_outlined,
-                message: errorPattern.summary,
-              ),
-            ],
-
-            if (entries.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const _SectionLabel('Bilans récents'),
+              if (insights.entryCount > 0) ...[
+                MoodTrendChart(trend: insights.moodTrend),
+                const SizedBox(height: 20),
+              ],
+              const _SectionLabel('Outils'),
               const SizedBox(height: 10),
-              for (final entry in entries.take(8))
-                _JournalRow(entry: entry),
+              _ToolTile(
+                icon: Icons.edit_note_outlined,
+                title: todayEntry == null
+                    ? 'Faire le bilan de ma session'
+                    : 'Modifier le bilan du jour',
+                subtitle: 'Humeur, effort ressenti, ce qui a marché',
+                onTap: () => context.push(AppRoute.journalEntry),
+              ),
+              const SizedBox(height: 8),
+              _ToolTile(
+                icon: Icons.psychology_alt_outlined,
+                title: 'Recadrage cognitif',
+                subtitle: 'Transformer une pensée bloquante en objectif',
+                badge: unfinished.isEmpty ? null : '${unfinished.length}',
+                onTap: () => context.push(AppRoute.reframe),
+              ),
+              const SizedBox(height: 8),
+              _ToolTile(
+                icon: Icons.account_tree_outlined,
+                title: 'Les 5 Pourquoi',
+                subtitle: 'Remonter d\'un blocage à sa cause réelle',
+                onTap: () => context.push(AppRoute.whyChain),
+              ),
+              const SizedBox(height: 8),
+              _ToolTile(
+                icon: Icons.rule_outlined,
+                title: 'Analyse des erreurs',
+                subtitle: errorPattern.isEmpty
+                    ? 'Distinguer inattention et incompréhension'
+                    : '${errorPattern.total} erreur'
+                        '${errorPattern.total > 1 ? 's' : ''} consignée'
+                        '${errorPattern.total > 1 ? 's' : ''}',
+                onTap: () => context.push(AppRoute.errorLogs),
+              ),
+              const SizedBox(height: 8),
+              _ToolTile(
+                icon: Icons.fingerprint,
+                title: 'Mon profil d\'apprentissage',
+                subtitle: profile?.isComplete ?? false
+                    ? [
+                        profile!.processingStyle?.label,
+                        profile.preferredChannel?.label,
+                      ].whereType<String>().join(' · ')
+                    : 'Découvrir mon mode d\'emploi',
+                onTap: () => context.push(AppRoute.profiling),
+              ),
+              if (!errorPattern.isEmpty) ...[
+                const SizedBox(height: 24),
+                _InsightBanner(
+                  icon: Icons.rule_outlined,
+                  message: errorPattern.summary,
+                ),
+              ],
+              if (entries.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                const _SectionLabel('Bilans récents'),
+                const SizedBox(height: 10),
+                for (final entry in entries.take(8)) _JournalRow(entry: entry),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -140,8 +138,7 @@ class _ProfilingPrompt extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cq.warning.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(
-            color: context.cq.warning.withValues(alpha: 0.3)),
+        border: Border.all(color: context.cq.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,11 +158,13 @@ class _ProfilingPrompt extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-           Text(
+          Text(
             'Cinq questions pour comprendre comment tu apprends. '
             'L\'application adaptera ensuite ses conseils.',
             style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption,
+                color: context.cq.textMuted,
+                height: 1.4),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -209,9 +208,7 @@ class _StrainCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            insights.isEmpty
-                ? 'Aucun bilan'
-                : insights.strainLevel.label,
+            insights.isEmpty ? 'Aucun bilan' : insights.strainLevel.label,
             style: TextStyle(
               color: insights.isEmpty ? context.cq.textMuted : context.onAccent,
               fontSize: TypeScale.title,
@@ -287,7 +284,7 @@ class _Metric extends StatelessWidget {
             ),
           ),
           Text(label,
-              style:  TextStyle(
+              style: TextStyle(
                   color: context.cq.onVertMuted, fontSize: TypeScale.caption)),
         ],
       );
@@ -333,7 +330,7 @@ class _ToolTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style:  TextStyle(
+                        style: TextStyle(
                             fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
@@ -341,16 +338,17 @@ class _ToolTile extends StatelessWidget {
                     Text(subtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style:  TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
+                        style: TextStyle(
+                            fontSize: TypeScale.caption,
+                            color: context.cq.textMuted)),
                   ],
                 ),
               ),
               if (badge != null)
                 Container(
                   margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 7, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
                     color: context.cq.warning,
                     borderRadius: BorderRadius.circular(Radii.md),
@@ -363,7 +361,7 @@ class _ToolTile extends StatelessWidget {
                         fontWeight: FontWeight.w700),
                   ),
                 ),
-               Icon(Icons.arrow_forward_ios_rounded,
+              Icon(Icons.arrow_forward_ios_rounded,
                   size: 13, color: context.cq.textMuted),
             ],
           ),
@@ -396,8 +394,10 @@ class _InsightBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style:  TextStyle(
-                  fontSize: TypeScale.caption, color: context.cq.vertDark, height: 1.4),
+              style: TextStyle(
+                  fontSize: TypeScale.caption,
+                  color: context.cq.vertDark,
+                  height: 1.4),
             ),
           ),
         ],
@@ -412,8 +412,18 @@ class _JournalRow extends StatelessWidget {
   final JournalEntry entry;
 
   static const List<String> _months = [
-    'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
   ];
 
   static const List<String> _moodFaces = ['😔', '🙁', '😐', '🙂', '😄'];
@@ -436,7 +446,7 @@ class _JournalRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   '${date.day} ${_months[date.month - 1]}',
-                  style:  TextStyle(
+                  style: TextStyle(
                       fontSize: TypeScale.caption, color: context.cq.textMuted),
                 ),
                 const Spacer(),
@@ -461,7 +471,7 @@ class _JournalRow extends StatelessWidget {
                   ),
                 ),
                 if (!entry.isSynced)
-                   Padding(
+                  Padding(
                     padding: const EdgeInsets.only(left: 6),
                     child: Icon(Icons.cloud_queue,
                         size: 13, color: context.cq.textHint),
@@ -474,8 +484,10 @@ class _JournalRow extends StatelessWidget {
                 entry.whatLearned,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style:  TextStyle(
-                    fontSize: TypeScale.body, color: context.cq.textPrimary, height: 1.4),
+                style: TextStyle(
+                    fontSize: TypeScale.body,
+                    color: context.cq.textPrimary,
+                    height: 1.4),
               ),
             ],
             if (entry.whatBlocked.trim().isNotEmpty) ...[
@@ -484,8 +496,10 @@ class _JournalRow extends StatelessWidget {
                 'Bloqué : ${entry.whatBlocked}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style:  TextStyle(
-                    fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.35),
+                style: TextStyle(
+                    fontSize: TypeScale.caption,
+                    color: context.cq.textMuted,
+                    height: 1.35),
               ),
             ],
           ],
@@ -503,7 +517,7 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style:  TextStyle(
+        style: TextStyle(
           fontSize: TypeScale.body,
           fontWeight: FontWeight.w600,
           color: context.cq.textPrimary,

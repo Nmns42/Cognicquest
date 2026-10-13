@@ -36,8 +36,8 @@ abstract final class Radii {
 
 /// Échelle typographique : six tailles, pas une de plus.
 ///
-/// Rendu « premium » : Plus Jakarta Sans, graisses franches sur les titres
-/// (700–800), interlettrage négatif proportionnel à la taille (en em).
+/// Rendu « premium » : Plus Jakarta Sans seule, graisses 400 à 700 (600–700
+/// pour les titres), interlettrage négatif proportionnel à la taille (en em).
 abstract final class TypeScale {
   /// Mentions, légendes, étiquettes de navigation. Jamais en dessous.
   static const double caption = 13;
@@ -121,7 +121,7 @@ abstract final class Chrome {
 }
 
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`) :
-/// Plus Jakarta Sans, graisses 400 à 800.
+/// Plus Jakarta Sans, graisses 400 à 700.
 const String appFontFamily = 'PlusJakartaSans';
 
 /// Durées et courbes des animations.

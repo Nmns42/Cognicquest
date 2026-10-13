@@ -66,7 +66,7 @@ class ModulePickerSheet extends ConsumerWidget {
                     height: 1.4),
               ),
               const SizedBox(height: 12),
-              for (final module in layout.order)
+              for (final module in layout.order.where((m) => !m.isRetired))
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   value: layout.isVisible(module),

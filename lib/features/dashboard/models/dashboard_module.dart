@@ -77,6 +77,12 @@ enum DashboardModule {
   final String description;
   final IconData icon;
 
+  /// Modules retirés de l'interface (code conservé) : jamais affichés, ni
+  /// proposés dans « Personnaliser », même dans une disposition enregistrée.
+  static const Set<DashboardModule> retired = {DashboardModule.habits};
+
+  bool get isRetired => retired.contains(this);
+
   static DashboardModule? fromId(String id) {
     for (final module in values) {
       if (module.id == id) return module;
@@ -98,7 +104,7 @@ class DashboardLayout {
   static const List<DashboardModule> essentials = [
     DashboardModule.quickStart,
     DashboardModule.reviews,
-    DashboardModule.habits,
+    DashboardModule.tasks,
   ];
 
   /// Disposition par défaut : les [essentials] d'abord, le reste masqué.
@@ -107,7 +113,7 @@ class DashboardLayout {
       ...essentials,
       DashboardModule.stats,
       DashboardModule.weeklyFocus,
-      DashboardModule.tasks,
+      DashboardModule.habits,
       DashboardModule.notes,
       DashboardModule.metacognition,
       DashboardModule.planning,
@@ -115,7 +121,7 @@ class DashboardLayout {
     hidden: {
       DashboardModule.stats,
       DashboardModule.weeklyFocus,
-      DashboardModule.tasks,
+      DashboardModule.habits,
       DashboardModule.notes,
       DashboardModule.metacognition,
       DashboardModule.planning,
@@ -126,7 +132,7 @@ class DashboardLayout {
   final Set<DashboardModule> hidden;
 
   List<DashboardModule> get visibleModules =>
-      order.where((m) => !hidden.contains(m)).toList();
+      order.where((m) => !hidden.contains(m) && !m.isRetired).toList();
 
   bool isVisible(DashboardModule module) => !hidden.contains(module);
 
@@ -144,7 +150,12 @@ class DashboardLayout {
     // Les modules masqués conservent leur place relative en fin de liste, pour
     // réapparaître au bon endroit une fois réactivés.
     return DashboardLayout(
-      order: [...moved, ...order.where(hidden.contains)],
+      // Les modules retirés de l'interface restent aussi dans `order` : la
+      // disposition enregistrée ne doit rien perdre.
+      order: [
+        ...moved,
+        ...order.where((m) => hidden.contains(m) || m.isRetired),
+      ],
       hidden: hidden,
     );
   }

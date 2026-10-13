@@ -26,7 +26,6 @@ class PomodoroPage extends ConsumerWidget {
     final color = _phaseColor(context, state.phase);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pomodoro')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),

@@ -32,7 +32,7 @@ void main() {
 
     const dir = 'assets/fonts/plus_jakarta_sans';
     await load(appFontFamily, [
-      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold'])
+      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold'])
         '$dir/PlusJakartaSans-$weight.ttf',
     ]);
     final flutterRoot = Platform.environment['FLUTTER_ROOT'];

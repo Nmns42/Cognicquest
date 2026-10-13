@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
+import '../widgets/sign_out_button.dart';
 import '../widgets/routine_editor.dart';
 import '../../../core/theme/tokens.dart';
 
@@ -182,6 +183,8 @@ class SettingsPage extends ConsumerWidget {
             const SizedBox(height: 32),
             const _SectionLabel('Compte'),
             const SizedBox(height: 10),
+            const SignOutButton(),
+            const SizedBox(height: Space.sm),
             const DeleteAccountButton(),
           ],
         ],

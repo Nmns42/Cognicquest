@@ -10,12 +10,20 @@ const all = DashboardLayout(
 
 void main() {
   group('DashboardLayout.initial (refonte zen)', () {
-    test('affiche trois blocs : prochaine action, révisions, habitudes', () {
+    test('affiche trois blocs : prochaine action, révisions, tâches', () {
       expect(DashboardLayout.initial.visibleModules, [
         DashboardModule.quickStart,
         DashboardModule.reviews,
-        DashboardModule.habits,
+        DashboardModule.tasks,
       ]);
+    });
+
+    test('un module retiré (habitudes) n’est jamais affiché', () {
+      const layout = DashboardLayout(
+        order: DashboardModule.values,
+        hidden: <DashboardModule>{},
+      );
+      expect(layout.visibleModules, isNot(contains(DashboardModule.habits)));
     });
 
     test('garde tous les autres modules, masqués mais réactivables', () {
@@ -57,7 +65,7 @@ void main() {
 
     test('réordonne sur les seuls modules visibles, sans perdre les masqués', () {
       // Compté sur l'énumération : ajouter un module ne doit pas casser ce test.
-      final total = DashboardModule.values.length;
+      final total = DashboardModule.values.where((m) => !m.isRetired).length;
       final hidden = all.toggle(DashboardModule.stats);
       expect(hidden.visibleModules, hasLength(total - 1));
 

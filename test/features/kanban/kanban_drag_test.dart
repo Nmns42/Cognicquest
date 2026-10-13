@@ -294,7 +294,8 @@ void main() {
       final repository = await _pumpBoard(tester, tasks);
 
       final gesture = await _grab(tester, _card('A0'));
-      await _dropOn(tester, gesture, find.text('Mes tâches'));
+      // Hors de toute colonne : sur la bascule de vue, en haut à droite.
+      await _dropOn(tester, gesture, find.byTooltip('Vue Kanban'));
 
       expect(repository.writes, 0);
       expect(repository.tasks, tasks);

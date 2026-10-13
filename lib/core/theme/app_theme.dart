@@ -182,14 +182,14 @@ class AppTheme {
   // ── Palettes ───────────────────────────────────────────────────────────
   //
   // Fond gris très clair (#F0F0F0), texte #141414, cartes blanches.
-  // Accent : un vert profond de forêt (pin #2F5D46), riche et chaleureux,
-  // en dégradé (#3D6E55 → #2F5D46 → #23493A) sous un texte blanc. Contrastes
-  // mesurés (WCAG, cf. contrast_test) : texte 16:1, vert en texte 7,8:1,
-  // texte blanc sur chaque teinte du dégradé ≥ 5,9:1.
+  // Accent : un vert sauge-forêt adouci (#40725A), chaleureux, en dégradé
+  // (#4A7C62 → #40725A → #33644C) sous un texte blanc. Contrastes mesurés
+  // (WCAG, cf. contrast_test) : texte 16:1, vert en texte 6,4:1, texte
+  // blanc sur chaque teinte du dégradé ≥ 4,8:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFF2F5D46),
-    vertDark: Color(0xFF27523E),
+    vert: Color(0xFF40725A),
+    vertDark: Color(0xFF365F4B),
     beige: Color(0xFFF0F0F0),
     beigeDark: Color(0xFFE3E3E3),
     textPrimary: Color(0xFF141414),
@@ -235,7 +235,7 @@ class AppTheme {
         transform: const GradientRotation(10 * math.pi / 180),
         colors: variant.isDark
             ? const [Color(0xFF9BC9AC), Color(0xFF86B99A), Color(0xFF6FA585)]
-            : const [Color(0xFF3D6E55), Color(0xFF2F5D46), Color(0xFF23493A)],
+            : const [Color(0xFF4A7C62), Color(0xFF40725A), Color(0xFF33644C)],
         stops: const [0, 0.47, 1],
       );
 
@@ -509,7 +509,7 @@ class AppTheme {
       // Six tailles (cf. [TypeScale]) réparties sur les rôles Material,
       // graisses franches sur les titres, interlettrage négatif.
       textTheme: TextTheme(
-        displaySmall: _title(TypeScale.display, FontWeight.w800, cq.textPrimary),
+        displaySmall: _title(TypeScale.display, FontWeight.w700, cq.textPrimary),
         headlineSmall:
             _title(TypeScale.headline, FontWeight.w700, cq.textPrimary),
         titleLarge: _title(TypeScale.title, FontWeight.w700, cq.textPrimary),

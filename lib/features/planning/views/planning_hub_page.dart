@@ -35,7 +35,6 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
     final plan = ref.watch(adaptivePlanProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Planification')),
       body: RefreshIndicator(
         color: context.cq.vertDark,
         onRefresh: () => ref.read(planningActionsProvider).sync(),
@@ -46,12 +45,9 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
             _NextDeadlineCard(upcoming: upcoming),
             const SizedBox(height: 20),
 
-            const _SectionLabel('Outils'),
-            const SizedBox(height: 10),
             _ToolTile(
               icon: Icons.view_timeline_outlined,
               title: 'Diagramme de Gantt',
-              subtitle: 'Voir le plan dans le temps, gérer les dépendances',
               onTap: () => context.push(AppRoute.gantt),
             ),
             const SizedBox(height: 8),
@@ -59,7 +55,7 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
               icon: Icons.trending_up,
               title: 'Ordre de révision',
               subtitle: ranked.isEmpty
-                  ? 'Classer les chapitres par rentabilité'
+                  ? null
                   : '${ranked.length} chapitre${ranked.length > 1 ? 's' : ''} '
                       'classé${ranked.length > 1 ? 's' : ''}',
               onTap: () => context.push(AppRoute.revisionOrder),
@@ -67,17 +63,14 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
             const SizedBox(height: 8),
             _ToolTile(
               icon: Icons.speed_outlined,
-              title: 'Ma vitesse de travail',
-              subtitle: 'Mesurer pour estimer le temps qu\'il te faut',
+              title: 'Vitesse de travail',
               onTap: () => context.push(AppRoute.studySpeed),
             ),
             const SizedBox(height: 8),
             _ToolTile(
               icon: Icons.flag_outlined,
               title: 'Objectifs SMART',
-              subtitle: goals.isEmpty
-                  ? 'Formuler un objectif précis et mesurable'
-                  : '${goals.length} en cours',
+              subtitle: goals.isEmpty ? null : '${goals.length} en cours',
               onTap: () => context.push(AppRoute.goals),
             ),
 
@@ -88,8 +81,6 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
 
             if (goals.isNotEmpty) ...[
               const SizedBox(height: 24),
-              const _SectionLabel('Objectifs en cours'),
-              const SizedBox(height: 10),
               for (final goal in goals.take(4)) _GoalRow(goal: goal),
             ],
           ],
@@ -318,13 +309,16 @@ class _ToolTile extends StatelessWidget {
   const _ToolTile({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
+
+  /// Donnée utile (un compte), jamais une description : sans donnée, la
+  /// tuile n'a qu'un titre.
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -356,12 +350,14 @@ class _ToolTile extends StatelessWidget {
                             fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary)),
+                    if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle,
+                    Text(subtitle!,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style:  TextStyle(
                             fontSize: TypeScale.caption, color: context.cq.textMuted)),
+                    ],
                   ],
                 ),
               ),
@@ -375,18 +371,3 @@ class _ToolTile extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style:  TextStyle(
-          fontSize: TypeScale.body,
-          fontWeight: FontWeight.w600,
-          color: context.cq.textPrimary,
-        ),
-      );
-}

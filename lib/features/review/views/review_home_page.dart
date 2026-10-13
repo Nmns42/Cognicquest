@@ -45,7 +45,6 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
     final selectedDeck = ref.watch(selectedDeckProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Réviser')),
       body: cardsAsync.when(
         loading: () =>  Center(
           child: CircularProgressIndicator(color: context.cq.vertDark),
