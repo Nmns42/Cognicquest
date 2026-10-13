@@ -32,6 +32,10 @@ void main() {
     return missing;
   }
 
+  /// Chorégraphie d'entrée (panel settle, type unmask, content rise) : seul
+  /// endroit où vivent des animations explicites.
+  const entrancePath = 'lib/core/motion/entrance.dart';
+
   final rules = <String, (RegExp, String)>{
     'AnimatedContainer': (RegExp(r'AnimatedContainer\('), 'Motion.duration('),
     // Refonte zen, Phase 3 : poignées au survol et bascule Kanban / Matrice.
@@ -80,8 +84,18 @@ void main() {
         r'FadeTransition\(|SlideTransition\(|ScaleTransition\(');
     final found = [
       for (final MapEntry(key: path, value: source) in sources.entries)
-        if (explicit.hasMatch(source)) path,
+        if (explicit.hasMatch(source) && !path.endsWith(entrancePath)) path,
     ];
     expect(found, isEmpty);
+  });
+
+  test('la chorégraphie d\'entrée respecte les animations réduites', () {
+    // Seul fichier autorisé à piloter des AnimationController : il doit
+    // afficher l'état final directement quand Motion.reduced est vrai.
+    final source = sources.entries
+        .firstWhere((e) => e.key.endsWith(entrancePath))
+        .value;
+    expect(source, contains('Motion.reduced(context)'));
+    expect(source, contains('controller.value = 1'));
   });
 }

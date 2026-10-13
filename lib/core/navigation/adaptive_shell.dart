@@ -241,13 +241,15 @@ class _SectionTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? context.cq.textPrimary : context.cq.textMuted;
+    // Sur l'accent : sa couleur de texte dédiée (lisible dans les deux
+    // thèmes).
+    final color = selected ? context.onAccent : context.cq.textMuted;
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
         color: selected
-            ? context.cq.vert.withValues(alpha: Tints.selected)
+            ? context.cq.vert
             : Colors.transparent,
         shape: const StadiumBorder(),
         child: InkWell(

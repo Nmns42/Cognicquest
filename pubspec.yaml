@@ -46,17 +46,17 @@ flutter:
     - assets/images/
     - assets/sounds/
 
-  # Atkinson Hyperlegible Next (OFL, cf. OFL.txt à côté des fichiers) :
-  # embarquée pour fonctionner hors ligne, sans téléchargement au lancement.
+  # Plus Jakarta Sans (OFL, cf. OFL.txt à côté des fichiers) : embarquée pour
+  # fonctionner hors ligne, sans téléchargement au lancement.
   fonts:
-    - family: AtkinsonHyperlegibleNext
+    - family: PlusJakartaSans
       fonts:
-        - asset: assets/fonts/atkinson_hyperlegible_next/AtkinsonHyperlegibleNext-Regular.ttf
-        - asset: assets/fonts/atkinson_hyperlegible_next/AtkinsonHyperlegibleNext-Italic.ttf
-          style: italic
-        - asset: assets/fonts/atkinson_hyperlegible_next/AtkinsonHyperlegibleNext-Medium.ttf
+        - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-Medium.ttf
           weight: 500
-        - asset: assets/fonts/atkinson_hyperlegible_next/AtkinsonHyperlegibleNext-SemiBold.ttf
+        - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/atkinson_hyperlegible_next/AtkinsonHyperlegibleNext-Bold.ttf
+        - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-Bold.ttf
           weight: 700
+        - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-ExtraBold.ttf
+          weight: 800

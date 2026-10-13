@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Rendu visuel des composants (golden tests), en clair et en sombre.
 ///
-/// Les vraies polices sont chargées (Atkinson Hyperlegible Next, icônes
+/// Les vraies polices sont chargées (Plus Jakarta Sans, icônes
 /// Material) : sans elles, le moteur de test dessine des rectangles et
 /// l'image ne montrerait rien de la typographie.
 ///
@@ -30,10 +30,10 @@ void main() {
       await loader.load();
     }
 
-    const dir = 'assets/fonts/atkinson_hyperlegible_next';
+    const dir = 'assets/fonts/plus_jakarta_sans';
     await load(appFontFamily, [
-      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold'])
-        '$dir/AtkinsonHyperlegibleNext-$weight.ttf',
+      for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold'])
+        '$dir/PlusJakartaSans-$weight.ttf',
     ]);
     final flutterRoot = Platform.environment['FLUTTER_ROOT'];
     if (flutterRoot != null) {

@@ -157,8 +157,7 @@ Finder _card(String title) => find.text(title).first;
 void main() {
   group('Kanban — glisser entre colonnes', () {
     testWidgets(
-        '(a) « À faire » → « Terminé » sur téléphone : la liste défile '
-        'jusqu’à la colonne, la tâche est terminée et placée où on la lâche',
+        '(a) téléphone : accordéon, on dépose sur l’en-tête du tiroir fermé',
         (tester) async {
       final repository = await _pumpBoard(tester, [
         for (var i = 0; i < 6; i++) _task('A$i', TaskStatus.todo, i),
@@ -166,26 +165,57 @@ void main() {
         _task('D0', TaskStatus.done, 0),
         _task('D1', TaskStatus.done, 1),
       ]);
-      // La colonne « Terminé » est hors de l'écran au départ.
-      expect(find.text('D1').hitTestable(), findsNothing);
+      // Seul « À faire » est ouvert : les tâches terminées sont repliées.
+      expect(find.text('D1'), findsNothing);
+      expect(find.text('Terminé').hitTestable(), findsOneWidget);
 
       final gesture = await _grab(tester, _card('A0'));
-      // Le doigt reste au bord bas de l'écran : la liste défile seule.
-      await gesture.moveTo(const Offset(180, 790));
-      for (var i = 0;
-          i < 200 && find.text('D1').hitTestable().evaluate().isEmpty;
-          i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-      expect(find.text('D1').hitTestable(), findsOneWidget,
-          reason: 'la colonne « Terminé » doit apparaître pendant le glisser');
-      await _dropOn(tester, gesture, find.text('D1').hitTestable());
+      await _dropOn(tester, gesture, find.text('Terminé').hitTestable());
 
       final a0 = repository.tasks.firstWhere((t) => t.id == 'A0');
       expect(a0.status, TaskStatus.done);
-      expect(_column(repository.tasks, TaskStatus.done), ['D0', 'A0', 'D1']);
+      expect(_column(repository.tasks, TaskStatus.done), contains('A0'));
       expect(_column(repository.tasks, TaskStatus.todo),
           ['A1', 'A2', 'A3', 'A4', 'A5']);
+    });
+
+    testWidgets(
+        '(a bis) grand écran : colonnes côte à côte, la tâche se place où on '
+        'la lâche', (tester) async {
+      final repository = await _pumpBoard(
+        tester,
+        [
+          _task('A0', TaskStatus.todo, 0),
+          _task('D0', TaskStatus.done, 0),
+          _task('D1', TaskStatus.done, 1),
+        ],
+        size: const Size(1280, 800),
+      );
+      // Pas d'accordéon : les trois colonnes sont visibles.
+      expect(find.text('D1').hitTestable(), findsOneWidget);
+
+      final gesture = await _grab(tester, _card('A0'));
+      await _dropOn(tester, gesture, find.text('D1').hitTestable());
+
+      expect(_column(repository.tasks, TaskStatus.done), ['D0', 'A0', 'D1']);
+    });
+
+    testWidgets(
+        '(a ter) téléphone : indicateur fixe et un seul tiroir ouvert',
+        (tester) async {
+      await _pumpBoard(tester, [
+        for (var i = 0; i < 4; i++) _task('A$i', TaskStatus.todo, i),
+        for (var i = 0; i < 2; i++) _task('B$i', TaskStatus.doing, i),
+        _task('D0', TaskStatus.done, 0),
+      ]);
+      expect(find.text('À FAIRE'), findsOneWidget);
+      expect(find.text('4'), findsWidgets);
+
+      // Ouvrir « En cours » referme « À faire ».
+      await tester.tap(find.text('EN COURS'));
+      await tester.pumpAndSettle();
+      expect(find.text('B0'), findsOneWidget);
+      expect(find.text('A0'), findsNothing);
     });
 
     testWidgets(

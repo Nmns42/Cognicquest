@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -179,46 +181,40 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Contrastes mesurés (WCAG), sur le fond et sur les cartes :
-  // texte ≥ 10:1, texte secondaire, accent en texte, erreur et
-  // avertissement ≥ 4,5:1, texte sur l'accent ≥ 4,5:1.
-  //
-  // Accent : un eucalyptus pâle et désaturé (#ABC4B8). Trop clair pour
-  // porter du blanc, il porte un vert très sombre (#1F3329, 7,2:1) : des
-  // boutons doux, sans masse sombre. Le vert en texte (#4A7861) est le plus
-  // clair qui tienne 4,5:1 sur le fond.
+  // Maquette de référence : fond gris très clair (#F0F0F0), texte #141414,
+  // cartes blanches, accent sauge en dégradé (#E6F3DF → #CFE0BD → #B9CFA5).
+  // Contrastes mesurés (WCAG, cf. contrast_test) : texte 16:1, texte
+  // secondaire, accent en texte, erreur et avertissement ≥ 4,5:1, texte sur
+  // chaque teinte du dégradé ≥ 8:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFFABC4B8),
-    vertDark: Color(0xFF4A7861),
-    beige: Color(0xFFF9F6F0),
-    beigeDark: Color(0xFFE8E5DC),
-    textPrimary: Color(0xFF2B3A36),
-    textMuted: Color(0xFF63706A),
-    textHint: Color(0xFF878D88),
-    errorColor: Color(0xFFC44133),
-    onVertMuted: Color(0xFF2E4A3D),
-    warning: Color(0xFF966627),
-    cardColor: Color(0xFFFFFDF9),
+    vert: Color(0xFFCFE0BD),
+    vertDark: Color(0xFF557240),
+    beige: Color(0xFFF0F0F0),
+    beigeDark: Color(0xFFE3E3E3),
+    textPrimary: Color(0xFF141414),
+    textMuted: Color(0xFF5E5E5E),
+    textHint: Color(0xFF8A8A8A),
+    errorColor: Color(0xFFB8382B),
+    onVertMuted: Color(0xFF2A3A22),
+    warning: Color(0xFF8A5E1F),
+    cardColor: Color(0xFFFFFFFF),
   );
 
-  /// Palette sombre.
-  ///
-  /// Ce n'est pas une inversion automatique de la palette claire : les teintes
-  /// sont désaturées et les contrastes recalculés pour rester lisibles sur
-  /// fond sombre sans éblouir.
+  /// Palette sombre : même logique, valeurs recalculées pour un fond sombre
+  /// (pas une inversion automatique).
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFF8DB098),
-    vertDark: Color(0xFFA8C9B4),
-    beige: Color(0xFF16191A),
-    beigeDark: Color(0xFF2C3133),
-    textPrimary: Color(0xFFE8EBE9),
-    textMuted: Color(0xFF9AA5A0),
-    textHint: Color(0xFF6B7672),
-    errorColor: Color(0xFFE8766A),
-    onVertMuted: Color(0xFF1E2A21),
-    warning: Color(0xFFE0A657),
-    cardColor: Color(0xFF212527),
+    vert: Color(0xFFB3CB9F),
+    vertDark: Color(0xFFB7D3A3),
+    beige: Color(0xFF151617),
+    beigeDark: Color(0xFF2C2E30),
+    textPrimary: Color(0xFFECECEC),
+    textMuted: Color(0xFFA3A3A3),
+    textHint: Color(0xFF6E6E6E),
+    errorColor: Color(0xFFEF8A7E),
+    onVertMuted: Color(0xFF1E2A17),
+    warning: Color(0xFFE2B064),
+    cardColor: Color(0xFF1E2022),
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {
@@ -226,9 +222,22 @@ class AppTheme {
         AppThemeVariant.dark => _darkColors,
       };
 
-  /// Texte et icônes posés sur l'accent plein (boutons, pastilles).
+  /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés).
   static Color onAccentFor(AppThemeVariant variant) =>
-      variant.isDark ? _darkColors.beige : const Color(0xFF1F3329);
+      variant.isDark ? const Color(0xFF151617) : const Color(0xFF24331C);
+
+  /// Dégradé d'accentuation de la maquette, orienté à 145°.
+  static LinearGradient accentGradientFor(AppThemeVariant variant) =>
+      LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        // 145° CSS ≈ diagonale (135°) + 10°.
+        transform: const GradientRotation(10 * math.pi / 180),
+        colors: variant.isDark
+            ? const [Color(0xFFC9DDB8), Color(0xFFB3CB9F), Color(0xFF9DB98A)]
+            : const [Color(0xFFE6F3DF), Color(0xFFCFE0BD), Color(0xFFB9CFA5)],
+        stops: const [0, 0.47, 1],
+      );
 
   /// Thème clair, conservé pour les tests et les écrans hors préférences
   /// (démarrage, erreur fatale).
@@ -240,6 +249,7 @@ class AppTheme {
     final cq = colorsFor(variant);
     final brightness = variant.isDark ? Brightness.dark : Brightness.light;
     final onAccent = onAccentFor(variant);
+    final chrome = CardChrome.of(variant);
 
     final scheme = ColorScheme.fromSeed(
       seedColor: cq.vert,
@@ -261,19 +271,15 @@ class AppTheme {
     final control = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(Radii.md),
     );
-    const buttonLabel = TextStyle(
-      fontFamily: appFontFamily,
-      fontSize: TypeScale.body,
-      fontWeight: FontWeight.w600,
-      letterSpacing: TypeScale.trackingLabel,
-    );
+    final buttonLabel = _style(TypeScale.body, FontWeight.w600,
+        TypeScale.labelEm, null);
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       fontFamily: appFontFamily,
       colorScheme: scheme,
-      // Transparent : le fond (beige et motif de feuilles) est peint une
+      // Transparent : le fond (gris et motif de feuilles) est peint une
       // seule fois sous toute l'app, par `ZenBackground`.
       scaffoldBackgroundColor: Colors.transparent,
       canvasColor: cq.beige,
@@ -295,23 +301,20 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: IconThemeData(color: cq.textPrimary),
-        titleTextStyle: TextStyle(
-          fontFamily: appFontFamily,
-          color: cq.textPrimary,
-          fontSize: TypeScale.title,
-          fontWeight: FontWeight.w600,
-          height: TypeScale.titleHeight,
-        ),
+        titleTextStyle: _style(
+            TypeScale.title, FontWeight.w700, TypeScale.titleEm, cq.textPrimary,
+            height: TypeScale.titleHeight),
       ),
 
-      // Surfaces tonales, sans ombre : le calme vient de la retenue.
+      // Cartes : filet intérieur clair et ombre très diffuse (cf. [Chrome]).
       cardTheme: CardThemeData(
         color: cq.cardColor,
-        elevation: 0,
+        elevation: 1,
+        shadowColor: chrome.shadow.color,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.md),
-          side: BorderSide(color: cq.beigeDark),
+          side: chrome.border,
         ),
       ),
 
@@ -320,32 +323,24 @@ class AppTheme {
         fillColor: cq.cardColor,
         contentPadding: const EdgeInsets.symmetric(
             horizontal: Space.lg, vertical: Space.md),
-        // Le texte indicatif est lu : contraste du texte secondaire, pas
-        // celui des éléments décoratifs.
-        hintStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.textMuted,
-            fontSize: TypeScale.body),
-        labelStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.textMuted,
-            fontSize: TypeScale.body),
-        helperStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.textMuted,
-            fontSize: TypeScale.caption),
+        // Le texte indicatif est lu : contraste du texte secondaire.
+        hintStyle: _style(TypeScale.body, FontWeight.w400, TypeScale.bodyEm,
+            cq.textMuted),
+        labelStyle: _style(TypeScale.body, FontWeight.w500, TypeScale.bodyEm,
+            cq.textMuted),
+        helperStyle: _style(TypeScale.caption, FontWeight.w400,
+            TypeScale.captionEm, cq.textMuted),
         border: field,
         enabledBorder: field,
-        focusedBorder:
-            field.copyWith(borderSide: BorderSide(color: cq.vert, width: 2)),
+        focusedBorder: field.copyWith(
+            borderSide: BorderSide(color: cq.vertDark, width: Borders.focus)),
         errorBorder:
             field.copyWith(borderSide: BorderSide(color: cq.errorColor)),
         focusedErrorBorder: field.copyWith(
-            borderSide: BorderSide(color: cq.errorColor, width: 2)),
-        errorStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.errorColor,
-            fontSize: TypeScale.caption),
+            borderSide:
+                BorderSide(color: cq.errorColor, width: Borders.focus)),
+        errorStyle: _style(TypeScale.caption, FontWeight.w500,
+            TypeScale.captionEm, cq.errorColor),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -355,7 +350,7 @@ class AppTheme {
           disabledBackgroundColor: cq.beigeDark,
           disabledForegroundColor: cq.textMuted,
           elevation: 0,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(Sizes.control),
           shape: control,
           textStyle: buttonLabel,
         ),
@@ -367,7 +362,7 @@ class AppTheme {
           foregroundColor: onAccent,
           disabledBackgroundColor: cq.beigeDark,
           disabledForegroundColor: cq.textMuted,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(Sizes.control),
           shape: control,
           textStyle: buttonLabel,
         ),
@@ -376,7 +371,8 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: cq.textPrimary,
-          minimumSize: const Size.fromHeight(52),
+          backgroundColor: cq.cardColor,
+          minimumSize: const Size.fromHeight(Sizes.control),
           side: BorderSide(color: cq.beigeDark),
           shape: control,
           textStyle: buttonLabel,
@@ -385,14 +381,9 @@ class AppTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          // L'accent foncé tient 4,5:1 en texte ; l'accent plein, non.
           foregroundColor: cq.vertDark,
-          minimumSize: const Size(48, 48),
-          textStyle: const TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.body,
-            fontWeight: FontWeight.w600,
-          ),
+          minimumSize: const Size(Sizes.touchTarget, Sizes.touchTarget),
+          textStyle: buttonLabel,
         ),
       ),
 
@@ -410,11 +401,8 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         elevation: 0,
         backgroundColor: variant.isDark ? cq.beigeDark : cq.textPrimary,
-        contentTextStyle: TextStyle(
-          fontFamily: appFontFamily,
-          color: variant.isDark ? cq.textPrimary : cq.beige,
-          fontSize: TypeScale.body,
-        ),
+        contentTextStyle: _style(TypeScale.body, FontWeight.w500,
+            TypeScale.bodyEm, variant.isDark ? cq.textPrimary : cq.beige),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.md),
         ),
@@ -426,6 +414,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.lg),
+          side: chrome.border,
         ),
       ),
 
@@ -441,127 +430,171 @@ class AppTheme {
 
       dividerTheme: DividerThemeData(
         color: cq.beigeDark,
-        thickness: 1,
-        space: 1,
+        thickness: Borders.thin,
+        space: Borders.thin,
       ),
 
+      // Navigation : plus de vert foncé. L'indicateur est la teinte sauge
+      // claire, et ce qui est posé dessus reste en couleur de texte.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert.withValues(alpha: Tints.selected),
+        indicatorColor: cq.vert,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
         // par valeur (une closure ne l'est que par identité, ce qui rendait
         // deux thèmes identiques différents). Première clé satisfaite gagnante.
         labelTextStyle: WidgetStateProperty.fromMap({
-          WidgetState.selected: TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w600,
-            color: cq.vertDark,
-          ),
-          WidgetState.any: TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w500,
-            color: cq.textMuted,
-          ),
+          WidgetState.selected: _style(TypeScale.caption, FontWeight.w700,
+              TypeScale.captionEm, cq.textPrimary),
+          WidgetState.any: _style(TypeScale.caption, FontWeight.w500,
+              TypeScale.captionEm, cq.textMuted),
         }),
         iconTheme: WidgetStateProperty.fromMap({
-          WidgetState.selected: IconThemeData(size: 24, color: cq.vertDark),
-          WidgetState.any: IconThemeData(size: 24, color: cq.textMuted),
+          WidgetState.selected:
+              IconThemeData(size: Sizes.iconLg, color: onAccent),
+          WidgetState.any:
+              IconThemeData(size: Sizes.iconLg, color: cq.textMuted),
         }),
       ),
 
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert.withValues(alpha: Tints.selected),
-        selectedIconTheme: IconThemeData(size: 24, color: cq.vertDark),
-        unselectedIconTheme: IconThemeData(size: 24, color: cq.textMuted),
-        selectedLabelTextStyle: TextStyle(
-          fontFamily: appFontFamily,
-          fontSize: TypeScale.caption,
-          fontWeight: FontWeight.w600,
-          color: cq.vertDark,
-        ),
-        unselectedLabelTextStyle: TextStyle(
-          fontFamily: appFontFamily,
-          fontSize: TypeScale.caption,
-          color: cq.textMuted,
-        ),
+        indicatorColor: cq.vert,
+        selectedIconTheme: IconThemeData(size: Sizes.iconLg, color: onAccent),
+        unselectedIconTheme:
+            IconThemeData(size: Sizes.iconLg, color: cq.textMuted),
+        selectedLabelTextStyle: _style(TypeScale.caption, FontWeight.w700,
+            TypeScale.captionEm, cq.textPrimary),
+        unselectedLabelTextStyle: _style(TypeScale.caption, FontWeight.w500,
+            TypeScale.captionEm, cq.textMuted),
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: cq.cardColor,
-        selectedColor: cq.vert.withValues(alpha: Tints.selected),
+        selectedColor: cq.vert,
         side: BorderSide(color: cq.beigeDark),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.sm),
         ),
-        labelStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.textPrimary,
-            fontSize: TypeScale.caption),
-        // Texte d'une puce sélectionnée : posé sur la teinte, donc en couleur
-        // de texte (l'accent n'y tiendrait pas 4,5:1).
-        secondaryLabelStyle: TextStyle(
-            fontFamily: appFontFamily,
-            color: cq.textPrimary,
-            fontSize: TypeScale.caption),
+        labelStyle: _style(TypeScale.caption, FontWeight.w500,
+            TypeScale.captionEm, cq.textPrimary),
+        // Texte d'une puce sélectionnée : posé sur la teinte sauge.
+        secondaryLabelStyle: _style(TypeScale.caption, FontWeight.w600,
+            TypeScale.captionEm, onAccent),
       ),
 
-      // Six tailles (cf. [TypeScale]) réparties sur les rôles Material. Le
-      // texte tire ses couleurs de la palette active : c'est ce qui rend le
-      // thème sombre lisible.
+      // Six tailles (cf. [TypeScale]) réparties sur les rôles Material,
+      // graisses franches sur les titres, interlettrage négatif.
       textTheme: TextTheme(
-        displaySmall: _title(TypeScale.display, cq.textPrimary),
-        headlineSmall: _title(TypeScale.headline, cq.textPrimary),
-        titleLarge: _title(TypeScale.title, cq.textPrimary),
-        titleMedium: _title(TypeScale.bodyLarge, cq.textPrimary),
-        titleSmall: _title(TypeScale.body, cq.textPrimary),
+        displaySmall: _title(TypeScale.display, FontWeight.w800, cq.textPrimary),
+        headlineSmall:
+            _title(TypeScale.headline, FontWeight.w700, cq.textPrimary),
+        titleLarge: _title(TypeScale.title, FontWeight.w700, cq.textPrimary),
+        titleMedium:
+            _title(TypeScale.bodyLarge, FontWeight.w600, cq.textPrimary),
+        titleSmall: _title(TypeScale.body, FontWeight.w600, cq.textPrimary),
         bodyLarge: _body(TypeScale.bodyLarge, cq.textPrimary),
         bodyMedium: _body(TypeScale.body, cq.textPrimary),
         bodySmall: _body(TypeScale.caption, cq.textMuted),
-        labelLarge: TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.body,
-            fontWeight: FontWeight.w600,
-            letterSpacing: TypeScale.trackingLabel,
-            color: cq.textPrimary),
-        labelMedium: TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w600,
-            letterSpacing: TypeScale.trackingCaption,
-            color: cq.textPrimary),
-        labelSmall: TextStyle(
-            fontFamily: appFontFamily,
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w500,
-            letterSpacing: TypeScale.trackingCaption,
-            color: cq.textMuted),
+        labelLarge: _style(TypeScale.body, FontWeight.w600, TypeScale.labelEm,
+            cq.textPrimary),
+        labelMedium: _style(TypeScale.caption, FontWeight.w600,
+            TypeScale.captionEm, cq.textPrimary),
+        labelSmall: _style(TypeScale.caption, FontWeight.w500,
+            TypeScale.captionEm, cq.textMuted),
       ),
     );
   }
 
-  static TextStyle _title(double size, Color color) => TextStyle(
+  /// Style de texte complet : police explicite (les composants Material ne
+  /// fusionnent pas tous avec le texte par défaut), graisse, interlettrage
+  /// proportionnel à la taille.
+  static TextStyle _style(
+    double size,
+    FontWeight weight,
+    double em,
+    Color? color, {
+    double? height,
+  }) =>
+      TextStyle(
         fontFamily: appFontFamily,
         fontSize: size,
-        fontWeight: FontWeight.w600,
-        height: TypeScale.titleHeight,
-        // Les petits titres gardent un interlettrage neutre ; seuls les grands
-        // gagnent à être resserrés.
-        letterSpacing: size >= TypeScale.title ? TypeScale.trackingTitle : 0,
+        fontWeight: weight,
+        letterSpacing: TypeScale.tracking(size, em),
+        height: height,
         color: color,
       );
 
-  static TextStyle _body(double size, Color color) => TextStyle(
-        fontFamily: appFontFamily,
-        fontSize: size,
-        height: TypeScale.bodyHeight,
-        letterSpacing: size <= TypeScale.caption
-            ? TypeScale.trackingCaption
-            : TypeScale.trackingBody,
+  static TextStyle _title(double size, FontWeight weight, Color color) =>
+      _style(size, weight, TypeScale.titleEm, color,
+          height: TypeScale.titleHeight);
+
+  static TextStyle _body(double size, Color color) => _style(
+      size,
+      FontWeight.w400,
+      size <= TypeScale.caption ? TypeScale.captionEm : TypeScale.bodyEm,
+      color,
+      height: TypeScale.bodyHeight);
+}
+
+/// Bordure et ombre des cartes principales, selon le thème.
+@immutable
+class CardChrome {
+  const CardChrome({required this.border, required this.shadow});
+
+  final BorderSide border;
+  final BoxShadow shadow;
+
+  static CardChrome of(AppThemeVariant variant) => variant.isDark
+      // En sombre, un filet clair éblouirait : à peine perceptible, et une
+      // ombre plus marquée pour détacher la carte du fond.
+      ? CardChrome(
+          border: BorderSide(
+              color: Colors.white.withValues(alpha: 0.06),
+              width: Chrome.borderWidth),
+          shadow: BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: Chrome.shadowBlur,
+            offset: const Offset(0, Chrome.shadowOffsetY),
+          ),
+        )
+      : CardChrome(
+          border: BorderSide(
+              color: Colors.white.withValues(alpha: Chrome.borderOpacity),
+              width: Chrome.borderWidth),
+          shadow: BoxShadow(
+            color: const Color(0xFF181E2D)
+                .withValues(alpha: Chrome.shadowOpacity),
+            blurRadius: Chrome.shadowBlur,
+            offset: const Offset(0, Chrome.shadowOffsetY),
+          ),
+        );
+
+  /// Décoration complète d'une carte principale.
+  BoxDecoration decoration({required Color color, double radius = Radii.md}) =>
+      BoxDecoration(
         color: color,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.fromBorderSide(border),
+        boxShadow: [shadow],
       );
+
+  @override
+  bool operator ==(Object other) =>
+      other is CardChrome && other.border == border && other.shadow == shadow;
+
+  @override
+  int get hashCode => Object.hash(border, shadow);
+}
+
+/// Accès court au chrome et au dégradé du thème actif.
+extension CardChromeX on BuildContext {
+  bool get _isDark => Theme.of(this).brightness == Brightness.dark;
+
+  CardChrome get chrome =>
+      CardChrome.of(_isDark ? AppThemeVariant.dark : AppThemeVariant.light);
+
+  LinearGradient get accentGradient => AppTheme.accentGradientFor(
+      _isDark ? AppThemeVariant.dark : AppThemeVariant.light);
 }

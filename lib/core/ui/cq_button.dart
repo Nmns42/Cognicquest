@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
 import '../theme/tokens.dart';
 
 /// Rang d'un bouton. Règle « zen » : **un seul [primary] par écran**, les
@@ -90,10 +91,32 @@ class CqButton extends StatelessWidget {
               onPressed: action, style: style, icon: leading, label: text),
     };
 
+    // Bouton principal actif : le dégradé sauge de la maquette, peint sous
+    // un bouton transparent (Material ne prend pas de dégradé en fond).
+    final painted = variant == CqButtonVariant.primary && action != null
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: context.accentGradient,
+              borderRadius: BorderRadius.circular(Radii.md),
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                filledButtonTheme: FilledButtonThemeData(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                  ).merge(Theme.of(context).filledButtonTheme.style),
+                ),
+              ),
+              child: button,
+            ),
+          )
+        : button;
+
     return Semantics(
       // Annonce l'attente aux lecteurs d'écran, pas seulement à l'œil.
       value: isLoading ? 'En cours' : null,
-      child: button,
+      child: painted,
     );
   }
 }

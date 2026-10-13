@@ -21,26 +21,23 @@ abstract final class Space {
   static const List<double> scale = [0, xs, sm, md, lg, xl, xxl, xxxl];
 }
 
-/// Rayons d'angle : quasi droits.
-///
-/// Les grands arrondis sont la signature des interfaces génériques ; des
-/// angles presque vifs donnent un dessin plus net, plus « sur mesure ».
+/// Rayons d'angle : un équilibre entre le dessin net (angles quasi droits)
+/// et la douceur de la maquette de référence.
 abstract final class Radii {
   /// Champs, puces, petits contrôles.
-  static const double sm = 2;
+  static const double sm = 6;
 
   /// Cartes et boutons.
-  static const double md = 4;
+  static const double md = 10;
 
-  /// Feuilles du bas et dialogues : pas plus ronds que le reste.
-  static const double lg = 4;
+  /// Feuilles du bas et dialogues.
+  static const double lg = 14;
 }
 
 /// Échelle typographique : six tailles, pas une de plus.
 ///
-/// Base relevée (15 au lieu de 14) pour que l'interface respire ; l'élégance
-/// vient de l'interlettrage ([tracking…]) et de l'interligne, pas de la
-/// graisse.
+/// Rendu « premium » : Plus Jakarta Sans, graisses franches sur les titres
+/// (700–800), interlettrage négatif proportionnel à la taille (en em).
 abstract final class TypeScale {
   /// Mentions, légendes, étiquettes de navigation. Jamais en dessous.
   static const double caption = 13;
@@ -63,22 +60,22 @@ abstract final class TypeScale {
   static const double bodyHeight = 1.55;
 
   /// Interligne des titres : plus serré, ils tiennent sur peu de lignes.
-  static const double titleHeight = 1.25;
+  static const double titleHeight = 1.2;
 
-  /// Titres : Atkinson est large, un interlettrage légèrement resserré
-  /// donne des titres plus denses et plus nets.
-  static const double trackingTitle = -0.3;
+  /// Interlettrage des titres : −0,02 em, la signature de la maquette.
+  static const double titleEm = -0.02;
 
-  /// Texte courant : à peine ouvert, il gagne en clarté.
-  static const double trackingBody = 0.15;
+  /// Texte courant : à peine resserré.
+  static const double bodyEm = -0.006;
 
-  /// Petits textes (légendes, étiquettes) : plus ouverts pour rester
-  /// lisibles à 13 px.
-  static const double trackingCaption = 0.3;
+  /// Libellés de boutons et d'onglets.
+  static const double labelEm = -0.01;
 
-  /// Libellés de boutons et d'onglets : ouverts, ils se lisent d'un coup
-  /// d'œil sans être mis en gras.
-  static const double trackingLabel = 0.4;
+  /// Petits textes : neutres, pour rester lisibles à 13 px.
+  static const double captionEm = 0;
+
+  /// Interlettrage en pixels pour une taille et un facteur em.
+  static double tracking(double size, double em) => size * em;
 }
 
 /// Dimensions des contrôles.
@@ -109,16 +106,20 @@ abstract final class Borders {
   static const double focus = 2;
 }
 
-/// Opacités des teintes d'accent.
-abstract final class Tints {
-  /// Fond d'un élément sélectionné (onglet, ligne, puce, indicateur de
-  /// navigation). Le texte posé dessus est en `textPrimary` : l'accent en
-  /// texte n'y tiendrait pas 4,5:1 (cf. contrast_test).
-  static const double selected = 0.35;
+/// « Chrome » des cartes principales : filet intérieur clair et ombre très
+/// diffuse (maquette : `border 1.6 rgba(255,255,255,.92)`,
+/// `box-shadow 0 2px 16px rgba(24,30,45,.045)`).
+abstract final class Chrome {
+  static const double borderWidth = 1.6;
+  static const double borderOpacity = 0.92;
+  static const double shadowBlur = 16;
+  static const double shadowOffsetY = 2;
+  static const double shadowOpacity = 0.045;
 }
 
-/// Police unique de l'application, embarquée (cf. `pubspec.yaml`).
-const String appFontFamily = 'AtkinsonHyperlegibleNext';
+/// Police unique de l'application, embarquée (cf. `pubspec.yaml`) :
+/// Plus Jakarta Sans, graisses 400 à 800.
+const String appFontFamily = 'PlusJakartaSans';
 
 /// Durées et courbes des animations.
 ///

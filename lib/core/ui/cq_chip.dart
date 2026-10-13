@@ -24,13 +24,14 @@ class CqChip extends StatelessWidget {
       selected: selected,
       onSelected: onSelected,
       showCheckmark: true,
-      checkmarkColor: context.cq.vertDark,
+      checkmarkColor: context.onAccent,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       labelStyle: TextStyle(
         fontFamily: appFontFamily,
         fontSize: TypeScale.body,
+        letterSpacing: TypeScale.tracking(TypeScale.body, TypeScale.labelEm),
         fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-        color: context.cq.textPrimary,
+        color: selected ? context.onAccent : context.cq.textPrimary,
       ),
       padding: const EdgeInsets.symmetric(horizontal: Space.xs),
     );

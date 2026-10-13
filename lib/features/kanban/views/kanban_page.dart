@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/motion/entrance.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/tokens.dart';
@@ -194,40 +195,236 @@ class _KanbanBoard extends StatelessWidget {
         ),
     ];
 
-    // Sur écran large (web, tablette, desktop — la cible principale du CdC),
-    // les trois colonnes sont côte à côte comme dans Trello ; sur mobile elles
-    // s'empilent.
-    final isWide = MediaQuery.sizeOf(context).width >= 900;
+    // Grand écran (web, ordinateur, tablette en paysage) : trois colonnes
+    // larges côte à côte, on glisse librement de l'une à l'autre. Mobile :
+    // accordéon vertical, sans défilement horizontal.
+    final isWide = MediaQuery.sizeOf(context).width >= kanbanWideMin;
 
-    if (isWide) {
-      return Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            for (var i = 0; i < columns.length; i++) ...[
-              if (i > 0) const SizedBox(width: 16),
-              Expanded(child: SingleChildScrollView(child: columns[i])),
-            ],
-          ],
-        ),
-      );
+    if (!isWide) {
+      return _KanbanAccordion(onEdit: onEdit, onDelete: onDelete, onAdd: onAdd);
     }
 
-    // Pas de liste paresseuse : la carte saisie doit rester montée pendant
-    // que le défilement automatique emmène la liste vers une autre colonne.
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Padding(
+      padding: const EdgeInsets.all(Space.xl),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (var i = 0; i < columns.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            columns[i],
+            if (i > 0) const SizedBox(width: Space.lg),
+            Expanded(
+              child: SingleChildScrollView(
+                child: PanelSettle(
+                  delay: Entrance.delayFor(i),
+                  child: columns[i],
+                ),
+              ),
+            ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Largeur à partir de laquelle les colonnes s'affichent côte à côte.
+const double kanbanWideMin = 900;
+
+/// Kanban mobile : un indicateur fixe en haut, puis les colonnes en tiroirs
+/// (un seul ouvert). On glisse une tâche du tiroir ouvert vers l'en-tête
+/// d'un tiroir fermé, qui sert de zone de dépôt.
+class _KanbanAccordion extends StatefulWidget {
+  const _KanbanAccordion({
+    required this.onEdit,
+    required this.onDelete,
+    required this.onAdd,
+  });
+
+  final ValueChanged<Task> onEdit;
+  final ValueChanged<Task> onDelete;
+  final void Function({TaskStatus? status}) onAdd;
+
+  @override
+  State<_KanbanAccordion> createState() => _KanbanAccordionState();
+}
+
+class _KanbanAccordionState extends State<_KanbanAccordion> {
+  TaskStatus _open = TaskStatus.todo;
+
+  void _openDrawer(TaskStatus status) => setState(() => _open = status);
+
+  /// Tiroir ouvert (la colonne complète) ou fermé (son en-tête). Le passage
+  /// de l'un à l'autre s'anime en hauteur, sauf en animations réduites :
+  /// `AnimatedSize` n'accepte pas une durée nulle, il est alors retiré.
+  Widget _drawer(BuildContext context, TaskStatus status) {
+    final drawer = status == _open
+        ? _KanbanColumn(
+            status: status,
+            onEdit: widget.onEdit,
+            onDelete: widget.onDelete,
+            onAdd: () => widget.onAdd(status: status),
+          )
+        : _ClosedDrawer(status: status, onOpen: () => _openDrawer(status));
+    if (Motion.reduced(context)) return drawer;
+    return AnimatedSize(
+      duration: CqMotion.base,
+      curve: CqMotion.standard,
+      alignment: Alignment.topCenter,
+      child: drawer,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.sm),
+          child: _StatusSummary(open: _open, onSelect: _openDrawer),
+        ),
+        Expanded(
+          // Pas de liste paresseuse : la carte saisie doit rester montée
+          // pendant le défilement automatique.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+                Space.lg, Space.sm, Space.lg, Space.xxxl * 2),
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, status) in TaskStatus.values.indexed) ...[
+                  if (i > 0) const SizedBox(height: Space.md),
+                  PanelSettle(
+                    delay: Entrance.delayFor(i),
+                    child: _drawer(context, status),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Indicateur fixe : « À FAIRE 4 · EN COURS 2 · TERMINÉ 1 ». Chaque compteur
+/// ouvre son tiroir.
+class _StatusSummary extends ConsumerWidget {
+  const _StatusSummary({required this.open, required this.onSelect});
+
+  final TaskStatus open;
+  final ValueChanged<TaskStatus> onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    return Row(
+      children: [
+        for (final (i, status) in TaskStatus.values.indexed) ...[
+          if (i > 0) const SizedBox(width: Space.sm),
+          Expanded(
+            child: Semantics(
+              button: true,
+              selected: status == open,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Radii.sm),
+                onTap: () => onSelect(status),
+                child: ConstrainedBox(
+                  constraints:
+                      const BoxConstraints(minHeight: Sizes.touchTarget),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        status.label.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.labelSmall,
+                      ),
+                      Text(
+                        '${ref.watch(tasksByStatusProvider(status)).length}',
+                        style: text.titleLarge?.copyWith(
+                          color: status == open
+                              ? context.cq.textPrimary
+                              : context.cq.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Tiroir fermé : en-tête cliquable, et zone de dépôt pendant un glisser.
+class _ClosedDrawer extends ConsumerWidget {
+  const _ClosedDrawer({required this.status, required this.onOpen});
+
+  final TaskStatus status;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(tasksByStatusProvider(status)).length;
+    final text = Theme.of(context).textTheme;
+    return DragTarget<Task>(
+      onWillAcceptWithDetails: (details) => details.data.status != status,
+      onAcceptWithDetails: (details) =>
+          ref.read(taskProvider.notifier).moveTask(details.data.id, status),
+      builder: (context, candidate, __) {
+        final hovered = candidate.isNotEmpty;
+        final ink = hovered ? context.onAccent : context.cq.textMuted;
+        return Semantics(
+          button: true,
+          label: '${status.label}, $count tâche${count > 1 ? "s" : ""}',
+          child: AnimatedContainer(
+            duration: Motion.duration(context, CqMotion.fast),
+            curve: CqMotion.standard,
+            decoration: hovered
+                ? BoxDecoration(
+                    gradient: context.accentGradient,
+                    borderRadius: BorderRadius.circular(Radii.md),
+                  )
+                : context.chrome.decoration(color: context.cq.cardColor),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Radii.md),
+                onTap: onOpen,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: Sizes.control),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            hovered
+                                ? 'Déposer dans « ${status.label} »'
+                                : status.label,
+                            style: text.titleMedium?.copyWith(
+                                color: hovered ? context.onAccent : null),
+                          ),
+                        ),
+                        Text('$count',
+                            style: text.labelLarge?.copyWith(color: ink)),
+                        const SizedBox(width: Space.sm),
+                        Icon(Icons.expand_more, color: ink),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -265,15 +462,17 @@ class _KanbanColumn extends ConsumerWidget {
 
         return AnimatedContainer(
           duration: Motion.duration(context, const Duration(milliseconds: 160)),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.cq.cardColor,
-            borderRadius: BorderRadius.circular(AppTheme.radius),
-            border: Border.all(
-              color: isHovered ? context.cq.vert : context.cq.beigeDark,
-              width: isHovered ? 2 : 1,
-            ),
-          ),
+          padding: const EdgeInsets.all(Space.lg),
+          // Chrome des cartes principales ; la zone de dépôt survolée prend
+          // un filet d'accent.
+          decoration: context.chrome
+              .decoration(color: context.cq.cardColor)
+              .copyWith(
+                border: isHovered
+                    ? Border.all(
+                        color: context.cq.vertDark, width: Borders.focus)
+                    : null,
+              ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -405,15 +604,20 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
   Widget build(BuildContext context) {
     final task = widget.task;
     final onDelete = widget.onDelete;
-    final card = TaskCard(
-      task: task,
-      onTap: () => widget.onEdit(task),
-      onToggleDone: () => ref.read(taskProvider.notifier).toggleDone(task.id),
-      trailing: _MoveMenu(
-        task: task,
-        index: widget.index,
-        count: widget.count,
-      ),
+    TaskCard cardWith({required bool grip}) => TaskCard(
+          task: task,
+          gripVisible: grip,
+          onTap: () => widget.onEdit(task),
+          onToggleDone: () =>
+              ref.read(taskProvider.notifier).toggleDone(task.id),
+          trailing: _MoveMenu(
+            task: task,
+            index: widget.index,
+            count: widget.count,
+          ),
+        );
+    final card = HoverBuilder(
+      builder: (context, hovered) => cardWith(grip: hovered),
     );
 
     return DragTarget<Task>(
@@ -438,7 +642,8 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
               onDragUpdate: _onDragUpdate,
               onDragEnd: (_) => _stopAutoScroll(),
               feedbackWidth: _feedbackWidth,
-              feedback: card,
+              // Pendant le maintien et le glisser, la poignée est visible.
+              feedback: cardWith(grip: true),
               childWhenDragging: TaskCard(
                 task: task,
                 isDragging: true,
@@ -707,6 +912,7 @@ class _QuadrantTile extends ConsumerWidget {
                     feedbackWidth: _feedbackWidth,
                     feedback: TaskCard(
                       task: task,
+                      gripVisible: true,
                       onTap: () {},
                       onToggleDone: () {},
                     ),
@@ -716,11 +922,15 @@ class _QuadrantTile extends ConsumerWidget {
                       onTap: () {},
                       onToggleDone: () {},
                     ),
-                    child: TaskCard(
-                      task: task,
-                      onTap: () => onEdit(task),
-                      onToggleDone: () =>
-                          ref.read(taskProvider.notifier).toggleDone(task.id),
+                    child: HoverBuilder(
+                      builder: (context, hovered) => TaskCard(
+                        task: task,
+                        gripVisible: hovered,
+                        onTap: () => onEdit(task),
+                        onToggleDone: () => ref
+                            .read(taskProvider.notifier)
+                            .toggleDone(task.id),
+                      ),
                     ),
                   ),
             ],

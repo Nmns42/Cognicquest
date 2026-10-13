@@ -30,9 +30,9 @@ class CqListRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cq = context.cq;
     final text = Theme.of(context).textTheme;
-    // Sur la teinte de sélection, le texte reste en couleur de texte : le
-    // vert le signale par la teinte et l'icône (contraste ≥ 4,5:1).
-    final titleColor = cq.textPrimary;
+    // Sélectionnée, la ligne prend l'accent : texte et icône passent à sa
+    // couleur de texte dédiée (≥ 4,5:1 dans les deux thèmes).
+    final titleColor = selected ? context.onAccent : cq.textPrimary;
 
     final row = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
@@ -45,7 +45,7 @@ class CqListRow extends StatelessWidget {
               ExcludeSemantics(
                 child: Icon(leadingIcon,
                     size: Sizes.iconLg,
-                    color: selected ? cq.vertDark : cq.textMuted),
+                    color: selected ? context.onAccent : cq.textMuted),
               ),
               const SizedBox(width: Space.lg),
             ],
@@ -63,7 +63,11 @@ class CqListRow extends StatelessWidget {
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: Space.xs),
-                    Text(subtitle!, style: text.bodySmall),
+                    Text(subtitle!,
+                        style: selected
+                            ? text.bodySmall
+                                ?.copyWith(color: context.onAccent)
+                            : text.bodySmall),
                   ],
                 ],
               ),
@@ -82,7 +86,7 @@ class CqListRow extends StatelessWidget {
       selected: selected,
       child: Material(
         color: selected
-            ? cq.vert.withValues(alpha: Tints.selected)
+            ? cq.vert
             : Colors.transparent,
         borderRadius: BorderRadius.circular(Radii.md),
         clipBehavior: Clip.antiAlias,

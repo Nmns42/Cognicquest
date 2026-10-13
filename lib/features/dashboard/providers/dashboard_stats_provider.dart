@@ -21,11 +21,18 @@ class DailyFocus {
   }
 
   /// Initiale du jour (L, M, M, J, V, S, D).
-  String get initial => const ['L', 'M', 'M', 'J', 'V', 'S', 'D'][day.weekday - 1];
+  String get initial =>
+      const ['L', 'M', 'M', 'J', 'V', 'S', 'D'][day.weekday - 1];
 
-  String get fullLabel =>
-      const ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
-          [day.weekday - 1];
+  String get fullLabel => const [
+        'lundi',
+        'mardi',
+        'mercredi',
+        'jeudi',
+        'vendredi',
+        'samedi',
+        'dimanche'
+      ][day.weekday - 1];
 }
 
 /// Agrégats du Dashboard, calculés en **un seul appel réseau**.
@@ -56,9 +63,7 @@ class DashboardStats {
 
   Duration get bestDay => weeklySeries.isEmpty
       ? Duration.zero
-      : weeklySeries
-          .map((d) => d.focus)
-          .reduce((a, b) => a > b ? a : b);
+      : weeklySeries.map((d) => d.focus).reduce((a, b) => a > b ? a : b);
 
   bool get hasAnyFocus => weeklySeries.any((d) => d.focus > Duration.zero);
 
@@ -111,7 +116,5 @@ final dashboardStatsProvider = StreamProvider<DashboardStats>((ref) {
   if (repository == null) return Stream.value(const DashboardStats.empty());
   // 8 jours suffisent à la fenêtre glissante : on ne lit pas 90 jours
   // d'historique pour afficher 7 barres.
-  return repository
-      .watchRecent(limitDays: 8)
-      .map(DashboardStats.fromSessions);
+  return repository.watchRecent(limitDays: 8).map(DashboardStats.fromSessions);
 });

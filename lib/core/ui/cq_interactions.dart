@@ -285,18 +285,19 @@ class CqSegmentedControl<T> extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: Space.lg),
                   alignment: Alignment.center,
                   color: value == selected
-                      ? cq.vert.withValues(alpha: Tints.selected)
+                      ? cq.vert
                       : Colors.transparent,
                   child: Text(
                     label,
                     style: TextStyle(
                       fontFamily: appFontFamily,
                       fontSize: TypeScale.body,
-                      letterSpacing: TypeScale.trackingLabel,
+                      letterSpacing:
+                          TypeScale.tracking(TypeScale.body, TypeScale.labelEm),
                       fontWeight: value == selected
                           ? FontWeight.w600
                           : FontWeight.w500,
-                      color: value == selected ? cq.textPrimary : cq.textMuted,
+                      color: value == selected ? context.onAccent : cq.textMuted,
                     ),
                   ),
                 ),

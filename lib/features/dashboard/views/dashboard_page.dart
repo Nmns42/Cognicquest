@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/motion/entrance.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
@@ -31,12 +32,28 @@ class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   static const List<String> _months = [
-    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre',
   ];
 
   static const List<String> _weekdays = [
-    'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche',
+    'lundi',
+    'mardi',
+    'mercredi',
+    'jeudi',
+    'vendredi',
+    'samedi',
+    'dimanche',
   ];
 
   static String _greeting(DateTime now) {
@@ -59,8 +76,7 @@ class DashboardPage extends ConsumerWidget {
       builder: (context) => FutureBuilder<int>(
         future: remaining,
         builder: (context, snapshot) {
-          final isFlushing =
-              snapshot.connectionState != ConnectionState.done;
+          final isFlushing = snapshot.connectionState != ConnectionState.done;
           final pending = snapshot.data ?? 0;
           return AlertDialog(
             scrollable: true,
@@ -163,10 +179,12 @@ class DashboardPage extends ConsumerWidget {
           // L'accueil n'est pas un module : il reste en tête, non déplaçable.
           header: Padding(
             padding: const EdgeInsets.only(bottom: 16),
-            child: GreetingCard(
-              greeting: _greeting(now),
-              name: ref.watch(displayNameProvider),
-              dateLabel: _formatDate(now),
+            child: PanelSettle(
+              child: GreetingCard(
+                greeting: _greeting(now),
+                name: ref.watch(displayNameProvider),
+                dateLabel: _formatDate(now),
+              ),
             ),
           ),
           // Poignées maison : visibles au survol seulement (vue zen), appui
@@ -188,7 +206,10 @@ class DashboardPage extends ConsumerWidget {
               child: CqReorderableItem(
                 index: index,
                 semanticLabel: 'Déplacer le module ${module.label}',
-                child: _ModuleSection(module: module),
+                child: PanelSettle(
+                  delay: Entrance.delayFor(index + 1),
+                  child: CqCard(child: _ModuleSection(module: module)),
+                ),
               ),
             );
           },
@@ -227,8 +248,8 @@ class _StatsModule extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats =
-        ref.watch(dashboardStatsProvider).valueOrNull ?? const DashboardStats.empty();
+    final stats = ref.watch(dashboardStatsProvider).valueOrNull ??
+        const DashboardStats.empty();
     final tasks = ref.watch(taskProvider).valueOrNull ?? const <Task>[];
     final habits = ref.watch(habitProvider).valueOrNull ?? const [];
 
@@ -251,7 +272,7 @@ class _StatsModule extends ConsumerWidget {
               color: context.cq.vert.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child:  Icon(Icons.timer_outlined,
+            child: Icon(Icons.timer_outlined,
                 color: context.cq.vertDark, size: 22),
           ),
         ),
@@ -319,7 +340,7 @@ class _ChartPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  Card(
+    return Card(
       child: SizedBox(
         height: 190,
         child: Center(
@@ -535,7 +556,7 @@ class _NotesModule extends ConsumerWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
                     children: [
-                       Icon(Icons.description_outlined,
+                      Icon(Icons.description_outlined,
                           size: 16, color: context.cq.textHint),
                       const SizedBox(width: 12),
                       Expanded(
@@ -546,20 +567,22 @@ class _NotesModule extends ConsumerWidget {
                               note.displayTitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style:  TextStyle(
-                                  fontSize: TypeScale.body, color: context.cq.textPrimary),
+                              style: TextStyle(
+                                  fontSize: TypeScale.body,
+                                  color: context.cq.textPrimary),
                             ),
                             if (note.subject != null)
                               Text(
                                 note.subject!,
-                                style:  TextStyle(
-                                    fontSize: TypeScale.caption, color: context.cq.textMuted),
+                                style: TextStyle(
+                                    fontSize: TypeScale.caption,
+                                    color: context.cq.textMuted),
                               ),
                           ],
                         ),
                       ),
                       if (!note.isSynced)
-                         Icon(Icons.cloud_queue,
+                        Icon(Icons.cloud_queue,
                             size: 14, color: context.cq.textHint),
                     ],
                   ),
@@ -571,7 +594,8 @@ class _NotesModule extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 '$pending fiche${pending > 1 ? 's' : ''} en attente de synchronisation',
-                style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
+                style: TextStyle(
+                    fontSize: TypeScale.caption, color: context.cq.textHint),
               ),
             ),
         ],
@@ -636,7 +660,7 @@ class _MetacognitionModule extends ConsumerWidget {
                               : (hasEntryToday
                                   ? insights.strainLevel.label
                                   : 'Bilan du jour à faire'),
-                          style:  TextStyle(
+                          style: TextStyle(
                             fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
                             color: context.cq.textPrimary,
@@ -651,13 +675,14 @@ class _MetacognitionModule extends ConsumerWidget {
                                   '${insights.currentStreak} j de suivi',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style:  TextStyle(
-                              fontSize: TypeScale.caption, color: context.cq.textMuted),
+                          style: TextStyle(
+                              fontSize: TypeScale.caption,
+                              color: context.cq.textMuted),
                         ),
                       ],
                     ),
                   ),
-                   Icon(Icons.arrow_forward_ios_rounded,
+                  Icon(Icons.arrow_forward_ios_rounded,
                       size: 13, color: context.cq.textMuted),
                 ],
               ),
@@ -675,8 +700,18 @@ class _PlanningModule extends ConsumerWidget {
   const _PlanningModule();
 
   static const List<String> _months = [
-    'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
-    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juil.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
   ];
 
   @override
@@ -713,14 +748,15 @@ class _PlanningModule extends ConsumerWidget {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Row(
                     children: [
-                       Icon(Icons.flag_outlined,
+                      Icon(Icons.flag_outlined,
                           size: 16, color: context.cq.textHint),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           '${goals.length} objectif${goals.length > 1 ? 's' : ''} en cours',
-                          style:  TextStyle(
-                              fontSize: TypeScale.body, color: context.cq.textPrimary),
+                          style: TextStyle(
+                              fontSize: TypeScale.body,
+                              color: context.cq.textPrimary),
                         ),
                       ),
                     ],
@@ -743,9 +779,10 @@ class _DeadlineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
-    final days = DateTime(item.endDate.year, item.endDate.month, item.endDate.day)
-        .difference(DateTime(today.year, today.month, today.day))
-        .inDays;
+    final days =
+        DateTime(item.endDate.year, item.endDate.month, item.endDate.day)
+            .difference(DateTime(today.year, today.month, today.day))
+            .inDays;
     final urgent = days <= 3;
 
     return Card(
@@ -768,7 +805,7 @@ class _DeadlineRow extends StatelessWidget {
                   item.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:  TextStyle(
+                  style: TextStyle(
                       fontSize: TypeScale.body, color: context.cq.textPrimary),
                 ),
               ),
@@ -791,4 +828,3 @@ class _DeadlineRow extends StatelessWidget {
     );
   }
 }
-

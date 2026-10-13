@@ -48,11 +48,11 @@ void main() {
         expect(ratio(onAccent, cq.vert), greaterThanOrEqualTo(4.5));
       });
 
-      test('sur une teinte de sélection : texte ≥ 4,5:1, icône ≥ 3:1', () {
-        final tint = Color.alphaBlend(
-            cq.vert.withValues(alpha: Tints.selected), cq.beige);
-        expect(ratio(cq.textPrimary, tint), greaterThanOrEqualTo(4.5));
-        expect(ratio(cq.vertDark, tint), greaterThanOrEqualTo(3));
+      test("sur l'accent et chaque teinte du dégradé : texte ≥ 4,5:1", () {
+        final gradient = AppTheme.accentGradientFor(variant);
+        for (final stop in [cq.vert, ...gradient.colors]) {
+          expect(ratio(onAccent, stop), greaterThanOrEqualTo(4.5));
+        }
       });
 
       for (final MapEntry(key: bgName, value: bg) in backgrounds.entries) {

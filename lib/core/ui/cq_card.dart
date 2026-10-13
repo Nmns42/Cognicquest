@@ -5,16 +5,18 @@ import '../theme/tokens.dart';
 
 /// Surface d'une carte.
 enum CqCardTone {
-  /// Carte posée sur le fond : légèrement plus claire, avec un filet.
+  /// Carte posée sur le fond : blanche, filet clair et ombre diffuse.
   raised,
 
   /// Zone en retrait (aperçu, encart) : teinte du fond, sans filet.
   muted,
 }
 
-/// Carte sans ombre : le relief vient de la teinte et d'un filet, pas d'une
-/// élévation. Cliquable si [onTap] est fourni (retour tactile, 48 dp
-/// minimum, annoncée comme bouton).
+/// Carte de l'application, au « chrome » de la maquette de référence : filet
+/// intérieur clair et ombre très diffuse, sans élévation Material.
+///
+/// Cliquable si [onTap] est fourni (retour tactile, 48 dp minimum, annoncée
+/// comme bouton).
 class CqCard extends StatelessWidget {
   const CqCard({
     super.key,
@@ -36,26 +38,31 @@ class CqCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cq = context.cq;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Radii.md),
-      side: tone == CqCardTone.raised
-          ? BorderSide(color: cq.beigeDark, width: Borders.thin)
-          : BorderSide.none,
-    );
+    final radius = BorderRadius.circular(Radii.md);
 
     final content = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
       child: Padding(padding: padding, child: child),
     );
 
+    // Carte principale : « chrome » de la maquette (filet intérieur clair,
+    // ombre très diffuse). Zone en retrait : teinte du fond, sans relief.
+    final decoration = tone == CqCardTone.raised
+        ? context.chrome.decoration(color: cq.cardColor)
+        : BoxDecoration(color: cq.beigeDark, borderRadius: radius);
+
     return Semantics(
       button: onTap != null,
       label: semanticLabel,
-      child: Material(
-        color: tone == CqCardTone.raised ? cq.cardColor : cq.beigeDark,
-        shape: shape,
-        clipBehavior: Clip.antiAlias,
-        child: onTap == null ? content : InkWell(onTap: onTap, child: content),
+      child: DecoratedBox(
+        decoration: decoration,
+        child: Material(
+          type: MaterialType.transparency,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child:
+              onTap == null ? content : InkWell(onTap: onTap, child: content),
+        ),
       ),
     );
   }

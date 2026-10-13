@@ -73,22 +73,27 @@ void main() {
       {WidgetState.pressed, WidgetState.focused},
     ]) {
       final selected = {...states, WidgetState.selected};
+      // Sélectionné : texte en couleur de texte (l'accent n'est plus foncé),
+      // icône posée sur l'indicateur sauge, dans sa couleur dédiée.
+      final onAccent = AppTheme.onAccentFor(AppThemeVariant.light);
       expect(nav.labelTextStyle!.resolve(selected),
           TextStyle(
               fontFamily: appFontFamily,
               fontSize: TypeScale.caption,
-              fontWeight: FontWeight.w600,
-              color: cq.vertDark));
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0,
+              color: cq.textPrimary));
       expect(nav.labelTextStyle!.resolve(states),
           TextStyle(
               fontFamily: appFontFamily,
               fontSize: TypeScale.caption,
               fontWeight: FontWeight.w500,
+              letterSpacing: 0,
               color: cq.textMuted));
       expect(nav.iconTheme!.resolve(selected),
-          IconThemeData(size: 24, color: cq.vertDark));
+          IconThemeData(size: Sizes.iconLg, color: onAccent));
       expect(nav.iconTheme!.resolve(states),
-          IconThemeData(size: 24, color: cq.textMuted));
+          IconThemeData(size: Sizes.iconLg, color: cq.textMuted));
     }
   });
 

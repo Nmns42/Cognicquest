@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/motion/entrance.dart';
 import '../../../shared/models/habit_model.dart';
 import '../../../shared/models/task_model.dart';
 import '../../kanban/widgets/task_card.dart';
@@ -25,28 +26,33 @@ class GreetingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: context.cq.vert,
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
+      padding:
+          const EdgeInsets.symmetric(horizontal: Space.xl, vertical: Space.xl),
+      // Dégradé sauge de la maquette, sous le chrome des cartes.
+      decoration: context.chrome
+          .decoration(color: context.cq.cardColor)
+          .copyWith(gradient: context.accentGradient),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name.isEmpty ? '$greeting !' : '$greeting, $name !',
-            style: TextStyle(
-              color: context.onAccent,
-              fontSize: TypeScale.headline,
-              fontWeight: FontWeight.w600,
+          TypeUnmask(
+            child: Text(
+              name.isEmpty ? '$greeting !' : '$greeting, $name !',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: context.onAccent, fontWeight: FontWeight.w800),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            dateLabel,
-            // Le gris `textMuted` sur fond vert échouait au contraste WCAG :
-            // on utilise le ton clair dédié.
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.body),
+          const SizedBox(height: Space.xs),
+          ContentRise(
+            child: Text(
+              dateLabel,
+              // Le gris `textMuted` sur l'accent échouait au contraste WCAG :
+              // on utilise le ton dédié.
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: context.cq.onVertMuted),
+            ),
           ),
         ],
       ),
@@ -84,7 +90,7 @@ class HeroFocusCard extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style:  TextStyle(
+                    style: TextStyle(
                       fontSize: TypeScale.display,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
@@ -94,7 +100,7 @@ class HeroFocusCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     caption,
-                    style:  TextStyle(
+                    style: TextStyle(
                         fontSize: TypeScale.body, color: context.cq.textMuted),
                   ),
                 ],
@@ -144,7 +150,7 @@ class StatTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   value,
-                  style:  TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: TypeScale.title,
                     color: context.cq.textPrimary,
@@ -154,8 +160,8 @@ class StatTile extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 label,
-                style:
-                     TextStyle(color: context.cq.textMuted, fontSize: TypeScale.caption),
+                style: TextStyle(
+                    color: context.cq.textMuted, fontSize: TypeScale.caption),
               ),
             ],
           ),
@@ -166,7 +172,8 @@ class StatTile extends StatelessWidget {
 }
 
 class QuickStartCard extends StatelessWidget {
-  const QuickStartCard({super.key, required this.onTap, required this.subtitle});
+  const QuickStartCard(
+      {super.key, required this.onTap, required this.subtitle});
 
   final VoidCallback onTap;
   final String subtitle;
@@ -188,7 +195,7 @@ class QuickStartCard extends StatelessWidget {
             Container(
               width: 44,
               height: 44,
-              decoration:  BoxDecoration(
+              decoration: BoxDecoration(
                 color: context.cq.vert,
                 shape: BoxShape.circle,
               ),
@@ -200,7 +207,7 @@ class QuickStartCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(
+                  Text(
                     'Démarrer une session',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
@@ -211,13 +218,13 @@ class QuickStartCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style:  TextStyle(
+                    style: TextStyle(
                         color: context.cq.textMuted, fontSize: TypeScale.body),
                   ),
                 ],
               ),
             ),
-             Icon(Icons.arrow_forward_ios_rounded,
+            Icon(Icons.arrow_forward_ios_rounded,
                 size: 14, color: context.cq.textMuted),
           ],
         ),
@@ -283,8 +290,7 @@ class TaskPreviewRow extends StatelessWidget {
                     width: 20,
                     height: 20,
                     decoration: BoxDecoration(
-                      border:
-                          Border.all(color: context.cq.beigeDark, width: 2),
+                      border: Border.all(color: context.cq.beigeDark, width: 2),
                       borderRadius: BorderRadius.circular(Radii.md),
                     ),
                   ),
@@ -296,12 +302,12 @@ class TaskPreviewRow extends StatelessWidget {
                   task.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style:  TextStyle(
+                  style: TextStyle(
                       fontSize: TypeScale.body, color: context.cq.textPrimary),
                 ),
               ),
               if (task.isOverdue)
-                 Padding(
+                Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Icon(Icons.warning_amber_rounded,
                       size: 15, color: context.cq.errorColor),
@@ -352,21 +358,22 @@ class HabitPreviewRow extends StatelessWidget {
                 enabled: done,
                 scale: 1.2,
                 child: AnimatedContainer(
-                duration: Motion.duration(context, const Duration(milliseconds: 200)),
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: done ? context.cq.vert : Colors.transparent,
-                  border: Border.all(
-                    color: done ? context.cq.vert : context.cq.beigeDark,
-                    width: 2,
+                  duration: Motion.duration(
+                      context, const Duration(milliseconds: 200)),
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: done ? context.cq.vert : Colors.transparent,
+                    border: Border.all(
+                      color: done ? context.cq.vert : context.cq.beigeDark,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(Radii.md),
                   ),
-                  borderRadius: BorderRadius.circular(Radii.md),
+                  child: done
+                      ? Icon(Icons.check, size: 13, color: context.onAccent)
+                      : null,
                 ),
-                child: done
-                    ? Icon(Icons.check, size: 13, color: context.onAccent)
-                    : null,
-              ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -389,7 +396,8 @@ class HabitPreviewRow extends StatelessWidget {
                     : Text(
                         '🔥 $streak',
                         style: TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.errorColor),
+                            fontSize: TypeScale.caption,
+                            color: context.cq.errorColor),
                       ),
               ),
             ],
@@ -429,8 +437,8 @@ class EmptySection extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style:
-                   TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
+              style: TextStyle(
+                  color: context.cq.textMuted, fontSize: TypeScale.body),
             ),
           ),
           if (onAction != null && actionLabel != null)

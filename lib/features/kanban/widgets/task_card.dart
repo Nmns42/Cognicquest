@@ -4,6 +4,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/task_model.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/ui/cq_interactions.dart';
 
 Color priorityColor(BuildContext context, TaskPriority priority) =>
     switch (priority) {
@@ -20,6 +21,7 @@ class TaskCard extends StatelessWidget {
     required this.onTap,
     required this.onToggleDone,
     this.isDragging = false,
+    this.gripVisible = false,
     this.trailing,
   });
 
@@ -27,6 +29,11 @@ class TaskCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onToggleDone;
   final bool isDragging;
+
+  /// Poignée de déplacement : masquée par défaut (vue zen), visible au
+  /// survol de la souris et pendant un glisser. Sa place est toujours
+  /// réservée, pour que rien ne bouge quand elle apparaît.
+  final bool gripVisible;
 
   /// Commande affichée à droite de la carte (menu « Déplacer vers… »).
   final Widget? trailing;
@@ -47,6 +54,14 @@ class TaskCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                ExcludeSemantics(
+                  child: HoverReveal(
+                    visible: gripVisible,
+                    child: Icon(Icons.drag_indicator,
+                        size: Sizes.iconMd, color: context.cq.textMuted),
+                  ),
+                ),
+                const SizedBox(width: Space.xs),
                 _Checkbox(done: done, onTap: onToggleDone),
                 const SizedBox(width: 10),
                 Expanded(

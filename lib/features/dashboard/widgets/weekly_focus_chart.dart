@@ -27,7 +27,6 @@ class WeeklyFocusChart extends StatelessWidget {
 
   static const double _plotHeight = 92;
 
-
   @override
   Widget build(BuildContext context) {
     final series = stats.weeklySeries;
@@ -57,7 +56,7 @@ class WeeklyFocusChart extends StatelessWidget {
                 ),
                 Text(
                   formatFocusDuration(stats.focusThisWeek),
-                  style:  TextStyle(
+                  style: TextStyle(
                     fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textMuted,
@@ -66,9 +65,10 @@ class WeeklyFocusChart extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-             Text(
+            Text(
               'Total sur la période',
-              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 16),
 
@@ -132,7 +132,9 @@ class _Bar extends StatelessWidget {
   Widget build(BuildContext context) {
     final seconds = day.focus.inSeconds;
     final ratio = maxSeconds == 0 ? 0.0 : seconds / maxSeconds;
-    final height = seconds == 0 ? _zeroHeight : (ratio * plotHeight).clamp(6.0, plotHeight);
+    final height = seconds == 0
+        ? _zeroHeight
+        : (ratio * plotHeight).clamp(6.0, plotHeight);
 
     // Étiquetage sélectif : le meilleur jour et aujourd'hui, jamais les sept.
     final showsLabel = (isBest || day.isToday) && seconds > 0;
@@ -176,7 +178,8 @@ class _Bar extends StatelessWidget {
               const SizedBox(height: 4),
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0, end: height),
-                duration: Motion.duration(context, const Duration(milliseconds: 450)),
+                duration:
+                    Motion.duration(context, const Duration(milliseconds: 450)),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, _) => Container(
                   height: value,
@@ -235,10 +238,11 @@ class _EmptyPlot extends StatelessWidget {
         color: context.cq.beigeDark.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(Radii.md),
       ),
-      child:  Text(
+      child: Text(
         'Aucune session cette semaine.\nTa première session apparaîtra ici.',
         textAlign: TextAlign.center,
-        style: TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
+        style: TextStyle(
+            color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.4),
       ),
     );
   }

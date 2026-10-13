@@ -155,7 +155,18 @@ class _SessionScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Session')),
-        body: SafeArea(child: child),
+        // Défile si le bilan dépasse (petit écran, texte agrandi), tout en
+        // restant centré quand il tient.
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, box) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: box.maxHeight),
+                child: child,
+              ),
+            ),
+          ),
+        ),
       );
 }
 
