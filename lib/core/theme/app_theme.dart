@@ -181,22 +181,22 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Maquette de référence : fond gris très clair (#F0F0F0), texte #141414,
-  // cartes blanches, accent sauge en dégradé (#E6F3DF → #CFE0BD → #B9CFA5).
-  // Contrastes mesurés (WCAG, cf. contrast_test) : texte 16:1, texte
-  // secondaire, accent en texte, erreur et avertissement ≥ 4,5:1, texte sur
-  // chaque teinte du dégradé ≥ 8:1.
+  // Fond gris très clair (#F0F0F0), texte #141414, cartes blanches.
+  // Accent : un vert profond de forêt (pin #2F5D46), riche et chaleureux,
+  // en dégradé (#3D6E55 → #2F5D46 → #23493A) sous un texte blanc. Contrastes
+  // mesurés (WCAG, cf. contrast_test) : texte 16:1, vert en texte 7,8:1,
+  // texte blanc sur chaque teinte du dégradé ≥ 5,9:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFFCFE0BD),
-    vertDark: Color(0xFF557240),
+    vert: Color(0xFF2F5D46),
+    vertDark: Color(0xFF27523E),
     beige: Color(0xFFF0F0F0),
     beigeDark: Color(0xFFE3E3E3),
     textPrimary: Color(0xFF141414),
     textMuted: Color(0xFF5E5E5E),
     textHint: Color(0xFF8A8A8A),
     errorColor: Color(0xFFB8382B),
-    onVertMuted: Color(0xFF2A3A22),
+    onVertMuted: Color(0xFFD6E6DA),
     warning: Color(0xFF8A5E1F),
     cardColor: Color(0xFFFFFFFF),
   );
@@ -204,8 +204,8 @@ class AppTheme {
   /// Palette sombre : même logique, valeurs recalculées pour un fond sombre
   /// (pas une inversion automatique).
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFFB3CB9F),
-    vertDark: Color(0xFFB7D3A3),
+    vert: Color(0xFF86B99A),
+    vertDark: Color(0xFF9BC9AC),
     beige: Color(0xFF151617),
     beigeDark: Color(0xFF2C2E30),
     textPrimary: Color(0xFFECECEC),
@@ -224,7 +224,7 @@ class AppTheme {
 
   /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés).
   static Color onAccentFor(AppThemeVariant variant) =>
-      variant.isDark ? const Color(0xFF151617) : const Color(0xFF24331C);
+      variant.isDark ? const Color(0xFF101511) : Colors.white;
 
   /// Dégradé d'accentuation de la maquette, orienté à 145°.
   static LinearGradient accentGradientFor(AppThemeVariant variant) =>
@@ -234,8 +234,8 @@ class AppTheme {
         // 145° CSS ≈ diagonale (135°) + 10°.
         transform: const GradientRotation(10 * math.pi / 180),
         colors: variant.isDark
-            ? const [Color(0xFFC9DDB8), Color(0xFFB3CB9F), Color(0xFF9DB98A)]
-            : const [Color(0xFFE6F3DF), Color(0xFFCFE0BD), Color(0xFFB9CFA5)],
+            ? const [Color(0xFF9BC9AC), Color(0xFF86B99A), Color(0xFF6FA585)]
+            : const [Color(0xFF3D6E55), Color(0xFF2F5D46), Color(0xFF23493A)],
         stops: const [0, 0.47, 1],
       );
 

@@ -43,7 +43,10 @@ void main() {
   }
 
   test('la liste des champs testés couvre toute la classe', () {
-    final source = File('lib/core/theme/app_theme.dart').readAsStringSync();
+    // Fins de ligne normalisées : le fichier peut être en CRLF sous Windows.
+    final source = File('lib/core/theme/app_theme.dart')
+        .readAsStringSync()
+        .replaceAll(String.fromCharCode(13), '');
     final start = source.indexOf('class CognicColors');
     final end = source.indexOf('\n}\n', start);
     final declared = RegExp(r'final Color (\w+);')

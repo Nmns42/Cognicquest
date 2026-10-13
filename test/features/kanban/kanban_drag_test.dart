@@ -144,11 +144,19 @@ Future<TestGesture> _grab(WidgetTester tester, Finder card) async {
 
 Future<void> _dropOn(
     WidgetTester tester, TestGesture gesture, Finder target) async {
-  final to = tester.getCenter(target);
-  await gesture.moveTo(to - const Offset(0, 4));
-  await tester.pump();
-  await gesture.moveTo(to);
-  await tester.pump();
+  // Près d'un bord, la liste défile seule pendant le glisser : on suit la
+  // cible jusqu'à ce qu'elle ne bouge plus, puis on lâche dessus.
+  var to = tester.getCenter(target);
+  for (var i = 0; i < 40; i++) {
+    await gesture.moveTo(to);
+    await tester.pump(const Duration(milliseconds: 50));
+    // La cible peut changer de libellé au survol (« Déposer dans… ») : on
+    // garde alors la dernière position connue.
+    if (target.evaluate().isEmpty) break;
+    final now = tester.getCenter(target);
+    if ((now - to).distance < 1) break;
+    to = now;
+  }
   await gesture.up();
   await tester.pumpAndSettle();
 }

@@ -22,6 +22,7 @@ class TaskCard extends StatelessWidget {
     required this.onToggleDone,
     this.isDragging = false,
     this.gripVisible = false,
+    this.onDelete,
     this.trailing,
   });
 
@@ -34,6 +35,10 @@ class TaskCard extends StatelessWidget {
   /// survol de la souris et pendant un glisser. Sa place est toujours
   /// réservée, pour que rien ne bouge quand elle apparaît.
   final bool gripVisible;
+
+  /// Suppression en un clic (corbeille discrète). `null` : pas de corbeille
+  /// (carte en cours de glisser, aperçu).
+  final VoidCallback? onDelete;
 
   /// Commande affichée à droite de la carte (menu « Déplacer vers… »).
   final Widget? trailing;
@@ -118,6 +123,14 @@ class TaskCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
+                if (onDelete != null)
+                  IconButton(
+                    tooltip: 'Supprimer la tâche',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onDelete,
+                    icon: Icon(Icons.delete_outline,
+                        size: Sizes.iconSm, color: context.cq.textMuted),
+                  ),
                 if (trailing != null) trailing!,
               ],
             ),

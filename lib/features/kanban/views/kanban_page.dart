@@ -56,32 +56,24 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
         );
   }
 
+  /// Suppression en un clic : pas de boîte de dialogue, mais une annulation
+  /// possible quelques secondes (plus rapide, et rien n'est perdu par erreur).
   Future<void> _deleteTask(Task task) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      animationStyle: Motion.style(context),
-      builder: (context) => AlertDialog(
-        scrollable: true,
-        title: const Text('Supprimer cette tâche ?'),
-        content: Text(task.title),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+    await ref.read(taskProvider.notifier).deleteTask(task.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        snackBarAnimationStyle: Motion.style(context),
+        SnackBar(
+          content: Text('« ${task.title} » supprimée'),
+          action: SnackBarAction(
+            label: 'Annuler',
+            onPressed: () =>
+                ref.read(taskProvider.notifier).restoreTask(task),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Supprimer',
-              style: TextStyle(color: context.cq.errorColor),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirmed ?? false) {
-      await ref.read(taskProvider.notifier).deleteTask(task.id);
-    }
+        ),
+      );
   }
 
   @override
@@ -677,6 +669,7 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
     TaskCard cardWith({required bool grip}) => TaskCard(
           task: task,
           gripVisible: grip,
+          onDelete: () => widget.onDelete(task),
           onTap: () => widget.onEdit(task),
           onToggleDone: () =>
               ref.read(taskProvider.notifier).toggleDone(task.id),
@@ -980,6 +973,7 @@ class _QuadrantTile extends ConsumerWidget {
                       builder: (context, hovered) => TaskCard(
                         task: task,
                         gripVisible: hovered,
+                        onDelete: () => onDelete(task),
                         onTap: () => onEdit(task),
                         onToggleDone: () => ref
                             .read(taskProvider.notifier)

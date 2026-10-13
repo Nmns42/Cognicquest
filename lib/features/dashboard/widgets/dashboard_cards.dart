@@ -248,9 +248,19 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        // Le titre cède la place au bouton sur un écran étroit (deux lignes
+        // au plus, puis points de suspension), au lieu de le pousser hors de
+        // l'écran.
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        const SizedBox(width: Space.sm),
         TextButton(onPressed: onMore, child: Text(trailingLabel)),
       ],
     );

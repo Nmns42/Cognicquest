@@ -66,6 +66,20 @@ class TaskNotifier extends StreamNotifier<List<Task>> {
     }
   }
 
+  /// Recrée une tâche supprimée (bouton « Annuler »), à la même place et
+  /// avec les mêmes champs.
+  Future<void> restoreTask(Task task) async {
+    final repository = _repository;
+    if (repository == null) return;
+    final current = state.valueOrNull ?? const <Task>[];
+    try {
+      final created = await repository.create(task);
+      state = AsyncValue.data([...current, created]);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(DataFailure.from(error), stackTrace);
+    }
+  }
+
   Future<void> updateTask(Task task) => _mutate(
         optimistic: (tasks) =>
             [for (final t in tasks) if (t.id == task.id) task else t],
