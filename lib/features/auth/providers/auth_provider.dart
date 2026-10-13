@@ -124,7 +124,7 @@ class AuthController extends AsyncNotifier<void> {
         email: email.trim(),
         password: password,
         data: {'full_name': fullName.trim()},
-        emailRedirectTo: AppConfig.oauthRedirectUrlOrNull,
+        emailRedirectTo: AppConfig.authRedirectUrl,
       );
       state = const AsyncValue.data(null);
       return response.session != null
@@ -141,7 +141,7 @@ class AuthController extends AsyncNotifier<void> {
     try {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: AppConfig.oauthRedirectUrlOrNull,
+        redirectTo: AppConfig.authRedirectUrl,
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
       // Le retour se fait par deep link : la session arrivera via
@@ -159,7 +159,7 @@ class AuthController extends AsyncNotifier<void> {
     try {
       await _client.auth.resetPasswordForEmail(
         email.trim(),
-        redirectTo: AppConfig.oauthRedirectUrlOrNull,
+        redirectTo: AppConfig.authRedirectUrl,
       );
       state = const AsyncValue.data(null);
       return true;

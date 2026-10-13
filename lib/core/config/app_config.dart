@@ -42,10 +42,15 @@ class AppConfig {
     defaultValue: 'io.cognicquest.app://login-callback/',
   );
 
-  /// Sur Flutter Web, Supabase gère le retour OAuth sur l'origine courante :
-  /// on ne passe donc pas de `redirectTo` custom.
-  static String? get oauthRedirectUrlOrNull =>
-      kIsWeb ? null : oauthRedirectUrl;
+  /// Retour des liens d'email (confirmation, mot de passe oublié) et d'OAuth.
+  ///
+  /// Sur le web, l'adresse de l'app elle-même, chemin compris : sans
+  /// `redirectTo`, Supabase renvoyait vers la Site URL, soit la racine
+  /// `https://nmns42.github.io/` au lieu de `…/Cognicquest/`. Calculée plutôt
+  /// qu'écrite en dur pour que `localhost` continue de fonctionner en dev.
+  /// Le fragment (`#/register`) est retiré par `resolve`.
+  static String get authRedirectUrl =>
+      kIsWeb ? Uri.base.resolve('./').toString() : oauthRedirectUrl;
 
   // ── Bypass d'authentification (développement uniquement) ───────────────────
 
