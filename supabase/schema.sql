@@ -1012,3 +1012,31 @@ begin
     execute format('alter table public.%I alter column user_id set default auth.uid()', t);
   end loop;
 end $$;
+
+-- ============================================================================
+-- Suppression de compte (RGPD, exigée par les stores)
+-- ============================================================================
+-- Appelée par l'app (`rpc('delete_own_account')`). Supprime l'appelant de
+-- auth.users : profil, sessions, identités et toutes les tables métier
+-- suivent par `on delete cascade` sur user_id. SECURITY DEFINER car le rôle
+-- authenticated n'a aucun droit sur le schéma auth ; l'identité vient
+-- uniquement du JWT (auth.uid()), jamais d'un paramètre.
+create or replace function public.delete_own_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'Session requise pour supprimer un compte'
+      using errcode = '42501';
+  end if;
+  delete from auth.users where id = uid;
+end;
+$$;
+
+revoke execute on function public.delete_own_account() from public, anon;
+grant execute on function public.delete_own_account() to authenticated;
