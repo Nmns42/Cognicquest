@@ -31,9 +31,17 @@ class AdaptiveShell extends StatelessWidget {
   /// où on l'avait laissé, pas à sa racine.
   static final Map<AppSpace, String> _lastLocation = {};
 
-  /// Oublie les écrans mémorisés (tests, changement de compte).
+  /// Choix de l'utilisateur pour le menu latéral : déployé (icônes et
+  /// libellés) ou réduit (icônes seules). `null` : selon la largeur.
+  static final ValueNotifier<bool?> railExpanded = ValueNotifier(null);
+
+  /// Oublie les écrans mémorisés et le choix du menu (tests, changement de
+  /// compte).
   @visibleForTesting
-  static void resetMemory() => _lastLocation.clear();
+  static void resetMemory() {
+    _lastLocation.clear();
+    railExpanded.value = null;
+  }
 
   void _goToSpace(BuildContext context, AppSpace space) {
     final current = AppSpace.of(currentLocation);
@@ -82,7 +90,23 @@ class AdaptiveShell extends StatelessWidget {
       );
     }
 
-    final extended = layout == NavigationLayout.extendedRail;
+    return ValueListenableBuilder<bool?>(
+      valueListenable: railExpanded,
+      builder: (context, choice, _) => _railScaffold(
+        context,
+        space: space,
+        content: content,
+        extended: choice ?? layout == NavigationLayout.extendedRail,
+      ),
+    );
+  }
+
+  Widget _railScaffold(
+    BuildContext context, {
+    required AppSpace? space,
+    required Widget content,
+    required bool extended,
+  }) {
     return Scaffold(
       body: Row(
         children: [
@@ -99,7 +123,12 @@ class AdaptiveShell extends StatelessWidget {
                   selectedIndex: space?.index,
                   onDestinationSelected: (index) =>
                       _goToSpace(context, AppSpace.values[index]),
-                  leading: _RailHeader(extended: extended),
+                  // L'en-tête (logo et nom) déploie ou réduit le menu : plus
+                  // de place pour l'écran quand on n'a besoin que des icônes.
+                  leading: _RailHeader(
+                    extended: extended,
+                    onToggle: () => railExpanded.value = !extended,
+                  ),
                   trailing: Expanded(
                     child: Align(
                       alignment: Alignment.bottomCenter,
@@ -297,12 +326,30 @@ class _SettingsButton extends StatelessWidget {
 }
 
 class _RailHeader extends StatelessWidget {
-  const _RailHeader({required this.extended});
+  const _RailHeader({required this.extended, required this.onToggle});
 
   final bool extended;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
+    final label = extended ? 'Réduire le menu' : 'Déployer le menu';
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        button: true,
+        expanded: extended,
+        label: label,
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: _brand(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _brand(BuildContext context) {
     return Padding(
       padding:
           const EdgeInsets.symmetric(vertical: Space.lg, horizontal: Space.md),

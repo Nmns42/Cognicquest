@@ -418,10 +418,15 @@ class AppTheme {
         ),
       ),
 
+      // Feuilles : fond plein (jamais transparent) et ombre douce qui les
+      // détache de l'écran dessous.
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: cq.cardColor,
+        modalBackgroundColor: cq.cardColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        modalElevation: Chrome.sheetElevation,
+        shadowColor: chrome.shadow.color.withValues(alpha: 1),
         dragHandleColor: cq.textHint,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(Radii.lg)),

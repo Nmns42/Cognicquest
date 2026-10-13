@@ -143,4 +143,21 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('page /notes'), findsOneWidget);
   });
+
+  testWidgets("grand écran : l'en-tête réduit puis redéploie le menu",
+      (tester) async {
+    await pumpShell(tester, location: '/home', size: const Size(1400, 900));
+    bool extended() =>
+        tester.widget<NavigationRail>(find.byType(NavigationRail)).extended;
+    expect(extended(), isTrue);
+
+    await tester.tap(find.byTooltip('Réduire le menu'));
+    await tester.pumpAndSettle();
+    expect(extended(), isFalse);
+    expect(find.text('CognicQuest'), findsNothing);
+
+    await tester.tap(find.byTooltip('Déployer le menu'));
+    await tester.pumpAndSettle();
+    expect(extended(), isTrue);
+  });
 }

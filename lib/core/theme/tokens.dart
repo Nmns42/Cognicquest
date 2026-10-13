@@ -25,13 +25,13 @@ abstract final class Space {
 /// et la douceur de la maquette de référence.
 abstract final class Radii {
   /// Champs, puces, petits contrôles.
-  static const double sm = 6;
+  static const double sm = 8;
 
   /// Cartes et boutons.
-  static const double md = 10;
+  static const double md = 12;
 
   /// Feuilles du bas et dialogues.
-  static const double lg = 14;
+  static const double lg = 16;
 }
 
 /// Échelle typographique : six tailles, pas une de plus.
@@ -115,6 +115,9 @@ abstract final class Chrome {
   static const double shadowBlur = 16;
   static const double shadowOffsetY = 2;
   static const double shadowOpacity = 0.045;
+
+  /// Élévation des feuilles du bas : assez pour les détacher, sans masse.
+  static const double sheetElevation = 6;
 }
 
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`) :

@@ -17,7 +17,7 @@ class ModulePickerSheet extends ConsumerWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      // Fond plein et ombre douce : ceux du thème des feuilles.
       builder: (_) => const ModulePickerSheet(),
     );
   }
