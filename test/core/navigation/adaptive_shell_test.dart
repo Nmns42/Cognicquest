@@ -68,19 +68,21 @@ void main() {
     }
   });
 
-  testWidgets('onglets de l\'espace à la racine d\'une section', (tester) async {
+  testWidgets('onglets de l\'espace à la racine d\'une section',
+      (tester) async {
     await pumpShell(tester, location: '/notes');
 
     expect(find.text('Fiches'), findsOneWidget);
     expect(find.text('Réviser'), findsOneWidget);
-    expect(find.text('Graphe'), findsNothing);
+    expect(find.text('Graphe'), findsOneWidget);
 
     await tester.tap(find.text('Réviser'));
     await tester.pumpAndSettle();
     expect(find.text('page /review'), findsOneWidget);
   });
 
-  testWidgets('pas d\'onglets dans une sous-page ni pour un espace à une '
+  testWidgets(
+      'pas d\'onglets dans une sous-page ni pour un espace à une '
       'section', (tester) async {
     await pumpShell(tester, location: '/notes/sub');
     expect(find.text('Réviser'), findsNothing);
@@ -160,5 +162,29 @@ void main() {
     await tester.tap(find.byTooltip('Déployer le menu'));
     await tester.pumpAndSettle();
     expect(extended(), isTrue);
+  });
+
+  testWidgets('grand écran : raccourcis Habitudes et Graphe sous leur espace',
+      (tester) async {
+    await pumpShell(tester, location: '/home', size: const Size(1400, 900));
+
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    // Aujourd'hui, Habitudes, Apprendre, Graphe, Organiser, Réfléchir.
+    expect(rail.destinations, hasLength(6));
+
+    await tester.tap(find.descendant(
+        of: find.byType(NavigationRail), matching: find.text('Habitudes')));
+    await tester.pumpAndSettle();
+    expect(find.text('page /habits'), findsOneWidget);
+    expect(
+        tester
+            .widget<NavigationRail>(find.byType(NavigationRail))
+            .selectedIndex,
+        1);
+
+    await tester.tap(find.descendant(
+        of: find.byType(NavigationRail), matching: find.text('Graphe')));
+    await tester.pumpAndSettle();
+    expect(find.text('page /graph'), findsOneWidget);
   });
 }

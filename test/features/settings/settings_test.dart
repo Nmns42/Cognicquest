@@ -10,7 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AppSpace', () {
-    test("quatre espaces dans la barre : Aujourd'hui, Apprendre, Organiser, "
+    test(
+        "quatre espaces dans la barre : Aujourd'hui, Apprendre, Organiser, "
         'Réfléchir', () {
       expect(AppSpace.values.map((s) => s.label),
           ["Aujourd'hui", 'Apprendre', 'Organiser', 'Réfléchir']);
@@ -22,8 +23,8 @@ void main() {
           for (final section in space.sections) section.route,
       };
       expect(routes, {
-        '/home', '/pomodoro', // Aujourd'hui (habitudes retirées)
-        '/notes', '/review', // Apprendre (graphe retiré)
+        '/home', '/pomodoro', '/habits', // Aujourd'hui
+        '/notes', '/review', '/graph', // Apprendre
         '/kanban', '/planning', // Organiser
         '/journal', // Réfléchir
       });
@@ -80,10 +81,9 @@ void main() {
       final light = AppTheme.colorsFor(AppThemeVariant.light);
       final dark = AppTheme.colorsFor(AppThemeVariant.dark);
 
-      double luminance(int argb) => ((argb & 0xFF) +
-              ((argb >> 8) & 0xFF) +
-              ((argb >> 16) & 0xFF))
-          .toDouble();
+      double luminance(int argb) =>
+          ((argb & 0xFF) + ((argb >> 8) & 0xFF) + ((argb >> 16) & 0xFF))
+              .toDouble();
 
       // C'est précisément ce que l'ancien `textTheme` en dur empêchait :
       // le texte sombre restait sombre sur un fond sombre.
@@ -112,7 +112,8 @@ void main() {
 
     test('la luminosité est cohérente avec la variante', () {
       expect(AppTheme.build(AppThemeVariant.dark).brightness, Brightness.dark);
-      expect(AppTheme.build(AppThemeVariant.light).brightness, Brightness.light);
+      expect(
+          AppTheme.build(AppThemeVariant.light).brightness, Brightness.light);
     });
 
     test('retombe sur le clair pour une valeur inconnue ou ancienne', () {
@@ -165,7 +166,8 @@ void main() {
     });
 
     test('borne le volume entre 0 et 1', () {
-      expect(UserSettings.fromJson(const {'ambient_volume': 5}).ambientVolume, 1);
+      expect(
+          UserSettings.fromJson(const {'ambient_volume': 5}).ambientVolume, 1);
       expect(
           UserSettings.fromJson(const {'ambient_volume': -3}).ambientVolume, 0);
     });
@@ -199,8 +201,7 @@ void main() {
 
   group('TextScalePreset', () {
     test('les échelles sont croissantes', () {
-      final scales =
-          TextScalePreset.values.map((p) => p.scale).toList();
+      final scales = TextScalePreset.values.map((p) => p.scale).toList();
       for (var i = 1; i < scales.length; i++) {
         expect(scales[i], greaterThan(scales[i - 1]));
       }
@@ -216,8 +217,8 @@ void main() {
         () {
       expect(AmbientSound.available, isNotEmpty);
       expect(AmbientSound.available.every((s) => s.isSynthesised), isTrue);
-      expect(AmbientSound.needingAssets.every((s) => s.assetPath != null),
-          isTrue);
+      expect(
+          AmbientSound.needingAssets.every((s) => s.assetPath != null), isTrue);
     });
 
     test('couvre les ambiances listées par le cahier des charges', () {

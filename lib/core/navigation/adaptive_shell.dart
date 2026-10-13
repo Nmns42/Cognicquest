@@ -115,6 +115,37 @@ class AdaptiveShell extends StatelessWidget {
     );
   }
 
+  /// Entrées du rail : chaque espace, suivi de ses raccourcis.
+  static final List<Object> _railEntries = [
+    for (final space in AppSpace.values) ...[
+      space,
+      for (final shortcut in RailShortcut.all)
+        if (shortcut.after == space) shortcut,
+    ],
+  ];
+
+  int? _railIndex(AppSpace? space) {
+    for (var i = 0; i < _railEntries.length; i++) {
+      final entry = _railEntries[i];
+      if (entry is RailShortcut &&
+          (currentLocation == entry.route ||
+              currentLocation.startsWith('${entry.route}/'))) {
+        return i;
+      }
+    }
+    final index = space == null ? -1 : _railEntries.indexOf(space);
+    return index < 0 ? null : index;
+  }
+
+  void _onRailSelected(BuildContext context, int index) {
+    final entry = _railEntries[index];
+    if (entry is AppSpace) {
+      _goToSpace(context, entry);
+    } else if (entry is RailShortcut && entry.route != currentLocation) {
+      context.go(entry.route);
+    }
+  }
+
   Widget _railScaffold(
     BuildContext context, {
     required AppSpace? space,
@@ -134,9 +165,9 @@ class AdaptiveShell extends StatelessWidget {
                   minWidth: 80,
                   minExtendedWidth: 208,
                   groupAlignment: -1,
-                  selectedIndex: space?.index,
+                  selectedIndex: _railIndex(space),
                   onDestinationSelected: (index) =>
-                      _goToSpace(context, AppSpace.values[index]),
+                      _onRailSelected(context, index),
                   // L'en-tête (logo et nom) déploie ou réduit le menu : plus
                   // de place pour l'écran quand on n'a besoin que des icônes.
                   leading: _RailHeader(
@@ -155,13 +186,24 @@ class AdaptiveShell extends StatelessWidget {
                     ),
                   ),
                   destinations: [
-                    for (final s in AppSpace.values)
-                      NavigationRailDestination(
-                        icon: Icon(s.icon),
-                        selectedIcon: Icon(s.selectedIcon),
-                        label: Text(s.label),
-                        padding: const EdgeInsets.symmetric(vertical: Space.xs),
-                      ),
+                    for (final entry in _railEntries)
+                      if (entry is AppSpace)
+                        NavigationRailDestination(
+                          icon: Icon(entry.icon),
+                          selectedIcon: Icon(entry.selectedIcon),
+                          label: Text(entry.label),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: Space.xs),
+                        )
+                      else if (entry is RailShortcut)
+                        // Raccourci : icône plus petite, sous son espace.
+                        NavigationRailDestination(
+                          icon: Icon(entry.icon, size: Sizes.iconMd),
+                          selectedIcon:
+                              Icon(entry.selectedIcon, size: Sizes.iconMd),
+                          label: Text(entry.label),
+                          padding: EdgeInsets.zero,
+                        ),
                   ],
                 ),
                 VerticalDivider(width: 1, color: context.cq.beigeDark),
@@ -291,9 +333,7 @@ class _SectionTab extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected
-            ? context.cq.vert
-            : Colors.transparent,
+        color: selected ? context.cq.vert : Colors.transparent,
         shape: const StadiumBorder(),
         child: InkWell(
           customBorder: const StadiumBorder(),

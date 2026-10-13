@@ -29,9 +29,13 @@ enum AppSpace {
     sections: [
       AppSection(route: '/home', label: 'Accueil', icon: Icons.home_outlined),
       AppSection(
-          route: '/pomodoro', label: 'Concentration', icon: Icons.timer_outlined),
-      // Habitudes : retirées de l'interface pour l'instant (code et données
-      // conservés, route toujours valide).
+          route: '/pomodoro',
+          label: 'Concentration',
+          icon: Icons.timer_outlined),
+      AppSection(
+          route: '/habits',
+          label: 'Habitudes',
+          icon: Icons.check_circle_outline),
     ],
   ),
   learn(
@@ -41,9 +45,9 @@ enum AppSpace {
     sections: [
       AppSection(
           route: '/notes', label: 'Fiches', icon: Icons.auto_stories_outlined),
-      AppSection(route: '/review', label: 'Réviser', icon: Icons.style_outlined),
-      // Graphe de connaissances : retiré de la navigation (les liens entre
-      // fiches restent, visibles dans les fiches elles-mêmes).
+      AppSection(
+          route: '/review', label: 'Réviser', icon: Icons.style_outlined),
+      AppSection(route: '/graph', label: 'Graphe', icon: Icons.hub_outlined),
     ],
   ),
   organize(
@@ -54,7 +58,9 @@ enum AppSpace {
       AppSection(
           route: '/kanban', label: 'Tâches', icon: Icons.view_kanban_outlined),
       AppSection(
-          route: '/planning', label: 'Planification', icon: Icons.event_outlined),
+          route: '/planning',
+          label: 'Planification',
+          icon: Icons.event_outlined),
     ],
   ),
   reflect(
@@ -113,6 +119,43 @@ enum AppSpace {
   /// ouverte, une session de révision), rien ne doit distraire.
   static bool isSectionRoot(String location) =>
       sectionOf(location)?.route == location;
+}
+
+/// Raccourcis du rail (grand écran) : des sections qu'on veut atteindre
+/// d'un clic, placées juste sous leur espace. Sur téléphone, elles restent
+/// accessibles par les onglets de l'espace.
+class RailShortcut {
+  const RailShortcut({
+    required this.after,
+    required this.route,
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+  });
+
+  /// Espace sous lequel le raccourci s'affiche.
+  final AppSpace after;
+  final String route;
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+
+  static const List<RailShortcut> all = [
+    RailShortcut(
+      after: AppSpace.today,
+      route: '/habits',
+      label: 'Habitudes',
+      icon: Icons.check_circle_outline,
+      selectedIcon: Icons.check_circle,
+    ),
+    RailShortcut(
+      after: AppSpace.learn,
+      route: '/graph',
+      label: 'Graphe',
+      icon: Icons.hub_outlined,
+      selectedIcon: Icons.hub,
+    ),
+  ];
 }
 
 /// Réglages : hors des quatre espaces.
