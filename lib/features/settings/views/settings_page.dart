@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../data/ambient_sound_engine.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/delete_account_button.dart';
 import '../widgets/routine_editor.dart';
 
 /// Système de configuration — « Changement de thème, taille du texte,
@@ -166,6 +168,14 @@ class SettingsPage extends ConsumerWidget {
             icon: const Icon(Icons.settings_backup_restore, size: 18),
             label: const Text('Rétablir les réglages par défaut'),
           ),
+
+          // Absent en mode démo : il n'y a pas de compte à supprimer.
+          if (ref.watch(currentUserProvider) != null) ...[
+            const SizedBox(height: 32),
+            const _SectionLabel('Compte'),
+            const SizedBox(height: 10),
+            const DeleteAccountButton(),
+          ],
         ],
       ),
     );

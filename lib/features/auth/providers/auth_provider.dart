@@ -224,6 +224,41 @@ class AuthController extends AsyncNotifier<void> {
     }
   }
 
+  /// Supprime définitivement le compte (RGPD) puis purge l'appareil.
+  ///
+  /// La fonction serveur `delete_own_account` efface l'utilisateur de
+  /// auth.users ; toutes ses données suivent en cascade. Elle exige le réseau :
+  /// en cas d'échec, rien n'est supprimé, ni sur le serveur ni en local.
+  Future<bool> deleteAccount() async {
+    state = const AsyncValue.loading();
+    try {
+      await _client.rpc('delete_own_account');
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(
+        const AuthFailure(
+          'Suppression impossible. Vérifie ta connexion internet et réessaie.',
+        ),
+        stackTrace,
+      );
+      return false;
+    }
+
+    // Le compte n'existe plus : seule la session locale reste à fermer.
+    // gotrue la retire avant d'appeler le serveur, qui peut refuser un jeton
+    // dont l'utilisateur a disparu.
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {}
+
+    try {
+      await ref.read(appDatabaseProvider).wipeAll();
+      state = const AsyncValue.data(null);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+    return true;
+  }
+
   /// Efface l'erreur affichée (ex. quand l'utilisateur recommence à taper).
   void clearError() {
     if (state.hasError) state = const AsyncValue.data(null);
