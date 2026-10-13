@@ -153,12 +153,7 @@ class LocalFirstNoteLinkRepository implements NoteLinkRepository {
   }
 
   Future<void> _pushQueue() async {
-    final pending = await (_db.select(_db.syncQueueEntries)
-          ..where((t) => t.entityTable.equals(_table))
-          ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
-        .get();
-
-    for (final entry in pending) {
+    await SyncQueue(_db).drain(_table, (entry) async {
       if (entry.operation == 'delete') {
         await _client.from(_table).delete().eq('id', entry.entityId);
         await (_db.delete(_db.localNoteLinks)
@@ -183,10 +178,7 @@ class LocalFirstNoteLinkRepository implements NoteLinkRepository {
               .write(const LocalNoteLinksCompanion(isSynced: Value(true)));
         }
       }
-      await (_db.delete(_db.syncQueueEntries)
-            ..where((t) => t.id.equals(entry.id)))
-          .go();
-    }
+    });
   }
 
   late final PullCursors _cursors = PullCursors(_db, _userId);

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -45,6 +46,8 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
   /// `false` sans vraie session (mode `DEV_BYPASS_AUTH`) : tout reste local,
   /// aucune requête ne part avec l'utilisateur fictif.
   final bool _syncEnabled;
+
+  late final SyncQueue _queue = SyncQueue(_db);
 
   static const String _journalTable = 'journal_entries';
   static const String _reframesTable = 'reframes';
@@ -305,7 +308,7 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
   }
 
   Future<void> _pushJournal() async {
-    for (final entry in await _pending(_journalTable)) {
+    await _queue.drain(_journalTable, (entry) async {
       final row = await (_db.select(_db.localJournalEntries)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -327,12 +330,11 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalJournalEntriesCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushReframes() async {
-    for (final entry in await _pending(_reframesTable)) {
+    await _queue.drain(_reframesTable, (entry) async {
       final row = await (_db.select(_db.localReframes)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -350,12 +352,11 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
         await (_db.update(_db.localReframes)..where((t) => t.id.equals(row.id)))
             .write(const LocalReframesCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushWhyChains() async {
-    for (final entry in await _pending(_whyTable)) {
+    await _queue.drain(_whyTable, (entry) async {
       final row = await (_db.select(_db.localWhyChains)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -374,12 +375,11 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalWhyChainsCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushErrors() async {
-    for (final entry in await _pending(_errorsTable)) {
+    await _queue.drain(_errorsTable, (entry) async {
       final row = await (_db.select(_db.localErrorLogs)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -398,12 +398,11 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalErrorLogsCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushProfile() async {
-    for (final entry in await _pending(_profileTable)) {
+    await _queue.drain(_profileTable, (entry) async {
       final row = await (_db.select(_db.localLearningProfiles)
             ..where((t) => t.userId.equals(entry.entityId)))
           .getSingleOrNull();
@@ -419,18 +418,10 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
               ..where((t) => t.userId.equals(row.userId)))
             .write(const LocalLearningProfilesCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
-  Future<List<SyncQueueEntry>> _pending(String table) =>
-      (_db.select(_db.syncQueueEntries)
-            ..where((t) => t.entityTable.equals(table))
-            ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
-          .get();
 
-  Future<void> _dequeue(int id) =>
-      (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 }
 
 final metacognitionRepositoryProvider =

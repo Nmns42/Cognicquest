@@ -9,7 +9,6 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
-import '../../../core/errors/data_failure.dart';
 import '../../../core/ordering/manual_order.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -299,100 +298,73 @@ class LocalFirstNoteRepository implements NoteRepository {
   }
 
   Future<void> _pushQueue() async {
-    final pending = await (_db.select(_db.syncQueueEntries)
-          ..where((t) => t.entityTable.equals(_notesTable))
-          ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
-        .get();
-
-    for (final entry in pending) {
-      try {
-        if (entry.operation == 'position') {
-          final row = await (_db.select(_db.localNotes)
-                ..where((t) => t.id.equals(entry.entityId)))
-              .getSingleOrNull();
-          if (row != null) {
-            // Une seule colonne : déplacer une fiche ne renvoie ni son contenu
-            // ni ses blocs.
-            await _client
-                .from(_notesTable)
-                .update({'position': row.position}).eq('id', row.id);
-          }
-        } else if (entry.operation == 'delete') {
-          await _client.from(_notesTable).delete().eq('id', entry.entityId);
-          await (_db.delete(_db.localNotes)
-                ..where((t) => t.id.equals(entry.entityId)))
-              .go();
-        } else {
-          final row = await (_db.select(_db.localNotes)
-                ..where((t) => t.id.equals(entry.entityId)))
-              .getSingleOrNull();
-          if (row == null) {
-            await _dequeue(entry.id);
-            continue;
-          }
-
-          final blocks = await (_db.select(_db.localNoteBlocks)
-                ..where((t) => t.noteId.equals(row.id))
-                ..orderBy([(t) => OrderingTerm.asc(t.position)]))
-              .get();
-
-          // `updated_at` est posé par le serveur (trigger) : on relit sa
-          // valeur pour que les comparaisons du pull se fassent entre deux
-          // heures serveur, jamais avec l'horloge de cet appareil.
-          final saved = await _client
+    await SyncQueue(_db).drain(_notesTable, (entry) async {
+      if (entry.operation == 'position') {
+        final row = await (_db.select(_db.localNotes)
+              ..where((t) => t.id.equals(entry.entityId)))
+            .getSingleOrNull();
+        if (row != null) {
+          // Une seule colonne : déplacer une fiche ne renvoie ni son contenu
+          // ni ses blocs.
+          await _client
               .from(_notesTable)
-              .upsert(_toRemoteJson(row))
-              .select('updated_at')
-              .single();
-          final serverUpdatedAt =
-              DateTime.parse(saved['updated_at'] as String).toLocal();
+              .update({'position': row.position}).eq('id', row.id);
+        }
+      } else if (entry.operation == 'delete') {
+        await _client.from(_notesTable).delete().eq('id', entry.entityId);
+        await (_db.delete(_db.localNotes)
+              ..where((t) => t.id.equals(entry.entityId)))
+            .go();
+      } else {
+        final row = await (_db.select(_db.localNotes)
+              ..where((t) => t.id.equals(entry.entityId)))
+            .getSingleOrNull();
+        if (row == null) return;
 
-          await _client.from(_blocksTable).delete().eq('note_id', row.id);
-          if (blocks.isNotEmpty) {
-            await _client.from(_blocksTable).insert([
-              for (final block in blocks)
-                {
-                  'id': block.id,
-                  'note_id': block.noteId,
-                  'type': block.type,
-                  'content': block.content,
-                  'is_checked': block.isChecked,
-                  'position': block.position,
-                },
-            ]);
-          }
+        final blocks = await (_db.select(_db.localNoteBlocks)
+              ..where((t) => t.noteId.equals(row.id))
+              ..orderBy([(t) => OrderingTerm.asc(t.position)]))
+            .get();
 
-          // Conditionnel : une modification faite pendant l'envoi a changé
-          // `updatedAt` et remis une entrée en file ; elle ne doit pas être
-          // marquée synchronisée.
-          await (_db.update(_db.localNotes)
-                ..where((t) =>
-                    t.id.equals(row.id) & t.updatedAt.equals(row.updatedAt)))
-              .write(LocalNotesCompanion(
-                isSynced: const Value(true),
-                updatedAt: Value(serverUpdatedAt),
-              ));
+        // `updated_at` est posé par le serveur (trigger) : on relit sa
+        // valeur pour que les comparaisons du pull se fassent entre deux
+        // heures serveur, jamais avec l'horloge de cet appareil.
+        final saved = await _client
+            .from(_notesTable)
+            .upsert(_toRemoteJson(row))
+            .select('updated_at')
+            .single();
+        final serverUpdatedAt =
+            DateTime.parse(saved['updated_at'] as String).toLocal();
+
+        await _client.from(_blocksTable).delete().eq('note_id', row.id);
+        if (blocks.isNotEmpty) {
+          await _client.from(_blocksTable).insert([
+            for (final block in blocks)
+              {
+                'id': block.id,
+                'note_id': block.noteId,
+                'type': block.type,
+                'content': block.content,
+                'is_checked': block.isChecked,
+                'position': block.position,
+              },
+          ]);
         }
 
-        await _dequeue(entry.id);
-      } catch (error) {
-        // On conserve l'entrée et on note l'échec : la prochaine tentative
-        // reprendra là où on s'est arrêté.
-        await (_db.update(_db.syncQueueEntries)
-              ..where((t) => t.id.equals(entry.id)))
-            .write(
-          SyncQueueEntriesCompanion(
-            attempts: Value(entry.attempts + 1),
-            lastError: Value(DataFailure.from(error).message),
-          ),
-        );
-        rethrow;
+        // Conditionnel : une modification faite pendant l'envoi a changé
+        // `updatedAt` et remis une entrée en file ; elle ne doit pas être
+        // marquée synchronisée.
+        await (_db.update(_db.localNotes)
+              ..where((t) =>
+                  t.id.equals(row.id) & t.updatedAt.equals(row.updatedAt)))
+            .write(LocalNotesCompanion(
+              isSynced: const Value(true),
+              updatedAt: Value(serverUpdatedAt),
+            ));
       }
-    }
+    });
   }
-
-  Future<void> _dequeue(int id) =>
-      (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 
   late final PullCursors _cursors = PullCursors(_db, _userId);
 

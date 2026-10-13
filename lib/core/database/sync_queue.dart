@@ -40,10 +40,8 @@ class SkipEntry implements Exception {
   const SkipEntry();
 }
 
-/// Accès à la file [SyncQueueEntries], partagé par les repositories du Lot 10.
-///
-/// Les repositories des Lots 4 à 8 réimplémentent chacun ces quelques
-/// requêtes ; on les factorise ici plutôt que de les copier une sixième fois.
+/// Accès à la file [SyncQueueEntries], partagé par tous les repositories
+/// local-first : tous envoient leurs écritures par [drain].
 class SyncQueue {
   const SyncQueue(this._db);
 
@@ -91,18 +89,38 @@ class SyncQueue {
         .map((row) => row.read(count) ?? 0);
   }
 
+  /// Nombre d'échecs serveur après lequel une entrée est mise de côté :
+  /// [drain] ne la tente plus, jusqu'au prochain lancement
+  /// ([releaseParked]) ou à la prochaine modification de l'entité
+  /// ([enqueue] repart de zéro).
+  static const int maxAttempts = 5;
+
+  /// Redonne une chance aux entrées mises de côté, une seule tentative
+  /// chacune : un refus dû à un bug serveur corrigé depuis finit par passer,
+  /// sans relancer de boucle infinie sur un refus définitif.
+  Future<void> releaseParked() =>
+      (_db.update(_db.syncQueueEntries)
+            ..where((t) => t.attempts.isBiggerOrEqualValue(maxAttempts)))
+          .write(const SyncQueueEntriesCompanion(
+            attempts: Value(maxAttempts - 1),
+          ));
+
   /// Envoie, dans l'ordre d'arrivée, les entrées de [table] via [push].
   ///
   /// Une entrée qui échoue reste dans la file avec son erreur. Hors ligne, on
   /// s'arrête aussitôt (les suivantes échoueraient pareil) en relançant
-  /// l'erreur ; sinon on passe à la suivante, pour qu'une seule ligne
-  /// refusée par le serveur ne bloque pas toute la synchronisation.
+  /// l'erreur, sans compter d'échec : la coupure n'est pas la faute de
+  /// l'entrée. Sinon on compte l'échec et on passe à la suivante, pour qu'une
+  /// seule ligne refusée par le serveur ne bloque ni les autres, ni le pull
+  /// qui suit ; au-delà de [maxAttempts] échecs, elle n'est plus tentée.
   Future<void> drain(
     String table,
     Future<void> Function(SyncQueueEntry entry) push,
   ) async {
     final pending = await (_db.select(_db.syncQueueEntries)
-          ..where((t) => t.entityTable.equals(table))
+          ..where((t) =>
+              t.entityTable.equals(table) &
+              t.attempts.isSmallerThanValue(maxAttempts))
           ..orderBy([(t) => OrderingTerm.asc(t.id)]))
         .get();
 
@@ -120,7 +138,9 @@ class SyncQueue {
               ..where((t) => t.id.equals(entry.id)))
             .write(
           SyncQueueEntriesCompanion(
-            attempts: Value(entry.attempts + 1),
+            attempts: Value(
+              failure.isOffline ? entry.attempts : entry.attempts + 1,
+            ),
             lastError: Value(failure.message),
           ),
         );

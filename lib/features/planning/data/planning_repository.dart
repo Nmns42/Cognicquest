@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/planning_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../notes/data/note_repository.dart';
@@ -46,6 +47,8 @@ class LocalFirstPlanningRepository implements PlanningRepository {
   /// `false` sans vraie session (mode `DEV_BYPASS_AUTH`) : tout reste local,
   /// aucune requête ne part avec l'utilisateur fictif.
   final bool _syncEnabled;
+
+  late final SyncQueue _queue = SyncQueue(_db);
 
   static const String _goalsTable = 'study_goals';
   static const String _itemsTable = 'plan_items';
@@ -324,7 +327,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
   }
 
   Future<void> _pushGoals() async {
-    for (final entry in await _pending(_goalsTable)) {
+    await _queue.drain(_goalsTable, (entry) async {
       if (entry.operation == 'delete') {
         await _client.from(_goalsTable).delete().eq('id', entry.entityId);
       } else {
@@ -351,12 +354,11 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               .write(const LocalStudyGoalsCompanion(isSynced: Value(true)));
         }
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushItems() async {
-    for (final entry in await _pending(_itemsTable)) {
+    await _queue.drain(_itemsTable, (entry) async {
       if (entry.operation == 'delete') {
         await _client.from(_itemsTable).delete().eq('id', entry.entityId);
       } else {
@@ -383,12 +385,11 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               .write(const LocalPlanItemsCompanion(isSynced: Value(true)));
         }
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushSamples() async {
-    for (final entry in await _pending(_samplesTable)) {
+    await _queue.drain(_samplesTable, (entry) async {
       final row = await (_db.select(_db.localSpeedSamples)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -406,12 +407,11 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalSpeedSamplesCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushTargets() async {
-    for (final entry in await _pending(_targetsTable)) {
+    await _queue.drain(_targetsTable, (entry) async {
       if (entry.operation == 'delete') {
         await _client.from(_targetsTable).delete().eq('id', entry.entityId);
       } else {
@@ -438,18 +438,10 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               .write(const LocalExamTargetsCompanion(isSynced: Value(true)));
         }
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
-  Future<List<SyncQueueEntry>> _pending(String table) =>
-      (_db.select(_db.syncQueueEntries)
-            ..where((t) => t.entityTable.equals(table))
-            ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
-          .get();
 
-  Future<void> _dequeue(int id) =>
-      (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 }
 
 final planningRepositoryProvider = Provider<PlanningRepository?>((ref) {

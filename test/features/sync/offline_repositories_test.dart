@@ -106,7 +106,10 @@ void main() {
 
       final pending = await queue();
       expect(pending.single.entityId, created.id);
-      expect(pending.single.attempts, greaterThanOrEqualTo(1));
+      // Une coupure n'est pas un refus : elle ne rapproche pas l'entrée du
+      // plafond d'échecs, mais son erreur est notée.
+      expect(pending.single.attempts, 0);
+      expect(pending.single.lastError, isNotNull);
       expect(await repository.watchAll().first, hasLength(1));
     });
   });

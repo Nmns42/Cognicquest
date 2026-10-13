@@ -61,6 +61,8 @@ class LocalFirstReviewRepository implements ReviewRepository {
   /// aucune requête ne part avec l'utilisateur fictif.
   final bool _syncEnabled;
 
+  late final SyncQueue _queue = SyncQueue(_db);
+
   static const String _cardsTable = 'flashcards';
   static const String _explanationsTable = 'explanations';
   static const String _sessionsTable = 'sq3r_sessions';
@@ -321,7 +323,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
   }
 
   Future<void> _pushCards() async {
-    for (final entry in await _pending(_cardsTable)) {
+    await _queue.drain(_cardsTable, (entry) async {
       if (entry.operation == 'delete') {
         await _client.from(_cardsTable).delete().eq('id', entry.entityId);
         await (_db.delete(_db.localFlashcards)
@@ -338,12 +340,11 @@ class LocalFirstReviewRepository implements ReviewRepository {
               .write(const LocalFlashcardsCompanion(isSynced: Value(true)));
         }
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushExplanations() async {
-    for (final entry in await _pending(_explanationsTable)) {
+    await _queue.drain(_explanationsTable, (entry) async {
       final row = await (_db.select(_db.localExplanations)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -360,12 +361,11 @@ class LocalFirstReviewRepository implements ReviewRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalExplanationsCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
 
   Future<void> _pushSessions() async {
-    for (final entry in await _pending(_sessionsTable)) {
+    await _queue.drain(_sessionsTable, (entry) async {
       final row = await (_db.select(_db.localSq3rSessions)
             ..where((t) => t.id.equals(entry.entityId)))
           .getSingleOrNull();
@@ -386,18 +386,8 @@ class LocalFirstReviewRepository implements ReviewRepository {
               ..where((t) => t.id.equals(row.id)))
             .write(const LocalSq3rSessionsCompanion(isSynced: Value(true)));
       }
-      await _dequeue(entry.id);
-    }
+    });
   }
-
-  Future<List<SyncQueueEntry>> _pending(String table) =>
-      (_db.select(_db.syncQueueEntries)
-            ..where((t) => t.entityTable.equals(table))
-            ..orderBy([(t) => OrderingTerm.asc(t.queuedAt)]))
-          .get();
-
-  Future<void> _dequeue(int id) =>
-      (_db.delete(_db.syncQueueEntries)..where((t) => t.id.equals(id))).go();
 
   late final PullCursors _cursors = PullCursors(_db, _userId);
 

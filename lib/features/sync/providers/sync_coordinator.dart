@@ -107,8 +107,14 @@ class SyncCoordinator extends Notifier<SyncStatus> {
       pendingSubscription.cancel();
     });
 
-    // Après le premier build : `state` n'est pas encore lisible ici.
-    Future.microtask(syncNow);
+    // Après le premier build : `state` n'est pas encore lisible ici. Les
+    // entrées mises de côté après trop d'échecs ont droit à un nouvel essai
+    // à chaque ouverture de session.
+    final queue = SyncQueue(ref.read(appDatabaseProvider));
+    Future.microtask(() async {
+      await queue.releaseParked();
+      await syncNow();
+    });
     return const SyncStatus();
   }
 
