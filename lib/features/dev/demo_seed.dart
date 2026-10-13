@@ -14,6 +14,8 @@ import '../graph/data/note_link_repository.dart';
 import '../habits/data/habit_repository.dart';
 import '../kanban/data/task_repository.dart';
 import '../metacognition/data/metacognition_repository.dart';
+import '../auth/providers/auth_provider.dart';
+import '../notes/data/folder_repository.dart';
 import '../notes/data/note_repository.dart';
 import '../planning/data/planning_repository.dart';
 import '../pomodoro/data/pomodoro_repository.dart';
@@ -34,7 +36,7 @@ final demoSeedProvider = FutureProvider<void>((ref) async {
   if (alreadySeeded != null) return;
 
   try {
-    await _DemoSeeder(ref, db, denseGraph: _DemoSeeder._denseGraph).run();
+    await _DemoSeeder(ref.read, db, denseGraph: _DemoSeeder._denseGraph).run();
   } catch (error, stackTrace) {
     // Une démo incomplète ne doit pas empêcher l'app de démarrer.
     debugPrint('Démo : chargement interrompu ($error)\n$stackTrace');
@@ -44,18 +46,52 @@ final demoSeedProvider = FutureProvider<void>((ref) async {
 /// Point d'entrée exposé pour les tests : ils n'ont pas `DEV_BYPASS_AUTH`.
 @visibleForTesting
 Future<void> runDemoSeed(Ref ref, AppDatabase db, {bool denseGraph = false}) =>
-    _DemoSeeder(ref, db, denseGraph: denseGraph).run();
+    _DemoSeeder(ref.read, db, denseGraph: denseGraph).run();
+
+/// Lecture d'un provider, commune à `Ref` et `WidgetRef`.
+typedef ProviderReader = T Function<T>(ProviderListenable<T> provider);
+
+/// Résultat du bouton « Charger les données de démo ».
+enum DemoLoadResult { loaded, alreadyLoaded, unavailable }
+
+/// Titre d'une fiche de la démo : sa présence signale une démo déjà chargée.
+const String demoMarkerTitle = 'Chapitre 2 – Dérivées';
+
+/// Charge la démo dans le compte courant (bouton des réglages), sur la
+/// version déployée comme en local. Les données passent par les dépôts
+/// habituels : elles restent sur l'appareil et se synchronisent avec le
+/// compte comme n'importe quelle saisie. Ne charge qu'une fois.
+Future<DemoLoadResult> loadDemoData(ProviderReader read) async {
+  final userId = read(currentUserIdProvider);
+  if (userId == null || read(noteRepositoryProvider) == null) {
+    return DemoLoadResult.unavailable;
+  }
+  final db = read(appDatabaseProvider);
+  final existing = await (db.select(db.localNotes)
+        ..where((t) =>
+            t.userId.equals(userId) &
+            t.title.equals(demoMarkerTitle) &
+            t.isDeleted.equals(false))
+        ..limit(1))
+      .getSingleOrNull();
+  if (existing != null) return DemoLoadResult.alreadyLoaded;
+
+  await _DemoSeeder(read, db).run();
+  return DemoLoadResult.loaded;
+}
 
 class _DemoSeeder {
-  _DemoSeeder(this.ref, this.db, {this.denseGraph = false});
+  _DemoSeeder(this.read, this.db, {this.denseGraph = false});
 
-  final Ref ref;
+  final ProviderReader read;
   final AppDatabase db;
 
   /// Ajoute le carnet dense des tests du graphe (cf. [_seedDenseGraph]).
   final bool denseGraph;
 
-  static const String _user = AppConfig.devUserId;
+  /// Compte qui reçoit la démo : le vrai compte connecté, ou l'utilisateur
+  /// fictif du mode `DEV_BYPASS_AUTH`.
+  late final String _user = read(currentUserIdProvider) ?? AppConfig.devUserId;
   final DateTime _now = DateTime.now();
 
   DateTime _daysAgo(int days, {int hour = 10}) {
@@ -68,11 +104,13 @@ class _DemoSeeder {
   Future<void> run() async {
     final notes = await _seedNotes();
     await _seedLinks(notes);
+    final folders = await _seedFolders(notes);
     if (denseGraph) await _seedDenseGraph();
     await _seedTasks();
     await _seedHabits();
     await _seedPomodoro();
     await _seedFlashcards(notes);
+    await _fileCards(folders);
     await _seedMetacognition(notes);
     await _seedPlanning(notes);
     debugPrint('Démo : données chargées.');
@@ -81,7 +119,7 @@ class _DemoSeeder {
   // ── Fiches ───────────────────────────────────────────────────────────────
 
   Future<Map<String, Note>> _seedNotes() async {
-    final repository = ref.read(noteRepositoryProvider)!;
+    final repository = read(noteRepositoryProvider)!;
     final created = <String, Note>{};
 
     Future<void> note(
@@ -267,7 +305,7 @@ class _DemoSeeder {
   }
 
   Future<void> _seedLinks(Map<String, Note> notes) async {
-    final repository = ref.read(noteLinkRepositoryProvider)!;
+    final repository = read(noteLinkRepositoryProvider)!;
 
     Future<void> link(String from, String to, NoteLinkType type) =>
         repository.link(
@@ -299,8 +337,8 @@ class _DemoSeeder {
   /// tous les 5, tous types de lien confondus ; les 4 dernières restent
   /// isolées.
   Future<void> _seedDenseGraph({int count = 60, int isolated = 4}) async {
-    final notes = ref.read(noteRepositoryProvider)!;
-    final links = ref.read(noteLinkRepositoryProvider)!;
+    final notes = read(noteRepositoryProvider)!;
+    final links = read(noteLinkRepositoryProvider)!;
     const subjects = ['Maths', 'Physique', 'Info', 'Méthodo'];
     const types = NoteLinkType.values;
 
@@ -335,10 +373,56 @@ class _DemoSeeder {
     }
   }
 
+  // ── Dossiers de l'explorateur ──────────────────────────────────────────
+
+  /// Range les fiches dans une petite arborescence ; renvoie le dossier de
+  /// chaque fiche, pour y ranger aussi ses cartes.
+  Future<Map<String, String>> _seedFolders(Map<String, Note> notes) async {
+    final repository = read(folderRepositoryProvider);
+    if (repository == null) return const {};
+    final maths = await repository.create('Mathématiques');
+    final analyse = await repository.create('Analyse', parentId: maths.id);
+    final physique = await repository.create('Physique');
+    final info = await repository.create('Informatique');
+    final methodes = await repository.create('Méthodes de travail');
+
+    final placement = {
+      'derivees': analyse.id,
+      'limites': analyse.id,
+      'integrales': analyse.id,
+      'thermo': physique.id,
+      'meca': physique.id,
+      'python': info.id,
+      'memoire': methodes.id,
+      'pomodoro': methodes.id,
+    };
+    final byNoteId = <String, String>{};
+    for (final MapEntry(key: key, value: folderId) in placement.entries) {
+      final note = notes[key];
+      if (note == null) continue;
+      await repository.moveNote(note.id, folderId);
+      byNoteId[note.id] = folderId;
+    }
+    return byNoteId;
+  }
+
+  /// Chaque carte rejoint le dossier de sa fiche d'origine.
+  Future<void> _fileCards(Map<String, String> folderOfNote) async {
+    final repository = read(folderRepositoryProvider);
+    if (repository == null) return;
+    final cards = await (db.select(db.localFlashcards)
+          ..where((t) => t.userId.equals(_user)))
+        .get();
+    for (final card in cards) {
+      final folderId = folderOfNote[card.noteId];
+      if (folderId != null) await repository.moveCard(card.id, folderId);
+    }
+  }
+
   // ── Kanban / Eisenhower ──────────────────────────────────────────────────
 
   Future<void> _seedTasks() async {
-    final repository = ref.read(taskRepositoryProvider)!;
+    final repository = read(taskRepositoryProvider)!;
     final positions = <TaskStatus, int>{};
 
     Future<void> task(
@@ -400,7 +484,7 @@ class _DemoSeeder {
   // ── Habitudes ────────────────────────────────────────────────────────────
 
   Future<void> _seedHabits() async {
-    final repository = ref.read(habitRepositoryProvider)!;
+    final repository = read(habitRepositoryProvider)!;
 
     Future<void> habit(
       String name,
@@ -432,7 +516,7 @@ class _DemoSeeder {
   // ── Pomodoro ─────────────────────────────────────────────────────────────
 
   Future<void> _seedPomodoro() async {
-    final repository = ref.read(pomodoroRepositoryProvider)!;
+    final repository = read(pomodoroRepositoryProvider)!;
     // Sessions par jour sur la semaine écoulée, aujourd'hui compris.
     const perDay = [3, 4, 2, 5, 0, 3, 6, 2];
     for (var day = 0; day < perDay.length; day++) {
@@ -448,7 +532,7 @@ class _DemoSeeder {
   // ── Flashcards ───────────────────────────────────────────────────────────
 
   Future<void> _seedFlashcards(Map<String, Note> notes) async {
-    final repository = ref.read(reviewRepositoryProvider)!;
+    final repository = read(reviewRepositoryProvider)!;
     final cards = [
       ('derivees', 'Dérivée de u·v ?', 'u\'v + uv\''),
       ('derivees', 'Dérivée de f∘g ?', 'g\' × f\'∘g'),
@@ -484,7 +568,7 @@ class _DemoSeeder {
   // ── Journal, erreurs ─────────────────────────────────────────────────────
 
   Future<void> _seedMetacognition(Map<String, Note> notes) async {
-    final repository = ref.read(metacognitionRepositoryProvider)!;
+    final repository = read(metacognitionRepositoryProvider)!;
 
     final journal = [
       (
@@ -613,7 +697,7 @@ class _DemoSeeder {
   // ── Objectifs SMART et Gantt ─────────────────────────────────────────────
 
   Future<void> _seedPlanning(Map<String, Note> notes) async {
-    final repository = ref.read(planningRepositoryProvider)!;
+    final repository = read(planningRepositoryProvider)!;
 
     final goal = StudyGoal(
       id: newPlanningId(),

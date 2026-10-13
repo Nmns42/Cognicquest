@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
+import '../widgets/demo_data_button.dart';
 import '../widgets/sign_out_button.dart';
 import '../widgets/routine_editor.dart';
 import '../../../core/theme/tokens.dart';
@@ -40,7 +41,8 @@ class SettingsPage extends ConsumerWidget {
           Text(
             'S\'applique à toute l\'application, y compris aux écrans déjà '
             'ouverts.',
-            style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+            style: TextStyle(
+                fontSize: TypeScale.caption, color: context.cq.textMuted),
           ),
           const SizedBox(height: 10),
           SegmentedButton<TextScalePreset>(
@@ -54,8 +56,7 @@ class SettingsPage extends ConsumerWidget {
             ],
             selected: {settings.textScale},
             showSelectedIcon: false,
-            onSelectionChanged: (values) =>
-                notifier.setTextScale(values.first),
+            onSelectionChanged: (values) => notifier.setTextScale(values.first),
           ),
           const SizedBox(height: 12),
           Container(
@@ -69,7 +70,9 @@ class SettingsPage extends ConsumerWidget {
             child: Text(
               'Aperçu — CognicQuest t\'aide à apprendre mieux, chaque jour.',
               style: TextStyle(
-                  fontSize: TypeScale.body, height: 1.45, color: context.cq.textPrimary),
+                  fontSize: TypeScale.body,
+                  height: 1.45,
+                  color: context.cq.textPrimary),
             ),
           ),
           const SizedBox(height: 26),
@@ -103,7 +106,8 @@ class SettingsPage extends ConsumerWidget {
                 style: TextStyle(fontSize: TypeScale.body)),
             subtitle: Text(
               'Transitions plus courtes, moins de mouvement à l\'écran',
-              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           SwitchListTile.adaptive(
@@ -114,7 +118,8 @@ class SettingsPage extends ConsumerWidget {
                 style: TextStyle(fontSize: TypeScale.body)),
             subtitle: Text(
               'Navigation rapide au clavier sur web et bureau',
-              style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           if (settings.keyboardShortcutsEnabled) ...[
@@ -129,7 +134,9 @@ class SettingsPage extends ConsumerWidget {
             'Un cadre fixe le matin et le soir coûte moins d\'énergie qu\'une '
             'décision à reprendre chaque jour.',
             style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
+                fontSize: TypeScale.caption,
+                color: context.cq.textMuted,
+                height: 1.4),
           ),
           const SizedBox(height: 12),
           RoutineEditor(
@@ -177,6 +184,11 @@ class SettingsPage extends ConsumerWidget {
             icon: const Icon(Icons.settings_backup_restore, size: 18),
             label: const Text('Rétablir les réglages par défaut'),
           ),
+
+          const SizedBox(height: Space.xxl),
+          const _SectionLabel('Données de démo'),
+          const SizedBox(height: Space.sm),
+          const DemoDataButton(),
 
           // Absent en mode démo : il n'y a pas de compte à supprimer.
           if (ref.watch(currentUserProvider) != null) ...[
@@ -316,7 +328,8 @@ class _ThemePicker extends StatelessWidget {
               onTap: () => onSelect(variant),
               borderRadius: BorderRadius.circular(Radii.md),
               child: AnimatedContainer(
-                duration: Motion.duration(context, const Duration(milliseconds: 150)),
+                duration:
+                    Motion.duration(context, const Duration(milliseconds: 150)),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: variant == selected
@@ -442,8 +455,8 @@ class _ShortcutList extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: context.cq.cardColor,
                       borderRadius: BorderRadius.circular(Radii.md),
@@ -459,7 +472,8 @@ class _ShortcutList extends StatelessWidget {
                   Expanded(
                     child: Text(description,
                         style: TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
+                            fontSize: TypeScale.caption,
+                            color: context.cq.textMuted)),
                   ),
                 ],
               ),
