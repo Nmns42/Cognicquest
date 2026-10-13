@@ -13,6 +13,10 @@ import '../providers/note_provider.dart';
 import '../widgets/note_block_editor.dart';
 import '../widgets/note_meta_sheet.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../router/app_router.dart';
+import '../../graph/providers/graph_provider.dart';
+import '../domain/wiki_links.dart';
+import '../widgets/slash_commands.dart';
 
 /// Éditeur de fiche, avec **sauvegarde automatique** — « Sauvegarde automatique
 /// en local » (CdC). Aucun bouton « Enregistrer » : l'écriture part en SQLite
@@ -29,6 +33,12 @@ class NoteEditorPage extends ConsumerStatefulWidget {
 class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
+
+  /// Champ du texte libre : sert à placer le menu « / » sous le curseur.
+  final _contentKey = GlobalKey();
+
+  /// Texte avant la dernière frappe, pour reconnaître « / » et « [[ ».
+  String _lastContent = '';
 
   Timer? _autosave;
   bool _initialised = false;
@@ -56,6 +66,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _draft = note;
     _titleController.text = note.title;
     _contentController.text = note.content;
+    _lastContent = note.content;
   }
 
   void _scheduleSave() {
@@ -69,12 +80,83 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     if (draft == null) return;
 
     _hasUnsavedEdits = false;
-    ref.read(noteActionsProvider).save(
-          draft.copyWith(
-            title: _titleController.text,
-            content: _contentController.text,
-          ),
-        );
+    final note = draft.copyWith(
+      title: _titleController.text,
+      content: _contentController.text,
+    );
+    ref.read(noteActionsProvider).save(note);
+    _linkCitedNotes(note);
+  }
+
+  /// Chaque `[[Titre]]` cité relie cette fiche à la fiche de ce titre (le
+  /// dépôt ignore un lien déjà présent). Lu tout de suite : `_persist` peut
+  /// tourner pendant la fermeture de l'écran.
+  void _linkCitedNotes(Note note) {
+    final notes = ref.read(notesProvider).valueOrNull ?? const <Note>[];
+    final targets = WikiLinks.targetsOf(note, notes);
+    if (targets.isEmpty) return;
+    final actions = ref.read(graphActionsProvider);
+    for (final target in targets) {
+      unawaited(actions.link(sourceId: note.id, targetId: target.id));
+    }
+  }
+
+  TextStyle _contentStyle(BuildContext context) => TextStyle(
+      fontSize: TypeScale.bodyLarge,
+      height: 1.5,
+      color: context.cq.textPrimary);
+
+  void _onContentChanged(String value) {
+    final trigger = detectTrigger(_lastContent, _contentController.value);
+    _lastContent = value;
+    _scheduleSave();
+    if (trigger != null) unawaited(_onTrigger(trigger));
+  }
+
+  Future<void> _onTrigger(Trigger trigger) async {
+    final fieldContext = _contentKey.currentContext;
+    if (fieldContext == null) return;
+    if (trigger == Trigger.wikiLink) return _insertNoteLink();
+
+    final anchor = caretRect(
+        fieldContext, _contentController.value, _contentStyle(context));
+    final command = await showSlashMenu(context, anchor: anchor);
+    if (command == null || !mounted) return;
+
+    // Le « / » tapé est remplacé par la syntaxe de la commande ; au milieu
+    // d'une ligne, la commande commence une nouvelle ligne.
+    final value = _contentController.value;
+    final slash = value.selection.baseOffset - 1;
+    if (slash < 0 || value.text[slash] != '/') return;
+    final atLineStart = slash == 0 || value.text[slash - 1] == '\n';
+    final insert = '${atLineStart ? '' : '\n'}${command.markdown}';
+    _replaceContent(slash, slash + 1, insert);
+    if (command == SlashCommand.noteLink) await _insertNoteLink();
+  }
+
+  /// Ouvre le choix d'une fiche et complète le « [[ » qui précède le curseur
+  /// en `[[Titre]]`.
+  Future<void> _insertNoteLink() async {
+    final notes = ref.read(notesProvider).valueOrNull ?? const <Note>[];
+    final target = await showNotePicker(context,
+        notes: notes, excludeId: _draft?.id);
+    if (target == null || !mounted) return;
+    final value = _contentController.value;
+    final caret = value.selection.baseOffset;
+    final start = caret >= 2 && value.text.substring(caret - 2, caret) == '[['
+        ? caret - 2
+        : caret;
+    _replaceContent(start, caret, '[[${target.displayTitle}]]');
+  }
+
+  void _replaceContent(int start, int end, String insert) {
+    final text = _contentController.text.replaceRange(start, end, insert);
+    _contentController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: start + insert.length),
+    );
+    _lastContent = text;
+    _scheduleSave();
   }
 
   void _updateDraft(Note Function(Note) transform) {
@@ -243,8 +325,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 _MetaSummary(note: draft),
                 const SizedBox(height: 12),
                 TextField(
+                  key: _contentKey,
                   controller: _contentController,
-                  onChanged: (_) => _scheduleSave(),
+                  onChanged: _onContentChanged,
                   minLines: 6,
                   maxLines: null,
                   textCapitalization: TextCapitalization.sentences,
@@ -252,8 +335,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   style:  TextStyle(
                       fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
                   decoration: const InputDecoration(
-                    hintText:
-                        'Écris ici. Le Markdown est accepté (**gras**, # titre, - liste).',
+                    hintText: 'Écris ici. Tape / pour insérer un titre, une '
+                        'liste, une citation… et [[ pour lier une fiche.',
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -264,6 +347,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 const SizedBox(height: 20),
                 NoteBlockEditor(
                   blocks: draft.blocks,
+                  noteId: draft.id,
+                  linkableNotes:
+                      ref.watch(notesProvider).valueOrNull ?? const [],
                   onChanged: (blocks) =>
                       _updateDraft((d) => d.copyWith(blocks: blocks)),
                 ),
@@ -368,15 +454,22 @@ class _AddBlockBar extends StatelessWidget {
   }
 }
 
-class _MarkdownPreview extends StatelessWidget {
+class _MarkdownPreview extends ConsumerWidget {
   const _MarkdownPreview({required this.note});
 
   final Note note;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notes = ref.watch(notesProvider).valueOrNull ?? const <Note>[];
     return Markdown(
-      data: note.toMarkdown(),
+      data: WikiLinks.toMarkdown(note.toMarkdown(), notes),
+      // Un lien vers une fiche ouvre la fiche ; les autres liens restent du
+      // texte (pas de sortie inattendue de l'app).
+      onTapLink: (_, href, __) {
+        final id = WikiLinks.noteIdOf(href);
+        if (id != null) context.push('${AppRoute.notes}/$id');
+      },
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 60),
       styleSheet: MarkdownStyleSheet(
         h1:  TextStyle(

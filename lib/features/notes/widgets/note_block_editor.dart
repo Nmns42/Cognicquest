@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
+import 'slash_commands.dart';
 
 /// Édition des blocs structurés d'une fiche.
 ///
@@ -14,10 +17,18 @@ class NoteBlockEditor extends StatefulWidget {
     super.key,
     required this.blocks,
     required this.onChanged,
+    this.noteId,
+    this.linkableNotes = const [],
   });
 
   final List<NoteBlock> blocks;
   final ValueChanged<List<NoteBlock>> onChanged;
+
+  /// Fiche éditée : exclue des fiches proposées par « [[ ».
+  final String? noteId;
+
+  /// Fiches proposées quand on tape « [[ » ou « / Lien vers une fiche ».
+  final List<Note> linkableNotes;
 
   @override
   State<NoteBlockEditor> createState() => _NoteBlockEditorState();
@@ -54,6 +65,69 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
       for (final b in widget.blocks)
         if (b.id == block.id) updated else b,
     ]);
+  }
+
+  /// Frappe dans un bloc : « / » dans un bloc vide ouvre le menu des types,
+  /// « [[ » ouvre le choix d'une fiche à lier.
+  void _onContentChanged(BuildContext rowContext, NoteBlock block,
+      String previous, String value) {
+    _update(block, block.copyWith(content: value));
+    final controller = _controllers[block.id];
+    if (controller == null) return;
+    final trigger = detectTrigger(previous, controller.value);
+    if (trigger == Trigger.wikiLink) {
+      unawaited(_insertNoteLink(block, controller));
+    } else if (trigger == Trigger.slash && value == '/') {
+      unawaited(_openSlashMenu(rowContext, block, controller));
+    }
+  }
+
+  Future<void> _openSlashMenu(BuildContext rowContext, NoteBlock block,
+      TextEditingController controller) async {
+    final box = rowContext.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final anchor = box.localToGlobal(Offset.zero) & box.size;
+    final command = await showSlashMenu(
+      context,
+      anchor: Rect.fromLTWH(anchor.left, anchor.top, 1, anchor.height),
+      commands: SlashCommand.forBlocks,
+    );
+    if (command == null || !mounted) return;
+    controller.text = '';
+    final current = widget.blocks.firstWhere((b) => b.id == block.id,
+        orElse: () => block);
+    if (command == SlashCommand.noteLink) {
+      _update(current, current.copyWith(content: ''));
+      await _insertNoteLink(current, controller, replaceTyped: false);
+      return;
+    }
+    _update(current,
+        current.copyWith(type: command.blockType, content: ''));
+  }
+
+  Future<void> _insertNoteLink(NoteBlock block,
+      TextEditingController controller, {bool replaceTyped = true}) async {
+    final target = await showNotePicker(context,
+        notes: widget.linkableNotes, excludeId: widget.noteId);
+    if (target == null || !mounted) return;
+    final value = controller.value;
+    final caret = value.selection.isValid
+        ? value.selection.baseOffset
+        : value.text.length;
+    final start = replaceTyped &&
+            caret >= 2 &&
+            value.text.substring(caret - 2, caret) == '[['
+        ? caret - 2
+        : caret;
+    final insert = '[[${target.displayTitle}]]';
+    final text = value.text.replaceRange(start, caret, insert);
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: start + insert.length),
+    );
+    final current = widget.blocks.firstWhere((b) => b.id == block.id,
+        orElse: () => block);
+    _update(current, current.copyWith(content: text));
   }
 
   void _remove(NoteBlock block) {
@@ -95,8 +169,8 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
             controller: block.type == NoteBlockType.divider
                 ? null
                 : _controllerFor(block),
-            onContentChanged: (value) =>
-                _update(block, block.copyWith(content: value)),
+            onContentChanged: (rowContext, value) => _onContentChanged(
+                rowContext, block, block.content, value),
             onToggleCheck: () =>
                 _update(block, block.copyWith(isChecked: !block.isChecked)),
             onRemove: () => _remove(block),
@@ -120,7 +194,8 @@ class _BlockRow extends StatelessWidget {
   final int index;
   final NoteBlock block;
   final TextEditingController? controller;
-  final ValueChanged<String> onContentChanged;
+  final void Function(BuildContext rowContext, String value)
+      onContentChanged;
   final VoidCallback onToggleCheck;
   final VoidCallback onRemove;
 
@@ -157,7 +232,7 @@ class _BlockRow extends StatelessWidget {
 
     final field = TextField(
       controller: controller,
-      onChanged: onContentChanged,
+      onChanged: (value) => onContentChanged(context, value),
       minLines: 1,
       maxLines: block.type == NoteBlockType.code ? 8 : 4,
       keyboardType: block.type == NoteBlockType.link
