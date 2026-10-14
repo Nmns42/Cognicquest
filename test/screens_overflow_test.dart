@@ -92,7 +92,6 @@ void main() {
   // Retirer une entrée dès que l'écran est corrigé.
   const knownOverflows = {
     'Tableau de bord': '25 débordements à droite, dès 100 % sur 320 et 360 px',
-    'Habitudes': '7 débordements à droite, dès 100 % sur 320 px',
     'Pomodoro': '4 débordements en bas, à 200 %',
     'Journal': '3 débordements à droite, à 200 %',
     'Réglages': '2 débordements à droite, à 200 %',

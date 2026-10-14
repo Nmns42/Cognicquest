@@ -208,15 +208,21 @@ class _SummaryHeader extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
+            // Flexible : à 200 % de texte, les deux stats passent à la ligne
+            // au lieu de déborder.
             children: [
-              _MiniStat(
-                label: 'Meilleure série',
-                value: '$bestStreak j',
+              Flexible(
+                child: _MiniStat(
+                  label: 'Meilleure série',
+                  value: '$bestStreak j',
+                ),
               ),
               const SizedBox(width: 24),
-              _MiniStat(
-                label: 'Régularité 30 j',
-                value: '${(averageConsistency * 100).round()} %',
+              Flexible(
+                child: _MiniStat(
+                  label: 'Régularité 30 j',
+                  value: '${(averageConsistency * 100).round()} %',
+                ),
               ),
             ],
           ),
@@ -389,19 +395,32 @@ class _HabitTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 36, right: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  for (var i = 6; i >= 0; i--)
-                    _DayCell(
-                      initial: _dayInitials[
-                          today.subtract(Duration(days: i)).weekday - 1],
-                      done: habit
-                          .isCompletedOn(today.subtract(Duration(days: i))),
-                      isToday: i == 0,
-                      onTap: () =>
-                          onToggleDay(today.subtract(Duration(days: i))),
+                  // Sept cases de 32 px : sur un écran étroit (≤ 390 px), la
+                  // ligne débordait de quelques pixels. Elles rétrécissent
+                  // désormais au lieu de déborder.
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          for (var i = 6; i >= 0; i--)
+                            _DayCell(
+                              initial: _dayInitials[
+                                  today.subtract(Duration(days: i)).weekday -
+                                      1],
+                              done: habit.isCompletedOn(
+                                  today.subtract(Duration(days: i))),
+                              isToday: i == 0,
+                              onTap: () => onToggleDay(
+                                  today.subtract(Duration(days: i))),
+                            ),
+                        ],
+                      ),
                     ),
-                  const Spacer(),
+                  ),
+                  const SizedBox(width: Space.xs),
                   Text(
                     '${(habit.successRateLast30Days * 100).round()} %',
                     style: TextStyle(
