@@ -17,7 +17,7 @@ class ZenBackground extends StatelessWidget {
   final Widget child;
 
   /// Opacité du trait : sous le seuil où il ferait concurrence au texte.
-  static const double inkOpacity = 0.09;
+  static const double inkOpacity = 0.035;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +32,7 @@ class ZenBackground extends StatelessWidget {
               child: ExcludeSemantics(
                 child: CustomPaint(
                   painter: LeafPainter(
-                    color: cq.vertDark.withValues(alpha: inkOpacity),
+                    color: cq.textPrimary.withValues(alpha: inkOpacity),
                   ),
                 ),
               ),

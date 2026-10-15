@@ -10,7 +10,7 @@ import 'tokens.dart';
 /// thème clair : un choix de moins, et deux palettes seulement à tenir au
 /// contraste WCAG (4,5:1), vérifié par `test/core/theme/contrast_test.dart`.
 enum AppThemeVariant {
-  light('light', 'Clair', 'Beige et vert, pour la journée'),
+  light('light', 'Clair', 'Blanc et encre, pour la journée'),
   dark('dark', 'Sombre', 'Pour travailler le soir');
 
   const AppThemeVariant(this.value, this.label, this.description);
@@ -181,40 +181,42 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Fond gris très clair (#F0F0F0), texte #141414, cartes blanches.
-  // Accent : un vert sauge-forêt adouci (#40725A), chaleureux, en dégradé
-  // (#4A7C62 → #40725A → #33644C) sous un texte blanc. Contrastes mesurés
-  // (WCAG, cf. contrast_test) : texte 16:1, vert en texte 6,4:1, texte
-  // blanc sur chaque teinte du dégradé ≥ 4,8:1.
+  // Direction « outil pro » (synthèse Craft, ElevenReader, Saturn, monday) :
+  // neutres froids presque purs, encre quasi noire, un seul accent cobalt,
+  // aucun dégradé visible. Les noms des champs (`vert`, `beige`) sont
+  // historiques : ce sont des rôles, plus des teintes.
+  // Contrastes mesurés (WCAG, cf. contrast_test) : texte 17:1, secondaire
+  // 6:1, accent en texte 7,9:1, blanc sur l'accent ≥ 6,3:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFF40725A),
-    vertDark: Color(0xFF365F4B),
-    beige: Color(0xFFF0F0F0),
-    beigeDark: Color(0xFFE3E3E3),
-    textPrimary: Color(0xFF141414),
-    textMuted: Color(0xFF5E5E5E),
-    textHint: Color(0xFF8A8A8A),
-    errorColor: Color(0xFFB8382B),
-    onVertMuted: Color(0xFFD6E6DA),
-    warning: Color(0xFF8A5E1F),
+    vert: Color(0xFF3347D1),
+    vertDark: Color(0xFF2C3DB8),
+    beige: Color(0xFFF6F6F7),
+    beigeDark: Color(0xFFE6E6E9),
+    textPrimary: Color(0xFF111114),
+    textMuted: Color(0xFF5C5D66),
+    textHint: Color(0xFF85868F),
+    errorColor: Color(0xFFB42D23),
+    onVertMuted: Color(0xFFDCE1FF),
+    warning: Color(0xFF8A5A12),
     cardColor: Color(0xFFFFFFFF),
   );
 
-  /// Palette sombre : même logique, valeurs recalculées pour un fond sombre
-  /// (pas une inversion automatique).
+  /// Palette sombre : noir doux et surfaces étagées (fond, carte, filet),
+  /// accent cobalt éclairci sous un texte foncé. Valeurs recalculées pour le
+  /// sombre, pas une inversion automatique.
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFF86B99A),
-    vertDark: Color(0xFF9BC9AC),
-    beige: Color(0xFF151617),
-    beigeDark: Color(0xFF2C2E30),
-    textPrimary: Color(0xFFECECEC),
-    textMuted: Color(0xFFA3A3A3),
-    textHint: Color(0xFF6E6E6E),
-    errorColor: Color(0xFFEF8A7E),
-    onVertMuted: Color(0xFF1E2A17),
+    vert: Color(0xFF8FA0FF),
+    vertDark: Color(0xFFA3B1FF),
+    beige: Color(0xFF111113),
+    beigeDark: Color(0xFF2A2A2F),
+    textPrimary: Color(0xFFEDEDEF),
+    textMuted: Color(0xFFA1A1AA),
+    textHint: Color(0xFF75757E),
+    errorColor: Color(0xFFF2877B),
+    onVertMuted: Color(0xFF1C2558),
     warning: Color(0xFFE2B064),
-    cardColor: Color(0xFF1E2022),
+    cardColor: Color(0xFF1B1B1F),
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {
@@ -224,9 +226,10 @@ class AppTheme {
 
   /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés).
   static Color onAccentFor(AppThemeVariant variant) =>
-      variant.isDark ? const Color(0xFF101511) : Colors.white;
+      variant.isDark ? const Color(0xFF0D1233) : Colors.white;
 
-  /// Dégradé d'accentuation de la maquette, orienté à 145°.
+  /// Dégradé d'accentuation, volontairement presque plat : un léger modelé,
+  /// jamais l'arc-en-ciel des interfaces générées.
   static LinearGradient accentGradientFor(AppThemeVariant variant) =>
       LinearGradient(
         begin: Alignment.topLeft,
@@ -234,8 +237,8 @@ class AppTheme {
         // 145° CSS ≈ diagonale (135°) + 10°.
         transform: const GradientRotation(10 * math.pi / 180),
         colors: variant.isDark
-            ? const [Color(0xFF9BC9AC), Color(0xFF86B99A), Color(0xFF6FA585)]
-            : const [Color(0xFF4A7C62), Color(0xFF40725A), Color(0xFF33644C)],
+            ? const [Color(0xFF9AAAFF), Color(0xFF8FA0FF), Color(0xFF8294FA)]
+            : const [Color(0xFF3A4FD9), Color(0xFF3347D1), Color(0xFF2D3FC2)],
         stops: const [0, 0.47, 1],
       );
 
@@ -306,10 +309,10 @@ class AppTheme {
             height: TypeScale.titleHeight),
       ),
 
-      // Cartes : filet intérieur clair et ombre très diffuse (cf. [Chrome]).
+      // Cartes : contour d'un pixel, sans élévation Material (cf. [Chrome]).
       cardTheme: CardThemeData(
         color: cq.cardColor,
-        elevation: 1,
+        elevation: 0,
         shadowColor: chrome.shadow.color,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -319,8 +322,9 @@ class AppTheme {
       ),
 
       inputDecorationTheme: InputDecorationTheme(
+        // Champs en aplat doux (Craft, monday) : le contour reste d'un pixel.
         filled: true,
-        fillColor: cq.cardColor,
+        fillColor: variant.isDark ? cq.cardColor : cq.beige,
         contentPadding: const EdgeInsets.symmetric(
             horizontal: Space.lg, vertical: Space.md),
         // Le texte indicatif est lu : contraste du texte secondaire.
@@ -439,8 +443,8 @@ class AppTheme {
         space: Borders.thin,
       ),
 
-      // Navigation : plus de vert foncé. L'indicateur est la teinte sauge
-      // claire, et ce qui est posé dessus reste en couleur de texte.
+      // Navigation : l'indicateur porte l'accent, l'icône posée dessus prend
+      // la couleur dédiée, le libellé reste en couleur de texte.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: cq.beige,
         indicatorColor: cq.vert,
@@ -501,7 +505,7 @@ class AppTheme {
         ),
         labelStyle: _style(TypeScale.caption, FontWeight.w500,
             TypeScale.captionEm, cq.textPrimary),
-        // Texte d'une puce sélectionnée : posé sur la teinte sauge.
+        // Texte d'une puce sélectionnée : posé sur l'accent.
         secondaryLabelStyle: _style(TypeScale.caption, FontWeight.w600,
             TypeScale.captionEm, onAccent),
       ),
@@ -569,24 +573,22 @@ class CardChrome {
   final BoxShadow shadow;
 
   static CardChrome of(AppThemeVariant variant) => variant.isDark
-      // En sombre, un filet clair éblouirait : à peine perceptible, et une
-      // ombre plus marquée pour détacher la carte du fond.
-      ? CardChrome(
+      // En sombre, la carte se détache par sa surface plus claire et un
+      // filet discret ; l'ombre ne se verrait pas.
+      ? const CardChrome(
           border: BorderSide(
-              color: Colors.white.withValues(alpha: 0.06),
-              width: Chrome.borderWidth),
+              color: Color(0xFF2A2A2F), width: Chrome.borderWidth),
           shadow: BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: Color(0x00000000),
             blurRadius: Chrome.shadowBlur,
-            offset: const Offset(0, Chrome.shadowOffsetY),
+            offset: Offset(0, Chrome.shadowOffsetY),
           ),
         )
       : CardChrome(
-          border: BorderSide(
-              color: Colors.white.withValues(alpha: Chrome.borderOpacity),
-              width: Chrome.borderWidth),
+          border: const BorderSide(
+              color: Color(0xFFE6E6E9), width: Chrome.borderWidth),
           shadow: BoxShadow(
-            color: const Color(0xFF181E2D)
+            color: const Color(0xFF111114)
                 .withValues(alpha: Chrome.shadowOpacity),
             blurRadius: Chrome.shadowBlur,
             offset: const Offset(0, Chrome.shadowOffsetY),

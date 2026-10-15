@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
@@ -25,59 +24,106 @@ class PomodoroPage extends ConsumerWidget {
 
     final color = _phaseColor(context, state.phase);
 
+    final dial = PulseOnChange(
+      // Micro-animation n° 7 : la jauge bat une fois à la fin d'une session
+      // de travail. Le son et la vibration de fin de phase (PomodoroNotifier)
+      // restent, animations réduites ou non.
+      trigger: ref.watch(pomodoroCompletionsProvider),
+      scale: 1.06,
+      duration: const Duration(milliseconds: 420),
+      child: _FitDial(state: state, color: color),
+    );
+    final stats = statsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (stats) => _StatsRow(stats: stats),
+    );
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) {
-            // Taille harmonieuse sur tout écran : le cadran suit la plus
-            // petite des deux dimensions disponibles, sans dépasser 260 px,
-            // et la page tient dans une colonne centrée.
-            final dial = [
-              box.maxWidth * 0.62,
-              box.maxHeight * 0.36,
-              _maxDial,
-            ].reduce((a, b) => a < b ? a : b).clamp(_minDial, _maxDial);
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: _maxPageWidth),
-                  child: Column(
-                    children: [
-                      _PhaseHeader(state: state, color: color),
-                      const SizedBox(height: 32),
-                      // Micro-animation n° 7 : la jauge bat une fois à la fin d'une
-                      // session de travail. Le son et la vibration de fin de phase
-                      // (PomodoroNotifier) restent, animations réduites ou non.
-                      PulseOnChange(
-                        trigger: ref.watch(pomodoroCompletionsProvider),
-                        scale: 1.06,
-                        duration: const Duration(milliseconds: 420),
-                        child:
-                            _TimerDial(state: state, color: color, size: dial),
-                      ),
-                      const SizedBox(height: 36),
-                      _Controls(
-                        state: state,
-                        color: color,
-                        onToggle: notifier.toggle,
-                        onReset: notifier.reset,
-                        onSkip: notifier.skip,
-                      ),
-                      const SizedBox(height: 32),
-                      _CycleIndicator(state: state, color: color),
-                      const SizedBox(height: 24),
-                      statsAsync.when(
-                        loading: () => const SizedBox(height: 74),
-                        error: (_, __) => const SizedBox(height: 74),
-                        data: (stats) => _StatsRow(stats: stats),
-                      ),
-                    ],
-                  ),
-                ),
+            // Écran statique, sans défilement : tout tient dans la place
+            // disponible. Les écarts suivent la hauteur (serrés sur un petit
+            // téléphone, aérés sur grand écran) et le cadran prend tout
+            // l'espace restant.
+            final gap = (box.maxHeight * 0.02).clamp(Space.sm, Space.xxl);
+            // Bouton principal : 64 sur un petit téléphone, 96 au plus.
+            final button =
+                (box.maxHeight * 0.1).clamp(Space.xxxl + Space.lg, Space.xxxl * 2);
+            final side = (box.maxWidth * 0.05).clamp(Space.lg, Space.xxxl);
+            final controls = [
+              _Controls(
+                state: state,
+                color: color,
+                size: button,
+                onToggle: notifier.toggle,
+                onReset: notifier.reset,
+                onSkip: notifier.skip,
               ),
+              SizedBox(height: gap),
+              _CycleIndicator(state: state, color: color),
+              SizedBox(height: gap),
+              stats,
+            ];
+
+            // Grand écran à l'horizontale : cadran à gauche, commandes à
+            // droite, chacun à l'échelle de l'écran.
+            final wide = box.maxWidth >= 720 && box.maxWidth > box.maxHeight;
+
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: side, vertical: gap),
+              child: wide
+                  ? Row(
+                      children: [
+                        Expanded(flex: 7, child: dial),
+                        SizedBox(width: side),
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _PhaseHeader(state: state, color: color),
+                              SizedBox(height: gap * 2),
+                              ...controls,
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        _PhaseHeader(state: state, color: color),
+                        SizedBox(height: gap),
+                        Expanded(child: dial),
+                        SizedBox(height: gap),
+                        ...controls,
+                      ],
+                    ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Cadran à la taille de la place que lui laisse la page : le plus grand
+/// cercle qui y tient, avec une petite marge pour la pulsation.
+class _FitDial extends StatelessWidget {
+  const _FitDial({required this.state, required this.color});
+
+  final PomodoroState state;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, area) => Center(
+        child: _TimerDial(
+          state: state,
+          color: color,
+          size: area.biggest.shortestSide * 0.92,
         ),
       ),
     );
@@ -124,11 +170,6 @@ class _PhaseHeader extends StatelessWidget {
     );
   }
 }
-
-/// Bornes du cadran et largeur de la page du Pomodoro.
-const double _minDial = 180;
-const double _maxDial = 260;
-const double _maxPageWidth = 520;
 
 class _TimerDial extends StatelessWidget {
   const _TimerDial(
@@ -209,10 +250,14 @@ class _Controls extends StatelessWidget {
     required this.onToggle,
     required this.onReset,
     required this.onSkip,
+    required this.size,
   });
 
   final PomodoroState state;
   final Color color;
+
+  /// Diamètre du bouton principal, à l'échelle de l'écran.
+  final double size;
   final VoidCallback onToggle;
   final VoidCallback onReset;
   final VoidCallback onSkip;
@@ -229,8 +274,8 @@ class _Controls extends StatelessWidget {
         ),
         const SizedBox(width: 24),
         SizedBox(
-          width: 88,
-          height: 88,
+          width: size,
+          height: size,
           child: FloatingActionButton(
             onPressed: onToggle,
             backgroundColor: color,
@@ -240,7 +285,7 @@ class _Controls extends StatelessWidget {
             child: Icon(
               state.isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
               color: context.onAccent,
-              size: 40,
+              size: size * 0.45,
             ),
           ),
         ),
@@ -257,7 +302,7 @@ class _Controls extends StatelessWidget {
   }
 }
 
-/// Points de progression dans le cycle de 4 sessions avant la pause longue.
+/// Points de progression dans le cycle de sessions avant la pause longue.
 class _CycleIndicator extends StatelessWidget {
   const _CycleIndicator({required this.state, required this.color});
 
@@ -323,14 +368,6 @@ class _StatsRow extends StatelessWidget {
             icon: Icons.schedule_outlined,
             value: formatFocusDuration(stats.focusThisWeek),
             label: 'Focus cette semaine',
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatTile(
-            icon: Icons.monetization_on_outlined,
-            value: '${stats.coins(AppConfig.coinsPerWorkSession)}',
-            label: 'Pièces',
           ),
         ),
       ],

@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../pomodoro/providers/pomodoro_provider.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
 import '../widgets/demo_data_button.dart';
 import '../widgets/sign_out_button.dart';
-import '../widgets/routine_editor.dart';
 import '../../../core/theme/tokens.dart';
 
 /// Système de configuration — « Changement de thème, taille du texte,
@@ -58,23 +58,6 @@ class SettingsPage extends ConsumerWidget {
             showSelectedIcon: false,
             onSelectionChanged: (values) => notifier.setTextScale(values.first),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: context.cq.beigeDark.withValues(alpha: 0.45),
-              borderRadius: BorderRadius.circular(Radii.md),
-            ),
-            // Aperçu en direct : l'utilisateur voit l'effet avant de quitter
-            // l'écran.
-            child: Text(
-              'Aperçu — CognicQuest t\'aide à apprendre mieux, chaque jour.',
-              style: TextStyle(
-                  fontSize: TypeScale.body,
-                  height: 1.45,
-                  color: context.cq.textPrimary),
-            ),
-          ),
           const SizedBox(height: 26),
 
           // Ambiance sonore : retirée de l'interface en attendant une
@@ -82,8 +65,8 @@ class SettingsPage extends ConsumerWidget {
           const _SectionLabel('Pomodoro'),
           const SizedBox(height: Space.xs),
           Text(
-            'Règle tes cycles de concentration : durées et nombre de '
-            'sessions avant la pause longue.',
+            'Règle tes cycles de concentration : durées, nombre de sessions '
+            '(la dernière est suivie de la pause longue) et sonnerie de fin.',
             style: TextStyle(
                 fontSize: TypeScale.caption,
                 color: context.cq.textMuted,
@@ -93,6 +76,8 @@ class SettingsPage extends ConsumerWidget {
           _PomodoroSettings(
             config: settings.pomodoro,
             onChanged: notifier.setPomodoro,
+            onPreview: (ringtone) =>
+                ref.read(pomodoroChimeProvider).play(ringtone),
           ),
           const SizedBox(height: Space.xl),
 
@@ -128,32 +113,6 @@ class SettingsPage extends ConsumerWidget {
           ],
           const SizedBox(height: 26),
 
-          const _SectionLabel('Routines'),
-          const SizedBox(height: 4),
-          Text(
-            'Un cadre fixe le matin et le soir coûte moins d\'énergie qu\'une '
-            'décision à reprendre chaque jour.',
-            style: TextStyle(
-                fontSize: TypeScale.caption,
-                color: context.cq.textMuted,
-                height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          RoutineEditor(
-            title: 'Routine du matin',
-            icon: Icons.wb_twilight,
-            routine: settings.morningRoutine,
-            onChanged: notifier.setMorningRoutine,
-          ),
-          const SizedBox(height: 10),
-          RoutineEditor(
-            title: 'Routine du soir',
-            icon: Icons.nightlight_outlined,
-            routine: settings.eveningRoutine,
-            onChanged: notifier.setEveningRoutine,
-          ),
-          const SizedBox(height: 28),
-
           OutlinedButton.icon(
             onPressed: () async {
               final confirmed = await showDialog<bool>(
@@ -163,9 +122,9 @@ class SettingsPage extends ConsumerWidget {
                   scrollable: true,
                   title: const Text('Rétablir les réglages ?'),
                   content: const Text(
-                    'Thème, taille de texte, sons et routines reviendront à '
-                    'leurs valeurs d\'origine. Tes données ne sont pas '
-                    'touchées.',
+                    'Thème, taille de texte et Pomodoro reviendront à leurs '
+                    'valeurs d\'origine, et les encadrés d\'aide fermés '
+                    'réapparaîtront. Tes données ne sont pas touchées.',
                   ),
                   actions: [
                     TextButton(
@@ -206,12 +165,19 @@ class SettingsPage extends ConsumerWidget {
 }
 
 /// Durées et cycles du Pomodoro, chacun avec – / + (bornes de
-/// [PomodoroSettings]).
+/// [PomodoroSettings]), puis la sonnerie de fin de phase.
 class _PomodoroSettings extends StatelessWidget {
-  const _PomodoroSettings({required this.config, required this.onChanged});
+  const _PomodoroSettings({
+    required this.config,
+    required this.onChanged,
+    required this.onPreview,
+  });
 
   final PomodoroSettings config;
   final ValueChanged<PomodoroSettings> onChanged;
+
+  /// Fait entendre une sonnerie au moment où on la choisit.
+  final ValueChanged<PomodoroRingtone> onPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -242,13 +208,39 @@ class _PomodoroSettings extends StatelessWidget {
           onChanged: (v) => onChanged(config.copyWith(longBreakMinutes: v)),
         ),
         _Stepper(
-          label: 'Sessions avant la pause longue',
+          label: 'Nombre de sessions',
           value: config.sessionsBeforeLongBreak,
-          unit: '',
+          unit: config.sessionsBeforeLongBreak > 1 ? 'sessions' : 'session',
           range: PomodoroSettings.sessionsRange,
           step: 1,
           onChanged: (v) =>
               onChanged(config.copyWith(sessionsBeforeLongBreak: v)),
+        ),
+        const SizedBox(height: Space.md),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Text('Sonnerie de fin',
+              style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        const SizedBox(height: Space.sm),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: Space.sm,
+            runSpacing: Space.sm,
+            children: [
+              for (final ringtone in PomodoroRingtone.values)
+                ChoiceChip(
+                  label: Text(ringtone.label),
+                  selected: ringtone == config.ringtone,
+                  showCheckmark: false,
+                  onSelected: (_) {
+                    onChanged(config.copyWith(ringtone: ringtone));
+                    onPreview(ringtone);
+                  },
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -291,7 +283,7 @@ class _Stepper extends StatelessWidget {
             icon: const Icon(Icons.remove, size: Sizes.iconMd),
           ),
           SizedBox(
-            width: Space.xxxl + Space.lg,
+            width: Space.xxxl * 2,
             child: Text(
               text,
               textAlign: TextAlign.center,

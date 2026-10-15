@@ -39,10 +39,8 @@ class WeeklyFocusChart extends StatelessWidget {
     // Teinte foncée : le vert clair tombe sous 3:1 sur fond clair.
     final barColor = context.cq.vertDark;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-        child: Column(
+    // Posé directement dans la `CqCard` du module : pas de seconde carte.
+    return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Le titre nomme la série : pas de légende pour une série unique.
@@ -97,9 +95,7 @@ class WeeklyFocusChart extends StatelessWidget {
                 ),
               ),
           ],
-        ),
-      ),
-    );
+        );
   }
 }
 

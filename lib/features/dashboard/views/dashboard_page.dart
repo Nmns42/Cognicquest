@@ -265,8 +265,7 @@ class _ChartPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: SizedBox(
+    return SizedBox(
         height: 190,
         child: Center(
           child: SizedBox(
@@ -276,7 +275,6 @@ class _ChartPlaceholder extends StatelessWidget {
                 strokeWidth: 2, color: context.cq.vertDark),
           ),
         ),
-      ),
     );
   }
 }
@@ -471,7 +469,7 @@ class _NotesModule extends ConsumerWidget {
           )
         else ...[
           for (final note in recent)
-            Card(
+            _InsetRow(
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 onTap: () => context.go('${AppRoute.notes}/${note.id}'),
@@ -554,7 +552,7 @@ class _MetacognitionModule extends ConsumerWidget {
           trailingLabel: 'Ouvrir',
         ),
         const SizedBox(height: 10),
-        Card(
+        _InsetRow(
           child: InkWell(
             onTap: () => context.go(
               hasEntryToday ? AppRoute.journal : AppRoute.journalEntry,
@@ -663,7 +661,7 @@ class _PlanningModule extends ConsumerWidget {
           for (final item in upcoming.take(3))
             _DeadlineRow(item: item, months: _months),
           if (upcoming.isEmpty && goals.isNotEmpty)
-            Card(
+            _InsetRow(
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 onTap: () => context.go(AppRoute.goals),
@@ -710,7 +708,7 @@ class _DeadlineRow extends StatelessWidget {
             .inDays;
     final urgent = days <= 3;
 
-    return Card(
+    return _InsetRow(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () => context.go(AppRoute.gantt),
@@ -749,6 +747,29 @@ class _DeadlineRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Ligne cliquable d'un module : posée dans la `CqCard` du module sur un
+/// aplat en retrait, sans filet ni ombre. Remplace l'ancienne `Card`
+/// Material imbriquée (double carte).
+class _InsetRow extends StatelessWidget {
+  const _InsetRow({required this.child, this.margin = EdgeInsets.zero});
+
+  final Widget child;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: margin,
+      child: Material(
+        color: context.cq.beige,
+        borderRadius: BorderRadius.circular(Radii.md),
+        clipBehavior: Clip.antiAlias,
+        child: child,
       ),
     );
   }

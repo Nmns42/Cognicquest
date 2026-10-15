@@ -66,105 +66,41 @@ enum TextScalePreset {
   }
 }
 
-/// Une routine quotidienne — « Instaurer des routines : Matin et Soir » (CdC).
-class Routine {
-  const Routine({
-    required this.isEnabled,
-    required this.hour,
-    required this.minute,
-    required this.steps,
-  });
+/// Sonnerie de fin de phase du Pomodoro, parmi les sons de `assets/sounds/`.
+enum PomodoroRingtone {
+  bell('bells', 'Cloche', 'sounds/bells.mp3'),
+  twinBell('twin_bell', 'Double cloche', 'sounds/twin-bell.mp3'),
+  gong('samurai', 'Gong', 'sounds/samurai.mp3'),
+  ticToc('tic_toc', 'Tic-tac', 'sounds/tic-toc.mp3');
 
-  final bool isEnabled;
-  final int hour;
-  final int minute;
+  const PomodoroRingtone(this.value, this.label, this.assetPath);
 
-  /// Les gestes de la routine, dans l'ordre.
-  final List<String> steps;
+  /// Valeur enregistrée dans les préférences.
+  final String value;
+  final String label;
 
-  String get timeLabel =>
-      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  /// Chemin relatif à `assets/`, comme l'attend `AssetSource`.
+  final String assetPath;
 
-  Routine copyWith({
-    bool? isEnabled,
-    int? hour,
-    int? minute,
-    List<String>? steps,
-  }) =>
-      Routine(
-        isEnabled: isEnabled ?? this.isEnabled,
-        hour: hour ?? this.hour,
-        minute: minute ?? this.minute,
-        steps: steps ?? this.steps,
-      );
-
-  Map<String, dynamic> toJson() => {
-        'enabled': isEnabled,
-        'hour': hour,
-        'minute': minute,
-        'steps': steps,
-      };
-
-  factory Routine.fromJson(Map<String, dynamic> json, Routine fallback) {
-    final rawSteps = json['steps'];
-    return Routine(
-      // `is` plutôt qu'un transtypage : une valeur du mauvais type ferait
-      // échouer tout le chargement des préférences, alors qu'on veut
-      // simplement retomber sur le modèle.
-      isEnabled: json['enabled'] is bool
-          ? json['enabled'] as bool
-          : fallback.isEnabled,
-      hour: _readInt(json['hour'], fallback.hour, 0, 23),
-      minute: _readInt(json['minute'], fallback.minute, 0, 59),
-      steps: rawSteps is List
-          ? rawSteps.whereType<String>().toList()
-          : fallback.steps,
-    );
-  }
-
-  static int _readInt(Object? raw, int fallback, int min, int max) {
-    if (raw is num) return raw.toInt().clamp(min, max);
-    if (raw is String) {
-      final parsed = int.tryParse(raw);
-      if (parsed != null) return parsed.clamp(min, max);
+  static PomodoroRingtone fromValue(Object? value) {
+    for (final ringtone in values) {
+      if (ringtone.value == value) return ringtone;
     }
-    return fallback;
+    return PomodoroRingtone.bell;
   }
-
-  /// Routine du matin par défaut : orienter la journée avant de la subir.
-  static const Routine morningDefault = Routine(
-    isEnabled: false,
-    hour: 8,
-    minute: 0,
-    steps: [
-      'Relire mes trois priorités du jour',
-      'Choisir mon non-négociable',
-      'Lancer une première session de focus',
-    ],
-  );
-
-  /// Routine du soir : fermer la journée, pas l'abandonner.
-  static const Routine eveningDefault = Routine(
-    isEnabled: false,
-    hour: 21,
-    minute: 0,
-    steps: [
-      'Faire le bilan de ma session',
-      'Noter humeur et effort ressenti',
-      'Préparer la première tâche de demain',
-    ],
-  );
 }
 
-/// Réglages du Pomodoro : durées et nombre de sessions avant la pause
-/// longue, librement choisis (bornés pour rester raisonnables).
+/// Réglages du Pomodoro : durées, nombre de sessions du cycle (la dernière
+/// est suivie de la pause longue) et sonnerie, librement choisis (bornés
+/// pour rester raisonnables).
 @immutable
 class PomodoroSettings {
   const PomodoroSettings({
     this.workMinutes = 25,
     this.shortBreakMinutes = 5,
-    this.longBreakMinutes = 15,
+    this.longBreakMinutes = 10,
     this.sessionsBeforeLongBreak = 4,
+    this.ringtone = PomodoroRingtone.bell,
   });
 
   static const PomodoroSettings defaults = PomodoroSettings();
@@ -178,14 +114,19 @@ class PomodoroSettings {
   final int shortBreakMinutes;
   final int longBreakMinutes;
 
-  /// Sessions de travail avant la pause longue (n'est plus figé à 4).
+  /// Nombre de sessions de travail du cycle : le minuteur enchaîne seul
+  /// travail et pauses jusqu'à la dernière, suivie de la pause longue.
   final int sessionsBeforeLongBreak;
+
+  /// Son joué à la fin de chaque session de travail et de chaque pause.
+  final PomodoroRingtone ringtone;
 
   PomodoroSettings copyWith({
     int? workMinutes,
     int? shortBreakMinutes,
     int? longBreakMinutes,
     int? sessionsBeforeLongBreak,
+    PomodoroRingtone? ringtone,
   }) =>
       PomodoroSettings(
         workMinutes: _clamp(workMinutes ?? this.workMinutes, workRange),
@@ -196,6 +137,7 @@ class PomodoroSettings {
         sessionsBeforeLongBreak: _clamp(
             sessionsBeforeLongBreak ?? this.sessionsBeforeLongBreak,
             sessionsRange),
+        ringtone: ringtone ?? this.ringtone,
       );
 
   Map<String, dynamic> toJson() => {
@@ -203,6 +145,7 @@ class PomodoroSettings {
         'short_break_minutes': shortBreakMinutes,
         'long_break_minutes': longBreakMinutes,
         'sessions_before_long_break': sessionsBeforeLongBreak,
+        'ringtone': ringtone.value,
       };
 
   factory PomodoroSettings.fromJson(Map<String, dynamic> json) {
@@ -214,9 +157,10 @@ class PomodoroSettings {
     return PomodoroSettings(
       workMinutes: read('work_minutes', 25, workRange),
       shortBreakMinutes: read('short_break_minutes', 5, shortBreakRange),
-      longBreakMinutes: read('long_break_minutes', 15, longBreakRange),
+      longBreakMinutes: read('long_break_minutes', 10, longBreakRange),
       sessionsBeforeLongBreak:
           read('sessions_before_long_break', 4, sessionsRange),
+      ringtone: PomodoroRingtone.fromValue(json['ringtone']),
     );
   }
 
@@ -229,11 +173,12 @@ class PomodoroSettings {
       other.workMinutes == workMinutes &&
       other.shortBreakMinutes == shortBreakMinutes &&
       other.longBreakMinutes == longBreakMinutes &&
-      other.sessionsBeforeLongBreak == sessionsBeforeLongBreak;
+      other.sessionsBeforeLongBreak == sessionsBeforeLongBreak &&
+      other.ringtone == ringtone;
 
   @override
   int get hashCode => Object.hash(workMinutes, shortBreakMinutes,
-      longBreakMinutes, sessionsBeforeLongBreak);
+      longBreakMinutes, sessionsBeforeLongBreak, ringtone);
 }
 
 /// Préférences d'ambiance et d'accessibilité.
@@ -245,10 +190,9 @@ class UserSettings {
     this.ambientVolume = 0.5,
     this.keyboardShortcutsEnabled = true,
     this.reduceMotion = false,
-    this.morningRoutine = Routine.morningDefault,
-    this.eveningRoutine = Routine.eveningDefault,
     this.manualNoteOrder = false,
     this.pomodoro = PomodoroSettings.defaults,
+    this.dismissedBanners = const {},
   });
 
   static const UserSettings defaults = UserSettings();
@@ -265,14 +209,15 @@ class UserSettings {
   /// Réduit les animations — confort visuel et accessibilité vestibulaire.
   final bool reduceMotion;
 
-  final Routine morningRoutine;
-  final Routine eveningRoutine;
-
   /// Liste des fiches en tri « Manuel » (glisser-déposer) plutôt que
   /// « Récentes ». Mémorisé et synchronisé avec les autres préférences.
   final bool manualNoteOrder;
 
   final PomodoroSettings pomodoro;
+
+  /// Identifiants des encadrés d'aide que l'utilisateur a fermés : ils ne
+  /// réapparaissent pas, sur cet appareil comme sur les autres.
+  final Set<String> dismissedBanners;
 
   UserSettings copyWith({
     AppThemeVariant? themeVariant,
@@ -281,10 +226,9 @@ class UserSettings {
     double? ambientVolume,
     bool? keyboardShortcutsEnabled,
     bool? reduceMotion,
-    Routine? morningRoutine,
-    Routine? eveningRoutine,
     bool? manualNoteOrder,
     PomodoroSettings? pomodoro,
+    Set<String>? dismissedBanners,
   }) =>
       UserSettings(
         themeVariant: themeVariant ?? this.themeVariant,
@@ -294,10 +238,9 @@ class UserSettings {
         keyboardShortcutsEnabled:
             keyboardShortcutsEnabled ?? this.keyboardShortcutsEnabled,
         reduceMotion: reduceMotion ?? this.reduceMotion,
-        morningRoutine: morningRoutine ?? this.morningRoutine,
-        eveningRoutine: eveningRoutine ?? this.eveningRoutine,
         manualNoteOrder: manualNoteOrder ?? this.manualNoteOrder,
         pomodoro: pomodoro ?? this.pomodoro,
+        dismissedBanners: dismissedBanners ?? this.dismissedBanners,
       );
 
   Map<String, dynamic> toJson() => {
@@ -307,21 +250,18 @@ class UserSettings {
         'ambient_volume': ambientVolume,
         'keyboard_shortcuts': keyboardShortcutsEnabled,
         'reduce_motion': reduceMotion,
-        'morning_routine': morningRoutine.toJson(),
-        'evening_routine': eveningRoutine.toJson(),
         'notes_manual_order': manualNoteOrder,
         'pomodoro': pomodoro.toJson(),
+        // Trié : deux appareils écrivent le même JSON pour le même ensemble.
+        'dismissed_banners': dismissedBanners.toList()..sort(),
       };
 
   /// Tolérant par construction : une préférence inconnue ou absente retombe
   /// sur sa valeur par défaut plutôt que de faire échouer tout le chargement.
+  /// Les anciennes clés des routines (`morning_routine`, `evening_routine`),
+  /// fonctionnalité retirée, sont ignorées.
   factory UserSettings.fromJson(Map<String, dynamic> json) {
-    Routine routine(String key, Routine fallback) {
-      final raw = json[key];
-      return raw is Map
-          ? Routine.fromJson(Map<String, dynamic>.from(raw), fallback)
-          : fallback;
-    }
+    final banners = json['dismissed_banners'];
 
     return UserSettings(
       themeVariant: AppThemeVariant.fromValue(json['theme'] as String?),
@@ -335,8 +275,6 @@ class UserSettings {
           : true,
       reduceMotion:
           json['reduce_motion'] is bool ? json['reduce_motion'] as bool : false,
-      morningRoutine: routine('morning_routine', Routine.morningDefault),
-      eveningRoutine: routine('evening_routine', Routine.eveningDefault),
       manualNoteOrder: json['notes_manual_order'] is bool
           ? json['notes_manual_order'] as bool
           : false,
@@ -344,9 +282,14 @@ class UserSettings {
           ? PomodoroSettings.fromJson(
               Map<String, dynamic>.from(json['pomodoro'] as Map))
           : PomodoroSettings.defaults,
+      dismissedBanners: banners is List
+          ? banners.whereType<String>().toSet()
+          : const {},
     );
   }
 
+  // Égalité complète : chaque champ y figure. Un champ oublié ici rendait
+  // égaux deux réglages différents, et le changement n'était pas notifié.
   @override
   bool operator ==(Object other) =>
       other is UserSettings &&
@@ -357,7 +300,8 @@ class UserSettings {
       other.keyboardShortcutsEnabled == keyboardShortcutsEnabled &&
       other.reduceMotion == reduceMotion &&
       other.manualNoteOrder == manualNoteOrder &&
-      other.pomodoro == pomodoro;
+      other.pomodoro == pomodoro &&
+      setEquals(other.dismissedBanners, dismissedBanners);
 
   @override
   int get hashCode => Object.hash(
@@ -369,5 +313,6 @@ class UserSettings {
         reduceMotion,
         manualNoteOrder,
         pomodoro,
+        Object.hashAllUnordered(dismissedBanners),
       );
 }

@@ -11,8 +11,8 @@ class _IdlePomodoro extends PomodoroNotifier {
   PomodoroState build() => PomodoroState.initial();
 }
 
-/// Le cadran reste proportionné : jamais plus de 260 px, quel que soit
-/// l'écran, et la page tient dans une colonne de 520 px au plus.
+/// Écran statique et proportionné : aucun défilement, tout tient dans la
+/// fenêtre, et le cadran grandit avec l'écran au lieu d'être plafonné.
 void main() {
   Future<void> pump(WidgetTester tester, Size size) async {
     tester.view.physicalSize = size;
@@ -29,20 +29,40 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  for (final size in const [
-    Size(390, 844),
-    Size(1024, 768),
-    Size(2560, 1440)
-  ]) {
-    testWidgets('cadran borné sur ${size.width.toInt()}×${size.height.toInt()}',
-        (tester) async {
+  Size dialOf(WidgetTester tester) =>
+      tester.getSize(find.byType(CircularProgressIndicator));
+
+  void expectStaticAndInside(WidgetTester tester, Size size) {
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+    // Le dernier élément (statistiques) reste dans la fenêtre.
+    final bottom = tester.getBottomRight(find.text('Focus cette semaine')).dy;
+    expect(bottom, lessThanOrEqualTo(size.height));
+  }
+
+  for (final size in const [Size(360, 640), Size(390, 844)]) {
+    testWidgets(
+        'téléphone ${size.width.toInt()}×${size.height.toInt()} : '
+        'tout tient sans défiler', (tester) async {
       await pump(tester, size);
-      final dial = tester.getSize(find.byType(CircularProgressIndicator));
-      expect(dial.width, inInclusiveRange(180, 260));
+      expectStaticAndInside(tester, size);
+      final dial = dialOf(tester);
       expect(dial.width, dial.height);
-      expect(tester.getSize(find.byType(Column).first).width,
-          lessThanOrEqualTo(520));
-      expect(tester.takeException(), isNull);
+      expect(dial.width, greaterThanOrEqualTo(size.width * 0.5));
+    });
+  }
+
+  for (final size in const [Size(1024, 768), Size(2560, 1440)]) {
+    testWidgets(
+        'grand écran ${size.width.toInt()}×${size.height.toInt()} : '
+        'cadran à l\'échelle de l\'écran', (tester) async {
+      await pump(tester, size);
+      expectStaticAndInside(tester, size);
+      final dial = dialOf(tester);
+      expect(dial.width, dial.height);
+      // Plus de plafond à 260 px : le cadran occupe l'essentiel de la hauteur.
+      expect(dial.height, greaterThanOrEqualTo(size.height * 0.55));
+      expect(dial.width, lessThanOrEqualTo(size.width * 0.6));
     });
   }
 }

@@ -21,8 +21,8 @@ abstract final class Space {
   static const List<double> scale = [0, xs, sm, md, lg, xl, xxl, xxxl];
 }
 
-/// Rayons d'angle : un équilibre entre le dessin net (angles quasi droits)
-/// et la douceur de la maquette de référence.
+/// Rayons d'angle : nets mais pas anguleux (références Craft, ElevenReader,
+/// Saturn : 8 sur les champs, 12 sur les cartes et boutons).
 abstract final class Radii {
   /// Champs, puces, petits contrôles.
   static const double sm = 8;
@@ -106,18 +106,17 @@ abstract final class Borders {
   static const double focus = 2;
 }
 
-/// « Chrome » des cartes principales : filet intérieur clair et ombre très
-/// diffuse (maquette : `border 1.6 rgba(255,255,255,.92)`,
-/// `box-shadow 0 2px 16px rgba(24,30,45,.045)`).
+/// « Chrome » des cartes : contour fin d'un pixel et ombre à peine posée,
+/// à la manière de Craft, Linear ou Notion. La carte se détache par sa
+/// surface et son filet, pas par du relief.
 abstract final class Chrome {
-  static const double borderWidth = 1.6;
-  static const double borderOpacity = 0.92;
-  static const double shadowBlur = 16;
-  static const double shadowOffsetY = 2;
-  static const double shadowOpacity = 0.045;
+  static const double borderWidth = Borders.thin;
+  static const double shadowBlur = 3;
+  static const double shadowOffsetY = 1;
+  static const double shadowOpacity = 0.04;
 
   /// Élévation des feuilles du bas : assez pour les détacher, sans masse.
-  static const double sheetElevation = 6;
+  static const double sheetElevation = 4;
 }
 
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`) :

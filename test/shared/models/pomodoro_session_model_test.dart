@@ -50,22 +50,6 @@ void main() {
     });
   });
 
-  group('PomodoroStats.coins', () {
-    test('dérive les pièces des sessions archivées', () {
-      final stats = PomodoroStats.fromSessions([
-        sessionAt(DateTime.now()),
-        sessionAt(DateTime.now()),
-        sessionAt(DateTime.now()),
-      ]);
-
-      expect(stats.coins(10), 30);
-    });
-
-    test('vaut 0 sans session', () {
-      expect(const PomodoroStats.empty().coins(10), 0);
-    });
-  });
-
   group('formatFocusDuration', () {
     test('formate les durées courtes en minutes', () {
       expect(formatFocusDuration(const Duration(minutes: 25)), '25 min');

@@ -8,6 +8,7 @@ library;
 export 'cq_button.dart';
 export 'cq_card.dart';
 export 'cq_chip.dart';
+export 'cq_dismissible_banner.dart';
 export 'cq_empty_state.dart';
 export 'cq_interactions.dart';
 export 'cq_list_row.dart';

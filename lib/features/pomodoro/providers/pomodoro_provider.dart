@@ -1,9 +1,10 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../../settings/domain/user_settings.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -31,7 +32,6 @@ class PomodoroState {
     required this.totalSeconds,
     required this.completedSessions,
     required this.cyclePosition,
-    required this.coins,
     this.cycleLength = 4,
   });
 
@@ -45,7 +45,6 @@ class PomodoroState {
       totalSeconds: duration,
       completedSessions: 0,
       cyclePosition: 0,
-      coins: 0,
       cycleLength: config.sessionsBeforeLongBreak,
     );
   }
@@ -64,8 +63,6 @@ class PomodoroState {
 
   /// Sessions de travail avant la pause longue (réglage).
   final int cycleLength;
-
-  final int coins;
 
   bool get isRunning => status == PomodoroStatus.running;
   bool get isIdle => status == PomodoroStatus.idle;
@@ -91,7 +88,6 @@ class PomodoroState {
     int? totalSeconds,
     int? completedSessions,
     int? cyclePosition,
-    int? coins,
     int? cycleLength,
   }) {
     return PomodoroState(
@@ -101,7 +97,6 @@ class PomodoroState {
       totalSeconds: totalSeconds ?? this.totalSeconds,
       completedSessions: completedSessions ?? this.completedSessions,
       cyclePosition: cyclePosition ?? this.cyclePosition,
-      coins: coins ?? this.coins,
       cycleLength: cycleLength ?? this.cycleLength,
     );
   }
@@ -199,6 +194,10 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     _advancePhase(sessionCompleted: false);
   }
 
+  /// Termine la phase en cours comme si son décompte arrivait à zéro.
+  @visibleForTesting
+  Future<void> finishPhase() => _completePhase();
+
   void _tick() {
     final remaining = _remainingFromClock();
     if (remaining <= 0) {
@@ -224,19 +223,23 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     final startedAt = _startedAt;
     _startedAt = null;
 
-    // Notification de fin de session, exigée par le CdC. On utilise les sons
-    // système plutôt qu'un asset : `assets/sounds/` est vide, et une playlist
-    // d'ambiance relève du Lot 9.
+    // Sonnerie choisie dans les réglages, à la fin de chaque session de
+    // travail comme de chaque pause.
     unawaited(_notifyPhaseEnd());
 
-    _advancePhase(sessionCompleted: wasWork);
+    // Fin de phase réelle : la suivante démarre seule, sauf après la pause
+    // longue, qui clôt le cycle de sessions configuré.
+    final cycleDone = state.phase == PomodoroPhase.longBreak;
+    _advancePhase(sessionCompleted: wasWork, autoStart: !cycleDone);
 
     if (wasWork && startedAt != null) {
       await _archiveSession(startedAt);
     }
   }
 
-  void _advancePhase({required bool sessionCompleted}) {
+  /// Passe à la phase suivante. [autoStart] relance aussitôt le décompte
+  /// (enchaînement automatique travail ↔ pauses) ; sinon le minuteur attend.
+  void _advancePhase({required bool sessionCompleted, bool autoStart = false}) {
     final wasWork = state.phase.isWork;
 
     PomodoroPhase nextPhase;
@@ -265,18 +268,17 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       cycleLength: _config.sessionsBeforeLongBreak,
       completedSessions:
           sessionCompleted ? state.completedSessions + 1 : state.completedSessions,
-      coins: sessionCompleted
-          ? state.coins + AppConfig.coinsPerWorkSession
-          : state.coins,
     );
+
+    if (autoStart) start();
   }
 
   Future<void> _notifyPhaseEnd() async {
+    await ref.read(pomodoroChimeProvider).play(_config.ringtone);
     try {
-      await SystemSound.play(SystemSoundType.alert);
       await HapticFeedback.mediumImpact();
     } catch (_) {
-      // Pas de son/vibration disponible (web, émulateur) : sans importance.
+      // Pas de vibration disponible (web, bureau) : sans importance.
     }
   }
 
@@ -306,7 +308,6 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
       state = state.copyWith(
         completedSessions: stats.sessionsToday,
         cyclePosition: stats.sessionsToday % _config.sessionsBeforeLongBreak,
-        coins: stats.coins(AppConfig.coinsPerWorkSession),
       );
     } catch (_) {
       // Base locale indisponible : on démarre simplement à zéro.
@@ -317,6 +318,43 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
 final pomodoroProvider = NotifierProvider<PomodoroNotifier, PomodoroState>(
   PomodoroNotifier.new,
 );
+
+/// Joue la sonnerie de fin de phase.
+///
+/// Le fichier de `assets/sounds/` est lu par audioplayers ; s'il manque ou
+/// si aucun lecteur n'est disponible (plateforme, tests), le bip d'alerte du
+/// système prend le relais : la fin de phase n'est jamais silencieuse.
+class PomodoroChime {
+  AudioPlayer? _player;
+
+  Future<void> play(PomodoroRingtone ringtone) async {
+    try {
+      final player = _player ??= AudioPlayer();
+      await player.stop();
+      await player.play(AssetSource(ringtone.assetPath));
+    } catch (_) {
+      try {
+        await SystemSound.play(SystemSoundType.alert);
+      } catch (_) {
+        // Aucun son disponible : la vibration et l'écran signalent la fin.
+      }
+    }
+  }
+
+  Future<void> dispose() async {
+    try {
+      await _player?.dispose();
+    } catch (_) {
+      // Lecteur jamais créé correctement : rien à libérer.
+    }
+  }
+}
+
+final pomodoroChimeProvider = Provider<PomodoroChime>((ref) {
+  final chime = PomodoroChime();
+  ref.onDispose(() => unawaited(chime.dispose()));
+  return chime;
+});
 
 /// Statistiques d'étude — « Temps total d'étude par jour/semaine » (CdC).
 final pomodoroStatsProvider = StreamProvider<PomodoroStats>((ref) {

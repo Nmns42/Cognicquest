@@ -82,17 +82,13 @@ class AppConfig {
 
   static const int defaultWorkDurationMinutes = 25;
   static const int defaultShortBreakDurationMinutes = 5;
-  static const int defaultLongBreakDurationMinutes = 15;
+  static const int defaultLongBreakDurationMinutes = 10;
 
   /// Nombre de sessions de travail avant une pause longue (cycle Pomodoro
   /// classique). Le CdC demande des « sessions de travail et pauses
   /// programmables » : ces valeurs sont les défauts, surchargeables par
   /// l'utilisateur au Lot 9 (système de configuration).
   static const int sessionsBeforeLongBreak = 4;
-
-  /// Récompense du CdC : « proposer des récompenses (gagne des pièces) ».
-  static const int coinsPerWorkSession = 10;
-  static const int coinsPerHabitStreakDay = 2;
 
   static const int maxFreeFlashcardsPerDay = 100;
   static const int maxFreeLinksPerDay = 100;

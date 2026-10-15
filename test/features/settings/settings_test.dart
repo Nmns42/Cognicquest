@@ -172,30 +172,48 @@ void main() {
           UserSettings.fromJson(const {'ambient_volume': -3}).ambientVolume, 0);
     });
 
-    test('conserve les routines personnalisées', () {
-      final settings = UserSettings.defaults.copyWith(
-        morningRoutine: Routine.morningDefault.copyWith(
-          isEnabled: true,
-          hour: 6,
-          minute: 30,
-          steps: ['Boire un verre d\'eau'],
-        ),
-      );
+    test('conserve les encadrés d\'aide fermés', () {
+      final settings =
+          UserSettings.defaults.copyWith(dismissedBanners: {'b', 'a'});
 
       final restored = UserSettings.fromJson(settings.toJson());
 
-      expect(restored.morningRoutine.isEnabled, isTrue);
-      expect(restored.morningRoutine.timeLabel, '06:30');
-      expect(restored.morningRoutine.steps, ['Boire un verre d\'eau']);
+      expect(restored.dismissedBanners, {'a', 'b'});
+      expect(restored, settings);
     });
 
-    test('une routine mal formée retombe sur son modèle', () {
+    test('ignore les anciennes routines et une liste mal formée', () {
       final restored = UserSettings.fromJson(const {
         'morning_routine': {'hour': 'midi'},
+        'evening_routine': {'enabled': true},
+        'dismissed_banners': 'pas une liste',
       });
 
-      expect(restored.morningRoutine.hour, Routine.morningDefault.hour);
-      expect(restored.morningRoutine.steps, Routine.morningDefault.steps);
+      expect(restored, UserSettings.defaults);
+    });
+
+    test('l\'égalité couvre tous les champs', () {
+      const base = UserSettings.defaults;
+      final variants = [
+        base.copyWith(themeVariant: AppThemeVariant.dark),
+        base.copyWith(textScale: TextScalePreset.large),
+        base.copyWith(ambientSound: AmbientSound.pinkNoise),
+        base.copyWith(ambientVolume: 0.2),
+        base.copyWith(keyboardShortcutsEnabled: false),
+        base.copyWith(reduceMotion: true),
+        base.copyWith(manualNoteOrder: true),
+        base.copyWith(
+            pomodoro: PomodoroSettings.defaults.copyWith(workMinutes: 50)),
+        base.copyWith(dismissedBanners: {'aide'}),
+      ];
+      for (final changed in variants) {
+        expect(changed, isNot(base));
+      }
+      // Même ensemble, ordre d'insertion différent : égaux, même hashCode.
+      final ab = base.copyWith(dismissedBanners: {'a', 'b'});
+      final ba = base.copyWith(dismissedBanners: {'b', 'a'});
+      expect(ab, ba);
+      expect(ab.hashCode, ba.hashCode);
     });
   });
 

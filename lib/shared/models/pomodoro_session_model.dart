@@ -66,11 +66,6 @@ class PomodoroStats {
   final Duration focusThisWeek;
   final Duration focusAllTime;
 
-  /// Récompenses du CdC (« gagne des pièces »). Les pièces sont *dérivées* des
-  /// sessions archivées plutôt que stockées dans un compteur en mémoire :
-  /// elles survivent donc au redémarrage de l'application.
-  int coins(int coinsPerSession) => sessionsAllTime * coinsPerSession;
-
   factory PomodoroStats.fromSessions(List<PomodoroSession> sessions) {
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);

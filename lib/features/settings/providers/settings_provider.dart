@@ -57,11 +57,12 @@ class SettingsNotifier extends Notifier<UserSettings> {
   void setPomodoro(PomodoroSettings pomodoro) =>
       _update(state.copyWith(pomodoro: pomodoro));
 
-  void setMorningRoutine(Routine routine) =>
-      _update(state.copyWith(morningRoutine: routine));
-
-  void setEveningRoutine(Routine routine) =>
-      _update(state.copyWith(eveningRoutine: routine));
+  /// Ferme définitivement l'encadré d'aide [bannerId].
+  void dismissBanner(String bannerId) {
+    if (state.dismissedBanners.contains(bannerId)) return;
+    _update(state.copyWith(
+        dismissedBanners: {...state.dismissedBanners, bannerId}));
+  }
 
   void resetToDefaults() => _update(UserSettings.defaults);
 
@@ -93,7 +94,7 @@ final settingsProvider =
 /// Thème dérivé des préférences.
 ///
 /// `select` : un `ThemeData` complet n'est reconstruit que si le thème change,
-/// pas à chaque réglage (volume, routines…).
+/// pas à chaque réglage (volume, encadrés fermés…).
 final appThemeProvider = Provider<ThemeData>(
   (ref) => AppTheme.build(
     ref.watch(settingsProvider.select((s) => s.themeVariant)),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cognicquest/core/theme/app_theme.dart';
+import 'package:cognicquest/core/ui/cq_dismissible_banner.dart';
 import 'package:cognicquest/features/auth/providers/auth_provider.dart';
 import 'package:cognicquest/features/pomodoro/providers/pomodoro_provider.dart';
 import 'package:cognicquest/features/settings/data/ambient_sound_engine.dart';
@@ -131,5 +132,45 @@ void main() {
         const UserSettings(pomodoro: PomodoroSettings(workMinutes: 50))
             .toJson());
     expect(restored.pomodoro.workMinutes, 50);
+  });
+
+  testWidgets("encadré d'aide : la croix le ferme et il ne revient pas",
+      (tester) async {
+    final client = offlineClient();
+    addTearDown(() => unawaited(client.dispose()));
+    final container = ProviderContainer(overrides: [
+      supabaseClientProvider.overrideWithValue(client),
+    ]);
+    addTearDown(container.dispose);
+
+    Widget banner() => UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(
+              body: CqDismissibleBanner(
+                bannerId: 'test.aide',
+                message: "Explication de l'outil",
+              ),
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(banner());
+    expect(find.text("Explication de l'outil"), findsOneWidget);
+
+    await tester.tap(find.byTooltip("Fermer l'aide"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Explication de l'outil"), findsNothing);
+    expect(container.read(settingsProvider).dismissedBanners, {'test.aide'});
+
+    // Remonté plus tard (autre écran, autre session) : toujours fermé.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(banner());
+    expect(find.text("Explication de l'outil"), findsNothing);
+
+    // Laisse passer l'enregistrement différé des préférences.
+    await tester.pump(const Duration(seconds: 1));
   });
 }
