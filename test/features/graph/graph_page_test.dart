@@ -12,6 +12,7 @@ import 'package:cognicquest/shared/models/note_link_model.dart';
 import 'package:cognicquest/shared/models/note_model.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show SemanticsNode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -60,7 +61,21 @@ Widget graphApp({required List<Note> notes, required List<NoteLink> links}) {
   );
 }
 
-Finder chipOf(String id) => find.text('Fiche $id');
+/// Point d'une fiche : peint sur la toile, il est repéré par sa sémantique
+/// (titre annoncé aux lecteurs d'écran, cf. `semanticsBuilder`).
+FinderBase<SemanticsNode> chipOf(String id) =>
+    find.semantics.byLabel('Fiche $id');
+
+/// Centre à l'écran (pixels logiques) du point d'une fiche : toutes les
+/// transformations de l'arbre sémantique, ramenées des pixels physiques.
+Offset centerOf(WidgetTester tester, String id) {
+  final node = chipOf(id).evaluate().single;
+  var rect = node.rect;
+  for (SemanticsNode? n = node; n != null; n = n.parent) {
+    if (n.transform != null) rect = MatrixUtils.transformRect(n.transform!, rect);
+  }
+  return rect.center / tester.view.devicePixelRatio;
+}
 
 /// Attend la fin du calcul de disposition. Au-delà de
 /// [GraphLayout.asyncThreshold] fiches, il tourne dans un isolate, qui
@@ -93,7 +108,7 @@ void main() {
       await settleGraph(tester);
 
       for (final n in notes) {
-        expect(chipOf(n.id), findsOneWidget, reason: 'fiche ${n.id} absente');
+        expect(chipOf(n.id), findsOne, reason: 'fiche ${n.id} absente');
       }
       expect(tester.takeException(), isNull);
     });
@@ -103,14 +118,14 @@ void main() {
       await tester.pumpWidget(graphApp(notes: notes, links: links));
       await settleGraph(tester);
 
-      final before = tester.getCenter(chipOf('n10'));
-      await tester.tap(chipOf('n0'), warnIfMissed: false);
+      final before = centerOf(tester, 'n10');
+      await tester.tapAt(centerOf(tester, 'n0'));
       await tester.pumpAndSettle();
       // Ferme l'aperçu ouvert par le tap.
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      expect(tester.getCenter(chipOf('n10')), before);
+      expect(centerOf(tester, 'n10'), before);
     });
 
     testWidgets('le filtre par sujet ne garde que les fiches du sujet',
@@ -121,7 +136,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilterChip, 'Physique'));
       await settleGraph(tester);
 
-      expect(chipOf('n1'), findsOneWidget); // Physique
+      expect(chipOf('n1'), findsOne); // Physique
       expect(chipOf('n0'), findsNothing); // Maths
       expect(chipOf('n2'), findsNothing); // Info
     });
@@ -133,10 +148,50 @@ void main() {
 
       await tester.tap(find.byTooltip('Recentrer'));
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(InteractiveViewer), const Offset(-200, 80));
+      await tester.drag(find.byKey(const Key('graph-canvas')),
+          const Offset(-200, 80));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('attraper un point le déplace, ses voisins le suivent',
+        (tester) async {
+      await tester.pumpWidget(graphApp(notes: notes, links: links));
+      await settleGraph(tester);
+
+      final start = centerOf(tester, 'n20');
+      final neighbour = centerOf(tester, 'n21');
+      final far = centerOf(tester, 'n58');
+
+      // Glissé lentement, comme un doigt : la simulation tourne pendant le
+      // geste.
+      final gesture = await tester.startGesture(start);
+      for (var i = 0; i < 20; i++) {
+        await gesture.moveBy(const Offset(12, 6));
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      // Lâché, le point reste là où on l'a posé (à l'élasticité près).
+      expect((centerOf(tester, 'n20') - start).distance, greaterThan(100));
+      expect((centerOf(tester, 'n21') - neighbour).distance, greaterThan(5),
+          reason: 'la voisine doit suivre le point déplacé');
+
+      // Une fiche isolée, sans lien, bouge à peine.
+      expect((centerOf(tester, 'n58') - far).distance, lessThan(40));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('l\'encadré d\'analyse se ferme d\'une croix', (tester) async {
+      await tester.pumpWidget(graphApp(notes: notes, links: links));
+      await settleGraph(tester);
+
+      expect(find.byTooltip('Fermer l’analyse'), findsOneWidget);
+      await tester.tap(find.byTooltip('Fermer l’analyse'));
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Fermer l’analyse'), findsNothing);
     });
 
     testWidgets('un carnet vide propose d\'aller aux fiches', (tester) async {

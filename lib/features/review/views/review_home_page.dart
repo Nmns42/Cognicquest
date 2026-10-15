@@ -5,9 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/flashcard_model.dart';
+import '../../notes/providers/note_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/flashcard_editor_sheet.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
+import 'explain_page.dart';
+import 'sq3r_page.dart';
 
 /// Accueil de la révision active : ce qui est dû aujourd'hui, la charge à
 /// venir, et l'accès aux outils de compréhension (SQ3R, « Explique-moi »).
@@ -88,25 +92,20 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
               const SizedBox(height: 4),
                Text(
                 'Mémoriser ce qu\'on n\'a pas compris ne tient pas. '
-                'Ces deux outils travaillent la compréhension.',
+                'L’étude guidée travaille la compréhension en trois temps.',
                 style: TextStyle(
                     fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.4),
               ),
               const SizedBox(height: 12),
               _ToolCard(
-                icon: Icons.menu_book_outlined,
-                title: 'Lecture guidée SQ3R',
-                subtitle: 'Survoler, questionner, lire, réciter, réviser',
+                icon: Icons.school_outlined,
+                title: 'Étude guidée',
+                subtitle: 'Survol et questions · lecture ciblée · '
+                    'explication avec tes mots',
                 onTap: () => context.push(AppRoute.sq3rPicker),
               ),
-              const SizedBox(height: 10),
-              _ToolCard(
-                icon: Icons.record_voice_over_outlined,
-                title: 'Explique-moi',
-                subtitle: 'Reformule une notion avec tes propres mots',
-                onTap: () => context.push(AppRoute.explainPicker),
-              ),
               const SizedBox(height: 24),
+              const _StudySheets(),
 
               if (cards.isEmpty)
                 const _EmptyCards()
@@ -458,7 +457,9 @@ class _CardRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      card.front,
+                      card.frontSide.text.isEmpty
+                          ? 'Image'
+                          : card.frontSide.text,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style:  TextStyle(
@@ -497,6 +498,12 @@ class _CardRow extends StatelessWidget {
                   ],
                 ),
               ),
+              if (card.frontSide.hasImage || card.backSide.hasImage)
+                Padding(
+                  padding: const EdgeInsets.only(right: Space.xs),
+                  child: Icon(Icons.image_outlined,
+                      size: Sizes.iconSm, color: context.cq.textHint),
+                ),
               if (!card.isSynced)
                  Padding(
                   padding: const EdgeInsets.only(right: 4),
@@ -513,6 +520,80 @@ class _CardRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Fiches de révision : chaque fiche passée par l'étude guidée, ouvrable
+/// comme une fiche de cours (questions, réponses, explication, maîtrise).
+class _StudySheets extends ConsumerWidget {
+  const _StudySheets();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessions = ref.watch(studySessionsProvider).valueOrNull ?? const [];
+    final explanations =
+        ref.watch(explanationsProvider).valueOrNull ?? const <Explanation>[];
+    final noteIds = <String>{
+      ...sessions.map((s) => s.noteId),
+      ...explanations.map((e) => e.noteId),
+    };
+    if (noteIds.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionLabel('Mes fiches de révision (${noteIds.length})'),
+        const SizedBox(height: Space.sm),
+        for (final noteId in noteIds)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.sm),
+            child: _StudySheetRow(
+              noteId: noteId,
+              session: sessions.where((s) => s.noteId == noteId).firstOrNull,
+              latest: explanations.where((e) => e.noteId == noteId).firstOrNull,
+            ),
+          ),
+        const SizedBox(height: Space.lg),
+      ],
+    );
+  }
+}
+
+class _StudySheetRow extends ConsumerWidget {
+  const _StudySheetRow({
+    required this.noteId,
+    required this.session,
+    required this.latest,
+  });
+
+  final String noteId;
+  final Sq3rSession? session;
+  final Explanation? latest;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final note = ref.watch(noteByIdProvider(noteId));
+    if (note == null) return const SizedBox.shrink();
+    final current = session;
+    final status = current == null || current.isComplete
+        ? (latest == null
+            ? 'Étudiée'
+            : 'Maîtrise ${latest!.confidence}/5 · '
+                '${ConfidencePicker.labels[latest!.confidence - 1]}')
+        : 'En cours · ${StudyStage.of(current.currentStep).label}';
+    final questions = current?.questions.length ?? 0;
+    return CqCard(
+      padding: EdgeInsets.zero,
+      onTap: () => context.push(AppRoute.studySheetFor(noteId)),
+      semanticLabel: 'Ouvrir la fiche de révision ${note.displayTitle}',
+      child: CqListRow(
+        title: note.displayTitle,
+        subtitle: questions == 0
+            ? status
+            : '$status · $questions question${questions > 1 ? 's' : ''}',
+        leadingIcon: Icons.school_outlined,
       ),
     );
   }

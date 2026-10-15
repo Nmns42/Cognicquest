@@ -36,6 +36,9 @@ abstract interface class ReviewRepository {
   Future<void> saveExplanation(Explanation explanation);
 
   Future<Sq3rSession> sessionForNote(String noteId);
+
+  /// Sessions d'étude guidée, la plus récemment modifiée d'abord.
+  Stream<List<Sq3rSession>> watchSessions();
   Future<void> saveSession(Sq3rSession session);
 
   Future<void> sync();
@@ -242,6 +245,14 @@ class LocalFirstReviewRepository implements ReviewRepository {
   }
 
   // ── SQ3R ─────────────────────────────────────────────────────────────────
+
+  @override
+  Stream<List<Sq3rSession>> watchSessions() {
+    final query = _db.select(_db.localSq3rSessions)
+      ..where((t) => t.userId.equals(_userId))
+      ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]);
+    return query.watch().map((rows) => rows.map(_toSession).toList());
+  }
 
   @override
   Future<Sq3rSession> sessionForNote(String noteId) async {

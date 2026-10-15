@@ -16,6 +16,21 @@ final explanationsProvider = StreamProvider<List<Explanation>>((ref) {
   return repository.watchExplanations();
 });
 
+/// Sessions d'étude guidée (« fiches de révision »), la plus récente d'abord.
+final studySessionsProvider = StreamProvider<List<Sq3rSession>>((ref) {
+  final repository = ref.watch(reviewRepositoryProvider);
+  if (repository == null) return Stream.value(const <Sq3rSession>[]);
+  return repository.watchSessions();
+});
+
+/// Session d'étude d'une fiche, si elle existe.
+final studySessionForNoteProvider =
+    Provider.family<Sq3rSession?, String>((ref, noteId) {
+  final sessions =
+      ref.watch(studySessionsProvider).valueOrNull ?? const <Sq3rSession>[];
+  return sessions.where((s) => s.noteId == noteId).firstOrNull;
+});
+
 /// Paquet sélectionné, `null` = tous.
 final selectedDeckProvider = StateProvider<String?>((ref) => null);
 

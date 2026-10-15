@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui' show Offset, Size;
+import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:flutter/foundation.dart' as foundation show compute;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -278,5 +278,200 @@ class GraphLayoutJob {
       },
       Size(maxX - minX + 2 * padding, maxY - minY + 2 * padding),
     );
+  }
+}
+
+/// Simulation physique continue du graphe, façon Obsidian : chaque frame
+/// ([tick]), les fiches se repoussent, les liens tirent comme des ressorts
+/// et une force centrale retient l'ensemble. Une fiche attrapée ([pin]) suit
+/// le doigt ; ses voisines la suivent, élastiquement.
+///
+/// L'énergie ([alpha]) décroît à chaque frame (refroidissement, comme dans
+/// d3-force) : la carte se pose d'elle-même et la simulation s'arrête
+/// ([isActive] faux), sans consommer de batterie. Attraper une fiche la
+/// réchauffe le temps du geste.
+///
+/// Repère « monde » centré sur (0, 0) ; déterministe à entrées égales.
+class GraphSimulation {
+  GraphSimulation({this.spacing = 170});
+
+  /// Longueur de repos d'un lien.
+  final double spacing;
+
+  static const double alphaMin = 0.002;
+  static const double alphaDecay = 0.0228;
+
+  /// Énergie gardée pendant qu'une fiche est tenue.
+  static const double dragAlpha = 0.3;
+
+  /// Part de la vitesse perdue à chaque frame (frottement).
+  static const double velocityDecay = 0.4;
+
+  final Map<String, Offset> _positions = {};
+  final Map<String, Offset> _velocities = {};
+  List<(String, String)> _links = const [];
+  final Map<String, int> _degree = {};
+
+  String? _pinned;
+  double alpha = 0;
+  double _alphaTarget = 0;
+
+  /// Positions courantes, repère monde.
+  Map<String, Offset> get positions => _positions;
+
+  String? get pinned => _pinned;
+
+  bool get isActive => alpha >= alphaMin || _alphaTarget > 0;
+
+  /// Charge une disposition calculée par [GraphLayout] (recentrée sur
+  /// l'origine). Les fiches déjà présentes gardent leur place : un ajout ne
+  /// rebat pas toute la carte.
+  void load(GraphLayout layout, Iterable<(String, String)> links) {
+    final center = Offset(layout.size.width / 2, layout.size.height / 2);
+    final keep = _positions.isNotEmpty;
+    _positions.removeWhere((id, _) => !layout.positions.containsKey(id));
+    _velocities.removeWhere((id, _) => !layout.positions.containsKey(id));
+    for (final MapEntry(key: id, value: p) in layout.positions.entries) {
+      _positions.putIfAbsent(id, () => p - center);
+      _velocities.putIfAbsent(id, () => Offset.zero);
+    }
+    final seen = <(String, String)>{};
+    _links = [
+      for (final (a, b) in links)
+        if (a != b &&
+            _positions.containsKey(a) &&
+            _positions.containsKey(b) &&
+            seen.add(a.compareTo(b) < 0 ? (a, b) : (b, a)))
+          (a, b),
+    ];
+    _degree
+      ..clear()
+      ..addAll({for (final id in _positions.keys) id: 0});
+    for (final (a, b) in _links) {
+      _degree[a] = _degree[a]! + 1;
+      _degree[b] = _degree[b]! + 1;
+    }
+    // Disposition déjà proche de l'équilibre : un léger réchauffement
+    // suffit pour l'adapter aux forces continues.
+    alpha = keep ? 0.3 : 0.5;
+  }
+
+  /// Fiche la plus proche de [world] dans un rayon de [radius], ou `null`.
+  String? hitTest(Offset world, double radius) {
+    String? best;
+    var bestDistance = radius;
+    for (final MapEntry(key: id, value: p) in _positions.entries) {
+      final d = (p - world).distance;
+      if (d <= bestDistance) {
+        best = id;
+        bestDistance = d;
+      }
+    }
+    return best;
+  }
+
+  /// Attrape [id] et le place en [world].
+  void pin(String id, Offset world) {
+    if (!_positions.containsKey(id)) return;
+    _pinned = id;
+    _positions[id] = world;
+    _velocities[id] = Offset.zero;
+    _alphaTarget = dragAlpha;
+    if (alpha < dragAlpha) alpha = dragAlpha;
+  }
+
+  /// Déplace la fiche tenue.
+  void movePin(Offset world) {
+    final id = _pinned;
+    if (id == null) return;
+    _positions[id] = world;
+    _velocities[id] = Offset.zero;
+  }
+
+  /// Relâche la fiche : la carte se repose.
+  void release() {
+    _pinned = null;
+    _alphaTarget = 0;
+  }
+
+  /// Avance d'une frame.
+  void tick() {
+    if (_positions.isEmpty) return;
+    alpha += (_alphaTarget - alpha) * alphaDecay;
+
+    final ids = _positions.keys.toList(growable: false);
+    final n = ids.length;
+    final force = {for (final id in ids) id: Offset.zero};
+
+    // Ressorts : chaque lien tire vers sa longueur de repos. La force est
+    // répartie selon le degré, pour que les hubs bougent moins.
+    for (final (a, b) in _links) {
+      final pa = _positions[a]!, pb = _positions[b]!;
+      final delta = pb - pa;
+      final d = math.max(delta.distance, 1.0);
+      final strength =
+          0.7 / math.min(_degree[a]!, _degree[b]!).clamp(1, 1 << 30);
+      final pull = delta * ((d - spacing) / d * strength * alpha);
+      final total = _degree[a]! + _degree[b]!;
+      final biasB = _degree[a]! / total;
+      force[b] = force[b]! - pull * biasB;
+      force[a] = force[a]! + pull * (1 - biasB);
+    }
+
+    // Répulsion entre toutes les fiches proches (charge électrique).
+    final charge = -1.1 * spacing * spacing;
+    final range = spacing * 6;
+    for (var i = 0; i < n; i++) {
+      final pi = _positions[ids[i]]!;
+      for (var j = i + 1; j < n; j++) {
+        var delta = _positions[ids[j]]! - pi;
+        var d2 = delta.distanceSquared;
+        if (d2 > range * range) continue;
+        if (d2 < 1) {
+          // Superposition : direction arbitraire mais stable.
+          delta = Offset(math.cos(i + j.toDouble()), math.sin(i + j.toDouble()));
+          d2 = 1;
+        }
+        final push = delta * (charge * alpha / d2);
+        force[ids[i]] = force[ids[i]]! + push;
+        force[ids[j]] = force[ids[j]]! - push;
+      }
+    }
+
+    // Force centrale : retient les îlots et les fiches isolées.
+    for (final id in ids) {
+      force[id] = force[id]! - _positions[id]! * (0.03 * alpha);
+    }
+
+    for (final id in ids) {
+      if (id == _pinned) continue;
+      var v = (_velocities[id]! + force[id]!) * (1 - velocityDecay);
+      // Garde-fou : jamais de saut plus grand qu'un demi-lien par frame.
+      final speed = v.distance;
+      if (speed > spacing / 2) v = v * (spacing / 2 / speed);
+      _velocities[id] = v;
+      _positions[id] = _positions[id]! + v;
+    }
+  }
+
+  /// Fait tourner la simulation jusqu'au repos (animations réduites, tests).
+  void settle({int maxTicks = 600}) {
+    for (var i = 0; i < maxTicks && isActive; i++) {
+      tick();
+    }
+  }
+
+  /// Rectangle qui contient toutes les fiches (repère monde).
+  Rect get bounds {
+    if (_positions.isEmpty) return Rect.zero;
+    var minX = double.infinity, minY = double.infinity;
+    var maxX = -double.infinity, maxY = -double.infinity;
+    for (final p in _positions.values) {
+      minX = math.min(minX, p.dx);
+      minY = math.min(minY, p.dy);
+      maxX = math.max(maxX, p.dx);
+      maxY = math.max(maxY, p.dy);
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
   }
 }

@@ -1,5 +1,8 @@
 import 'package:cognicquest/core/config/app_config.dart';
 import 'package:cognicquest/features/review/domain/spaced_repetition.dart';
+import 'package:cognicquest/features/review/views/sq3r_page.dart';
+import 'package:cognicquest/shared/models/flashcard_model.dart';
+import 'package:cognicquest/shared/models/note_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _now = DateTime(2026, 3, 10, 9);
@@ -201,6 +204,90 @@ void main() {
       expect(ReviewGrade.fromValue(null), ReviewGrade.good);
       expect(ReviewGrade.fromValue('inventé'), ReviewGrade.good);
       expect(ReviewGrade.fromValue('again'), ReviewGrade.again);
+    });
+  });
+
+  group('Images des cartes (CardSide)', () {
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+
+    test('texte et image font l’aller-retour par la colonne de la carte', () {
+      const side = CardSide('Le cœur', png);
+      final stored = side.encode();
+      expect(stored.split('\n').first, 'Le cœur',
+          reason: 'la première ligne reste le texte');
+      final read = CardSide.parse(stored);
+      expect(read.text, 'Le cœur');
+      expect(read.image, png);
+    });
+
+    test('image seule, lien http, ou pas d’image du tout', () {
+      expect(CardSide.parse(const CardSide('', png).encode()).image, png);
+      expect(CardSide.parse(const CardSide('', png).encode()).text, '');
+      const url = 'https://exemple.fr/schema.png';
+      expect(CardSide.parse(const CardSide('Schéma', url).encode()).image, url);
+      final plain = CardSide.parse('Une question\navec deux lignes');
+      expect(plain.hasImage, isFalse);
+      expect(plain.text, 'Une question\navec deux lignes');
+    });
+
+    test('une image Markdown au milieu du texte n’est pas prise pour celle '
+        'de la carte', () {
+      final side = CardSide.parse('![image](data:image/png;base64,AA) puis texte');
+      expect(side.hasImage, isFalse);
+    });
+  });
+
+  group('Étude guidée', () {
+    Sq3rSession session({List<String> questions = const [], String recite = ''}) =>
+        Sq3rSession(
+          id: 's1',
+          userId: 'u1',
+          noteId: 'n1',
+          currentStep: Sq3rStep.survey,
+          createdAt: _now,
+          updatedAt: _now,
+          questions: questions,
+          reciteNotes: recite,
+        );
+
+    test('une réponse par question, enregistrée sans nouvelle colonne', () {
+      final s = session(questions: ['Q1', 'Q2'])
+          .withAnswers(['Réponse 1', 'Réponse 2']);
+      expect(s.answers, ['Réponse 1', 'Réponse 2']);
+      expect(s.legacyRecite, '');
+    });
+
+    test('question sans réponse, et ancienne récitation conservée', () {
+      expect(session(questions: ['Q1', 'Q2']).withAnswers(['R1']).answers,
+          ['R1', '']);
+      final legacy = session(questions: ['Q1'], recite: 'Texte libre');
+      expect(legacy.answers, ['']);
+      expect(legacy.legacyRecite, 'Texte libre');
+    });
+
+    test('trois étapes, reprises depuis les étapes SQ3R enregistrées', () {
+      expect(StudyStage.values, hasLength(3));
+      expect(StudyStage.of(Sq3rStep.question), StudyStage.preview);
+      expect(StudyStage.of(Sq3rStep.recite), StudyStage.read);
+      expect(StudyStage.of(Sq3rStep.review), StudyStage.explain);
+      for (final stage in StudyStage.values) {
+        expect(StudyStage.of(stage.step), stage);
+      }
+    });
+
+    test('les titres de la fiche deviennent des questions toutes prêtes', () {
+      final note = Note(
+        id: 'n1',
+        userId: 'u1',
+        title: 'Cellule',
+        content: '# Mitochondrie\nTexte\n## Pourquoi l’ATP ?\n',
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      expect(suggestedQuestions(note), [
+        'Que faut-il retenir sur « Mitochondrie » ?',
+        'Pourquoi l’ATP ?',
+      ]);
     });
   });
 }

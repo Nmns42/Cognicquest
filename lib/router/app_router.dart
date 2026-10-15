@@ -76,6 +76,14 @@ abstract final class AppRoute {
   static String sq3rFor(String noteId) => '$sq3rPicker/$noteId';
   static String explainFor(String noteId) => '$explainPicker/$noteId';
 
+  /// Fiche de révision d'une fiche (résultat de l'étude guidée).
+  static const String studySheet = '/review/sheet';
+  static String studySheetFor(String noteId) => '$studySheet/$noteId';
+
+  /// Révision des seules cartes d'une fiche.
+  static String reviewSessionFor(String noteId) =>
+      '$reviewSession?note=$noteId';
+
   static const Set<String> publicRoutes = {login, register, forgotPassword};
 }
 
@@ -261,15 +269,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'session',
-                builder: (_, __) =>
-                    const PanelSettle(child: ReviewSessionPage()),
+                builder: (_, state) => PanelSettle(
+                    child: ReviewSessionPage(
+                        noteId: state.uri.queryParameters['note'])),
+              ),
+              GoRoute(
+                path: 'sheet/:noteId',
+                builder: (context, state) => PanelSettle(
+                    child: StudySheetPage(
+                        noteId: state.pathParameters['noteId']!)),
               ),
               GoRoute(
                 path: 'sq3r',
                 builder: (_, __) => const NotePickerPage(
-                  title: 'Lecture guidée SQ3R',
-                  subtitle: 'Choisis la fiche à travailler en cinq étapes : '
-                      'survol, questions, lecture, récitation, révision.',
+                  title: 'Étude guidée',
+                  subtitle: 'Choisis la fiche à travailler en trois temps : '
+                      'survol et questions, lecture ciblée, explication.',
                   routeBuilder: AppRoute.sq3rFor,
                 ),
                 routes: [
@@ -286,15 +301,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) => const NotePickerPage(
                   title: 'Explique-moi',
                   subtitle: 'Choisis la notion que tu vas reformuler avec '
-                      'tes propres mots.',
+                      'tes propres mots (dernière étape de l’étude guidée).',
                   routeBuilder: AppRoute.explainFor,
                 ),
                 routes: [
                   GoRoute(
                     path: ':noteId',
                     builder: (context, state) => PanelSettle(
-                        child: ExplainPage(
-                            noteId: state.pathParameters['noteId']!)),
+                        child: Sq3rPage(
+                            noteId: state.pathParameters['noteId']!,
+                            initialStage: StudyStage.explain)),
                   ),
                 ],
               ),

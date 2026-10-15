@@ -98,4 +98,15 @@ void main() {
     expect(source, contains('Motion.reduced(context)'));
     expect(source, contains('controller.value = 1'));
   });
+
+  test('graphe : la simulation continue respecte les animations réduites', () {
+    // graph_page.dart est autorisé à piloter un Ticker (simulation physique
+    // à 60 FPS, comme Obsidian) : animations réduites, la carte se pose
+    // d'un coup, sans frame intermédiaire.
+    final source = sources.entries
+        .firstWhere((e) => e.key.endsWith('lib/features/graph/views/graph_page.dart'))
+        .value;
+    expect(source, contains('createTicker('));
+    expect(source, contains('Motion.reduced(context)'));
+  });
 }

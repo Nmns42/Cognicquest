@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../domain/spaced_repetition.dart';
 import '../providers/review_provider.dart';
+import '../widgets/flashcard_editor_sheet.dart';
 import '../../../core/theme/tokens.dart';
 
 /// Session de révision : une carte à la fois, réponse cachée, puis jugement.
@@ -15,7 +16,11 @@ import '../../../core/theme/tokens.dart';
 /// mémoire à long terme ». La réponse ne s'affiche jamais avant que
 /// l'utilisateur ait tenté de la retrouver.
 class ReviewSessionPage extends ConsumerStatefulWidget {
-  const ReviewSessionPage({super.key});
+  const ReviewSessionPage({super.key, this.noteId});
+
+  /// Révision ciblée : toutes les cartes de cette fiche, échues ou non
+  /// (lancée depuis sa fiche de révision). `null` : la file du jour.
+  final String? noteId;
 
   @override
   ConsumerState<ReviewSessionPage> createState() => _ReviewSessionPageState();
@@ -35,7 +40,10 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final queue = _queue ??= List<Flashcard>.from(ref.read(dueCardsProvider));
+    final noteId = widget.noteId;
+    final queue = _queue ??= List<Flashcard>.from(noteId == null
+        ? ref.read(dueCardsProvider)
+        : ref.read(cardsForNoteProvider(noteId)));
 
     if (queue.isEmpty) {
       return _SessionScaffold(
@@ -96,7 +104,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                       ),
                     _Face(
                       label: 'Question',
-                      content: card.front,
+                      side: card.frontSide,
                       isEmphasised: true,
                     ),
                     const SizedBox(height: 16),
@@ -111,7 +119,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                       front: _HiddenAnswer(
                         onReveal: () => setState(() => _isRevealed = true),
                       ),
-                      back: _Face(label: 'Réponse', content: card.back),
+                      back: _Face(label: 'Réponse', side: card.backSide),
                     ),
                   ],
                 ),
@@ -173,12 +181,14 @@ class _SessionScaffold extends StatelessWidget {
 class _Face extends StatelessWidget {
   const _Face({
     required this.label,
-    required this.content,
+    required this.side,
     this.isEmphasised = false,
   });
 
   final String label;
-  final String content;
+
+  /// Texte et image éventuelle de la face.
+  final CardSide side;
   final bool isEmphasised;
 
   @override
@@ -204,8 +214,13 @@ class _Face extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          if (side.hasImage) ...[
+            Center(child: CardImage(source: side.image!)),
+            if (side.text.isNotEmpty) const SizedBox(height: Space.md),
+          ],
+          if (side.text.isNotEmpty)
           Text(
-            content,
+            side.text,
             style: TextStyle(
               fontSize: isEmphasised ? 19 : 16,
               height: 1.45,

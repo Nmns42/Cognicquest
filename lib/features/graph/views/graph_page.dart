@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show mapEquals, visibleForTesting;
+import 'package:flutter/rendering.dart' show SemanticsProperties;
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/note_link_model.dart';
@@ -29,6 +32,10 @@ class GraphPage extends ConsumerStatefulWidget {
 
 class _GraphPageState extends ConsumerState<GraphPage> {
   String? _selectedNoteId;
+
+  /// Encadré d'analyse refermé pour cette visite (l'analyse complète reste
+  /// dans le bouton de la barre).
+  bool _insightsClosed = false;
 
   @override
   void initState() {
@@ -60,7 +67,11 @@ class _GraphPageState extends ConsumerState<GraphPage> {
       ),
       body: Column(
         children: [
-          _InsightBanner(insights: insights),
+          if (!_insightsClosed)
+            _InsightBanner(
+              insights: insights,
+              onClose: () => setState(() => _insightsClosed = true),
+            ),
           if (subjects.isNotEmpty)
             _SubjectFilterBar(
               subjects: subjects,
@@ -88,10 +99,6 @@ class _GraphPageState extends ConsumerState<GraphPage> {
   }
 }
 
-/// Toile du graphe : zoom et panoramique via `InteractiveViewer`.
-///
-/// La disposition n'est recalculée que si l'ensemble des fiches ou des liens
-/// change — sélectionner un nœud ne fait donc pas bouger la carte.
 /// Calcul asynchrone de la disposition utilisé par la carte.
 ///
 /// Remplaçable uniquement par les tests, pour maîtriser l'ordre dans lequel
@@ -100,6 +107,16 @@ class _GraphPageState extends ConsumerState<GraphPage> {
 Future<GraphLayout> Function(List<String>, List<(String, String)>)
     graphLayoutAsync = GraphLayout.computeAsync;
 
+/// Toile du graphe, façon Obsidian : des points et leurs titres flottants,
+/// peints directement, animés par une simulation physique continue.
+///
+/// - Attraper un point le déplace n'importe où ; ses voisins suivent,
+///   élastiquement, en temps réel.
+/// - Glisser le fond déplace la carte ; pincer ou la molette zoome.
+/// - Survoler un point met en avant ses liens et ses voisins.
+///
+/// La disposition de départ (déterministe) n'est recalculée que si les
+/// fiches ou les liens changent : sélectionner un nœud ne bouge rien.
 class _GraphCanvas extends StatefulWidget {
   const _GraphCanvas({
     required this.nodes,
@@ -117,13 +134,28 @@ class _GraphCanvas extends StatefulWidget {
   State<_GraphCanvas> createState() => _GraphCanvasState();
 }
 
-class _GraphCanvasState extends State<_GraphCanvas> {
+class _GraphCanvasState extends State<_GraphCanvas>
+    with SingleTickerProviderStateMixin {
   static const double _minScale = 0.15;
+  static const double _maxScale = 3;
 
-  final _transformation = TransformationController();
-  GraphLayout _layout = GraphLayout.empty;
+  final GraphSimulation _simulation = GraphSimulation();
+
+  /// Une frame de plus à peindre (simulation ou caméra).
+  final ValueNotifier<int> _frame = ValueNotifier(0);
+
+  late final Ticker _ticker;
+
+  /// Caméra : position à l'écran de l'origine du monde, et zoom.
+  Offset _origin = Offset.zero;
+  double _scale = 1;
+  double _gestureStartScale = 1;
+  Size? _viewport;
+  bool _needsFit = true;
+
   String _signature = '';
-  Size? _fittedViewport;
+  bool _hasLayout = false;
+  String? _hovered;
 
   /// Un calcul asynchrone est en cours ; la carte précédente reste affichée.
   bool _isComputing = false;
@@ -132,9 +164,12 @@ class _GraphCanvasState extends State<_GraphCanvas> {
   /// fiches ont changé entre-temps) est ignoré.
   int _generation = 0;
 
+  final Map<String, TextPainter> _labels = {};
+
   @override
   void initState() {
     super.initState();
+    _ticker = createTicker((_) => _onTick());
     _relayoutIfNeeded();
   }
 
@@ -146,7 +181,11 @@ class _GraphCanvasState extends State<_GraphCanvas> {
 
   @override
   void dispose() {
-    _transformation.dispose();
+    _ticker.dispose();
+    _frame.dispose();
+    for (final label in _labels.values) {
+      label.dispose();
+    }
     super.dispose();
   }
 
@@ -160,122 +199,243 @@ class _GraphCanvasState extends State<_GraphCanvas> {
     if (signature == _signature) return;
 
     _signature = signature;
+    _clearLabels();
     final edgePairs = [for (final l in widget.links) (l.sourceId, l.targetId)];
     final generation = ++_generation;
 
     // Petit carnet : le calcul tient dans une frame, il reste synchrone et
-    // la carte s'affiche d'emblée, comme avant.
+    // la carte s'affiche d'emblée.
     if (ids.length <= GraphLayout.asyncThreshold) {
       _isComputing = false;
-      _applyLayout(GraphLayout.compute(ids, edgePairs));
+      _applyLayout(GraphLayout.compute(ids, edgePairs), edgePairs);
       return;
     }
 
-    // Grand carnet : plusieurs centaines de millisecondes de calcul, hors du
-    // thread UI (isolate, ou tranches sur le web).
+    // Grand carnet : calcul hors du thread UI (isolate, ou tranches sur le
+    // web).
     _isComputing = true;
     graphLayoutAsync(ids, edgePairs).then((layout) {
       if (!mounted || generation != _generation) return;
       setState(() {
         _isComputing = false;
-        _applyLayout(layout);
+        _applyLayout(layout, edgePairs);
       });
     });
   }
 
-  void _applyLayout(GraphLayout layout) {
-    _layout = layout;
-    // Nouvelle carte : on la recadre au prochain affichage.
-    _fittedViewport = null;
+  void _applyLayout(GraphLayout layout, List<(String, String)> edges) {
+    final first = !_hasLayout;
+    _simulation.load(layout, edges);
+    _hasLayout = !layout.isEmpty;
+    if (first) _needsFit = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _kick();
+    });
   }
 
-  /// Cadre toute la carte dans la zone visible, sans agrandir au-delà de la
-  /// taille réelle (des étiquettes géantes seraient illisibles).
-  void _fitToViewport(Size viewport) {
-    final size = _layout.size;
-    if (size.isEmpty || viewport.isEmpty) return;
-    final scale = math
-        .min(viewport.width / size.width, viewport.height / size.height)
-        .clamp(_minScale, 1.0);
-    final offset = Offset(
-      (viewport.width - size.width * scale) / 2,
-      (viewport.height - size.height * scale) / 2,
-    );
-    _transformation.value = Matrix4.identity()
-      ..translateByDouble(offset.dx, offset.dy, 0, 1)
-      ..scaleByDouble(scale, scale, 1, 1);
-    _fittedViewport = viewport;
+  void _clearLabels() {
+    for (final label in _labels.values) {
+      label.dispose();
+    }
+    _labels.clear();
   }
+
+  /// Relance la simulation : en continu à 60 FPS, ou d'un coup jusqu'au
+  /// repos quand les animations sont réduites.
+  void _kick() {
+    if (Motion.reduced(context)) {
+      if (_simulation.pinned == null) _simulation.settle();
+      setState(() {});
+      return;
+    }
+    if (!_ticker.isActive && _simulation.isActive) _ticker.start();
+  }
+
+  void _onTick() {
+    _simulation.tick();
+    _frame.value++;
+    if (!_simulation.isActive) {
+      _ticker.stop();
+      // Carte posée : la sémantique (position de chaque point pour les
+      // lecteurs d'écran) est reconstruite une fois.
+      setState(() {});
+    }
+  }
+
+  Offset _toWorld(Offset screen) => (screen - _origin) / _scale;
+
+  String? _hit(Offset screen) =>
+      _simulation.hitTest(_toWorld(screen), 22 / _scale + 6);
+
+  /// Cadre toute la carte dans la zone visible, sans agrandir au-delà de la
+  /// taille réelle.
+  void _fit(Size viewport) {
+    final bounds = _simulation.bounds;
+    if (viewport.isEmpty) return;
+    const margin = 120.0;
+    final width = bounds.width + 2 * margin;
+    final height = bounds.height + 2 * margin;
+    _scale = math
+        .min(viewport.width / width, viewport.height / height)
+        .clamp(_minScale, 1.0);
+    _origin = viewport.center(Offset.zero) - bounds.center * _scale;
+    _needsFit = false;
+    _frame.value++;
+  }
+
+  void _zoomAt(Offset focal, double scale) {
+    final clamped = scale.clamp(_minScale, _maxScale);
+    final world = _toWorld(focal);
+    _scale = clamped;
+    _origin = focal - world * _scale;
+    _frame.value++;
+  }
+
+  /// Où le doigt s'est posé : le geste ne démarre qu'après le seuil de
+  /// glissement, quelques pixels plus loin, parfois hors du point.
+  Offset? _pointerDown;
+
+  void _onScaleStart(ScaleStartDetails details) {
+    _gestureStartScale = _scale;
+    final down = _pointerDown ?? details.localFocalPoint;
+    final id = details.pointerCount == 1 ? _hit(down) : null;
+    if (id == null) return;
+    _simulation.pin(id, _toWorld(details.localFocalPoint));
+    setState(() => _hovered = id);
+    _kick();
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    if (_simulation.pinned != null) {
+      _simulation.movePin(_toWorld(details.localFocalPoint));
+      if (Motion.reduced(context)) {
+        // Sans animation : les voisins se replacent aussitôt.
+        for (var i = 0; i < 8; i++) {
+          _simulation.tick();
+        }
+      }
+      _frame.value++;
+      return;
+    }
+    _origin += details.focalPointDelta;
+    if (details.pointerCount > 1) {
+      _zoomAt(details.localFocalPoint, _gestureStartScale * details.scale);
+    } else {
+      _frame.value++;
+    }
+  }
+
+  void _onScaleEnd(ScaleEndDetails details) {
+    if (_simulation.pinned == null) return;
+    _simulation.release();
+    setState(() => _hovered = null);
+    _kick();
+  }
+
+  TextPainter _labelFor(GraphNode node, TextStyle style) =>
+      _labels.putIfAbsent(
+        node.note.id,
+        () => TextPainter(
+          text: TextSpan(text: node.note.displayTitle, style: style),
+          textAlign: TextAlign.center,
+          textDirection: TextDirection.ltr,
+          maxLines: 2,
+          ellipsis: '…',
+        )..layout(maxWidth: 160),
+      );
 
   @override
   Widget build(BuildContext context) {
     final byId = {for (final node in widget.nodes) node.note.id: node};
+    final cq = context.cq;
+    final labelStyle = TextStyle(
+      fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+      fontSize: TypeScale.caption,
+      color: cq.textPrimary,
+    );
+    // Changement de thème : les titres sont repeints dans la bonne couleur.
+    final cached = _labels.values.firstOrNull?.text?.style?.color;
+    if (cached != null && cached != labelStyle.color) _clearLabels();
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = constraints.biggest;
-        if (_fittedViewport != viewport) _fitToViewport(viewport);
+        if (_viewport != viewport) {
+          _viewport = viewport;
+          _needsFit = true;
+        }
+        if (_needsFit && _hasLayout) _fit(viewport);
 
         return Stack(
           children: [
-            InteractiveViewer(
-              transformationController: _transformation,
-              constrained: false,
-              boundaryMargin: EdgeInsets.all(viewport.shortestSide),
-              minScale: _minScale,
-              maxScale: 3,
-              child: SizedBox.fromSize(
-                size: _layout.size,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _EdgePainter(
-                          layout: _layout,
-                          links: widget.links,
-                          colors: {
-                            for (final type in NoteLinkType.values)
-                              type: _linkColor(context, type),
-                          },
-                          highlightedId: widget.selectedNoteId,
-                        ),
-                      ),
+            Listener(
+              onPointerDown: (event) => _pointerDown = event.localPosition,
+              onPointerSignal: (event) {
+                if (event is PointerScrollEvent) {
+                  _zoomAt(event.localPosition,
+                      _scale * math.exp(-event.scrollDelta.dy / 400));
+                }
+              },
+              child: MouseRegion(
+                cursor: _hovered == null
+                    ? SystemMouseCursors.basic
+                    : SystemMouseCursors.grab,
+                onHover: (event) {
+                  final id = _hit(event.localPosition);
+                  if (id != _hovered) setState(() => _hovered = id);
+                },
+                onExit: (_) {
+                  if (_simulation.pinned == null && _hovered != null) {
+                    setState(() => _hovered = null);
+                  }
+                },
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    final id = _hit(details.localPosition);
+                    if (byId[id] case final node?) widget.onTapNode(node.note);
+                  },
+                  onScaleStart: _onScaleStart,
+                  onScaleUpdate: _onScaleUpdate,
+                  onScaleEnd: _onScaleEnd,
+                  child: CustomPaint(
+                    key: const Key('graph-canvas'),
+                    size: Size.infinite,
+                    painter: _GraphPainter(
+                      repaint: _frame,
+                      simulation: _simulation,
+                      view: () => (_origin, _scale),
+                      nodes: byId,
+                      links: widget.links,
+                      linkColors: {
+                        for (final type in NoteLinkType.values)
+                          type: _linkColor(context, type),
+                      },
+                      nodeColor: cq.vert,
+                      isolatedColor: cq.textHint,
+                      ringColor: cq.textPrimary,
+                      background: cq.beige,
+                      selectedId: widget.selectedNoteId,
+                      focusId: _simulation.pinned ?? _hovered,
+                      label: (node) => _labelFor(node, labelStyle),
+                      onTapNode: widget.onTapNode,
                     ),
-                    for (final MapEntry(key: id, value: center)
-                        in _layout.positions.entries)
-                      if (byId[id] case final node?)
-                        Positioned(
-                          key: ValueKey(id),
-                          left: center.dx,
-                          top: center.dy,
-                          // Le nœud est centré sur sa position.
-                          child: FractionalTranslation(
-                            translation: const Offset(-0.5, -0.5),
-                            child: _NodeChip(
-                              node: node,
-                              isSelected: id == widget.selectedNoteId,
-                              onTap: () => widget.onTapNode(node.note),
-                            ),
-                          ),
-                        ),
-                  ],
+                  ),
                 ),
               ),
             ),
             Positioned(
-              right: 16,
-              bottom: 16,
+              right: Space.lg,
+              bottom: Space.lg,
               child: FloatingActionButton.small(
                 heroTag: 'graph-fit',
                 tooltip: 'Recentrer',
-                onPressed: () => setState(() => _fitToViewport(viewport)),
+                onPressed: () => _fit(viewport),
                 child: const Icon(Icons.center_focus_strong_outlined),
               ),
             ),
             // Premier calcul d'un grand carnet : rien à montrer encore.
-            // Avant, l'écran entier restait figé pendant ce temps.
-            if (_isComputing && _layout.isEmpty)
+            if (_isComputing && !_hasLayout)
               const Center(child: CircularProgressIndicator()),
           ],
         );
@@ -292,40 +452,125 @@ class _GraphCanvasState extends State<_GraphCanvas> {
       };
 }
 
-/// Trace les liens de centre à centre ; une relation orientée porte une flèche
-/// à mi-parcours (à l'extrémité, elle serait cachée sous le nœud).
-class _EdgePainter extends CustomPainter {
-  _EdgePainter({
-    required this.layout,
+/// Peint le graphe : liens, points (taille selon le degré) et titres
+/// flottants. Survolée ou tenue, une fiche met en avant ses liens et ses
+/// voisines ; le reste s'estompe. Chaque point est annoncé aux lecteurs
+/// d'écran et activable (sémantique du painter).
+class _GraphPainter extends CustomPainter {
+  _GraphPainter({
+    required Listenable repaint,
+    required this.simulation,
+    required this.view,
+    required this.nodes,
     required this.links,
-    required this.colors,
-    required this.highlightedId,
-  });
+    required this.linkColors,
+    required this.nodeColor,
+    required this.isolatedColor,
+    required this.ringColor,
+    required this.background,
+    required this.selectedId,
+    required this.focusId,
+    required this.label,
+    required this.onTapNode,
+  }) : super(repaint: repaint);
 
-  final GraphLayout layout;
+  final GraphSimulation simulation;
+  final (Offset, double) Function() view;
+  final Map<String, GraphNode> nodes;
   final List<NoteLink> links;
-  final Map<NoteLinkType, Color> colors;
-  final String? highlightedId;
+  final Map<NoteLinkType, Color> linkColors;
+  final Color nodeColor;
+  final Color isolatedColor;
+  final Color ringColor;
+  final Color background;
+  final String? selectedId;
+  final String? focusId;
+  final TextPainter Function(GraphNode) label;
+  final ValueChanged<Note> onTapNode;
+
+  static double radiusOf(GraphNode node) =>
+      5 + math.min(node.degree, 12) * 0.9;
+
+  Set<String> get _neighbours {
+    final focus = focusId;
+    if (focus == null) return const {};
+    return {
+      focus,
+      for (final l in links)
+        if (l.sourceId == focus)
+          l.targetId
+        else if (l.targetId == focus)
+          l.sourceId,
+    };
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
+    final (origin, scale) = view();
+    final positions = simulation.positions;
+    final neighbours = _neighbours;
+    final dimming = focusId != null;
+
+    canvas.save();
+    canvas.translate(origin.dx, origin.dy);
+    canvas.scale(scale);
+
     for (final link in links) {
-      final from = layout.positions[link.sourceId];
-      final to = layout.positions[link.targetId];
+      final from = positions[link.sourceId];
+      final to = positions[link.targetId];
       if (from == null || to == null || link.sourceId == link.targetId) {
         continue;
       }
-
-      final highlighted = highlightedId != null && link.touches(highlightedId!);
+      final touches = focusId != null && link.touches(focusId!) ||
+          selectedId != null && link.touches(selectedId!);
+      final color = linkColors[link.type]!;
       final paint = Paint()
-        ..color = colors[link.type]!
-        ..strokeWidth = highlighted ? 2.8 : 1.6
+        ..color = dimming && !touches ? color.withValues(alpha: 0.18) : color
+        ..strokeWidth = (touches ? 2.2 : 1.1) / math.sqrt(scale)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(from, to, paint);
-
       if (link.type.isDirected) _drawArrow(canvas, from, to, paint.color);
     }
+
+    // Titres visibles de loin seulement pour la fiche en avant et ses
+    // voisines ; tous dès qu'on zoome assez pour les lire.
+    final showAllLabels = scale >= 0.55;
+    for (final MapEntry(key: id, value: center) in positions.entries) {
+      final node = nodes[id];
+      if (node == null) continue;
+      final faded = dimming && !neighbours.contains(id);
+      final radius = radiusOf(node);
+      final base = node.isIsolated ? isolatedColor : nodeColor;
+      canvas.drawCircle(
+          center, radius, Paint()..color = faded ? base.withValues(alpha: 0.25) : base);
+      if (id == selectedId || id == focusId) {
+        canvas.drawCircle(
+          center,
+          radius + 3,
+          Paint()
+            ..color = ringColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6,
+        );
+      }
+      if (!showAllLabels && !neighbours.contains(id) && id != selectedId) {
+        continue;
+      }
+      final text = label(node);
+      final topLeft =
+          center + Offset(-text.width / 2, radius + 4);
+      if (faded) {
+        canvas.saveLayer(
+            topLeft & text.size,
+            Paint()..color = background.withValues(alpha: 0.35));
+        text.paint(canvas, topLeft);
+        canvas.restore();
+      } else {
+        text.paint(canvas, topLeft);
+      }
+    }
+    canvas.restore();
   }
 
   void _drawArrow(Canvas canvas, Offset from, Offset to, Color color) {
@@ -333,110 +578,56 @@ class _EdgePainter extends CustomPainter {
     if (delta.distance < 1) return;
     final direction = delta / delta.distance;
     final normal = Offset(-direction.dy, direction.dx);
-    const length = 10.0;
+    const length = 9.0;
     final tip = from + delta / 2 + direction * (length / 2);
     final base = tip - direction * length;
-    final left = base + normal * length * 0.55;
-    final right = base - normal * length * 0.55;
-
     canvas.drawPath(
       Path()
         ..moveTo(tip.dx, tip.dy)
-        ..lineTo(left.dx, left.dy)
-        ..lineTo(right.dx, right.dy)
+        ..lineTo(base.dx + normal.dx * 5, base.dy + normal.dy * 5)
+        ..lineTo(base.dx - normal.dx * 5, base.dy - normal.dy * 5)
         ..close(),
       Paint()..color = color,
     );
   }
 
   @override
-  bool shouldRepaint(_EdgePainter oldDelegate) =>
-      oldDelegate.layout != layout ||
-      oldDelegate.links != links ||
-      oldDelegate.highlightedId != highlightedId ||
-      !mapEquals(oldDelegate.colors, colors);
-}
-
-/// Nœud du graphe.
-///
-/// La taille croît avec le degré : une notion centrale se voit d'un coup d'œil,
-/// sans avoir à lire les étiquettes.
-class _NodeChip extends StatelessWidget {
-  const _NodeChip({
-    required this.node,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final GraphNode node;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isIsolated = node.isIsolated;
-    final scale = (1 + node.degree * 0.06).clamp(1.0, 1.45);
-
-    return Tooltip(
-      message: '${node.note.displayTitle}\n'
-          '${node.degree} lien${node.degree > 1 ? 's' : ''}',
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          constraints: BoxConstraints(maxWidth: 150 * scale),
-          padding: EdgeInsets.symmetric(
-            horizontal: 12 * scale,
-            vertical: 8 * scale,
-          ),
-          decoration: BoxDecoration(
-            color: isIsolated ? context.cq.cardColor : context.cq.vert,
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(
-              color: isSelected
-                  ? context.cq.textPrimary
-                  : (isIsolated ? context.cq.beigeDark : context.cq.vertDark),
-              width: isSelected ? 2.4 : 1.2,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                node.note.displayTitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12 * scale,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                  color: isIsolated ? context.cq.textMuted : context.onAccent,
+  SemanticsBuilderCallback get semanticsBuilder => (size) {
+        final (origin, scale) = view();
+        return [
+          for (final MapEntry(key: id, value: center)
+              in simulation.positions.entries)
+            if (nodes[id] case final node?)
+              CustomPainterSemantics(
+                key: ValueKey(id),
+                rect: Rect.fromCircle(
+                  center: origin + center * scale,
+                  radius: math.max(radiusOf(node) * scale, 12),
+                ),
+                properties: SemanticsProperties(
+                  label: node.note.displayTitle,
+                  hint: '${node.degree} lien${node.degree > 1 ? 's' : ''}',
+                  button: true,
+                  selected: id == selectedId,
+                  onTap: () => onTapNode(node.note),
+                  textDirection: TextDirection.ltr,
                 ),
               ),
-              if (node.note.subject != null)
-                Text(
-                  node.note.subject!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 9 * scale,
-                    color: isIsolated
-                        ? context.cq.textHint
-                        : context.cq.onVertMuted,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+        ];
+      };
+
+  @override
+  bool shouldRepaint(_GraphPainter oldDelegate) => true;
+
+  @override
+  bool shouldRebuildSemantics(_GraphPainter oldDelegate) => true;
 }
 
 class _InsightBanner extends StatelessWidget {
-  const _InsightBanner({required this.insights});
+  const _InsightBanner({required this.insights, required this.onClose});
 
   final GraphInsights insights;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +640,7 @@ class _InsightBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 4, 4, 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(Radii.md),
@@ -468,6 +659,12 @@ class _InsightBanner extends StatelessWidget {
               insights.summary,
               style: TextStyle(fontSize: TypeScale.caption, color: color, height: 1.35),
             ),
+          ),
+          IconButton(
+            tooltip: 'Fermer l’analyse',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.close, size: Sizes.iconSm, color: color),
+            onPressed: onClose,
           ),
         ],
       ),

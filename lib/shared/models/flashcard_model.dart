@@ -1,4 +1,41 @@
+import 'dart:convert';
+
 import '../../features/review/domain/spaced_repetition.dart';
+
+/// Une face de carte : du texte et, en option, une image.
+///
+/// L'image voyage **dans** le texte de la face, sur sa dernière ligne, au
+/// format Markdown `![image](…)` (image encodée `data:image/…;base64,…` ou
+/// lien `http(s)`). Ainsi elle se synchronise avec la carte sans nouvelle
+/// colonne, et un écran qui n'affiche que la première ligne reste propre.
+class CardSide {
+  const CardSide(this.text, [this.image]);
+
+  final String text;
+
+  /// Source de l'image, ou `null`.
+  final String? image;
+
+  bool get hasImage => image != null && image!.isNotEmpty;
+  bool get isEmpty => text.trim().isEmpty && !hasImage;
+
+  static final RegExp _marker = RegExp(
+      r'(?:^|\n+)!\[image\]\(((?:data:image/|https?://)[^)\s]+)\)\s*$');
+
+  factory CardSide.parse(String raw) {
+    final match = _marker.firstMatch(raw);
+    if (match == null) return CardSide(raw);
+    return CardSide(raw.substring(0, match.start).trimRight(), match.group(1));
+  }
+
+  /// Texte enregistré dans la colonne de la carte.
+  String encode() {
+    final body = text.trim();
+    if (!hasImage) return body;
+    final marker = '![image]($image)';
+    return body.isEmpty ? marker : '$body\n\n$marker';
+  }
+}
 
 /// Carte de révision — « Quiz/flashcard sur le même style que Tutorium et
 /// Anki » (CdC).
@@ -25,8 +62,12 @@ class Flashcard {
   /// Fiche d'origine, si la carte en a été tirée.
   final String? noteId;
 
+  /// Texte brut des faces (avec l'éventuelle image, cf. [CardSide]).
   final String front;
   final String back;
+
+  CardSide get frontSide => CardSide.parse(front);
+  CardSide get backSide => CardSide.parse(back);
 
   /// Paquet / matière. Reprend le sujet de la fiche d'origine par défaut.
   final String? deck;
@@ -226,6 +267,44 @@ class Sq3rSession {
   final bool isSynced;
 
   bool get isComplete => completedAt != null;
+
+  /// Réponses aux [questions], dans le même ordre (parcours guidé).
+  ///
+  /// Enregistrées dans la colonne de récitation sous la forme
+  /// `{"answers": [...]}` : pas de nouvelle colonne. Une ancienne récitation
+  /// en texte libre est conservée dans [legacyRecite].
+  List<String> get answers {
+    final decoded = _decodeAnswers(reciteNotes);
+    return [
+      for (var i = 0; i < questions.length; i++)
+        i < decoded.length ? decoded[i] : '',
+    ];
+  }
+
+  /// Récitation libre d'une session antérieure au parcours guidé.
+  String get legacyRecite =>
+      _decodeAnswers(reciteNotes).isEmpty && !_isAnswersJson(reciteNotes)
+          ? reciteNotes
+          : '';
+
+  Sq3rSession withAnswers(List<String> answers) =>
+      copyWith(reciteNotes: jsonEncode({'answers': answers}));
+
+  static bool _isAnswersJson(String raw) =>
+      raw.trimLeft().startsWith('{"answers"');
+
+  static List<String> _decodeAnswers(String raw) {
+    if (!_isAnswersJson(raw)) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map && decoded['answers'] is List) {
+        return [for (final a in decoded['answers'] as List) '${a ?? ''}'];
+      }
+    } catch (_) {
+      // Texte libre qui ressemble à du JSON : traité comme tel ci-dessus.
+    }
+    return const [];
+  }
 
   double get progress => (currentStep.index + 1) / Sq3rStep.values.length;
 

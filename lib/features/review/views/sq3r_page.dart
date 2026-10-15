@@ -3,18 +3,82 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
+import '../../../router/app_router.dart';
 import '../../../shared/models/flashcard_model.dart';
+import '../../../shared/models/note_model.dart';
+import '../../notes/data/note_repository.dart';
 import '../../notes/providers/note_provider.dart';
 import '../domain/spaced_repetition.dart';
 import '../providers/review_provider.dart';
-import '../../../core/theme/tokens.dart';
+import 'explain_page.dart';
 
-/// Lecture guidée SQ3R sur une fiche — « outil de lecture guidée avec étapes
-/// interactives » (CdC).
+/// Les trois temps de l'étude guidée : SQ3R et « Explique-moi » réunis en un
+/// seul parcours, court et peu coûteux en énergie.
+enum StudyStage {
+  preview(
+    'Survol & questions',
+    'Parcours la fiche en diagonale, puis note 2 ou 3 questions auxquelles '
+        'tu veux savoir répondre.',
+    Sq3rStep.survey,
+  ),
+  read(
+    'Lecture ciblée',
+    'Lis pour répondre à tes questions, pas pour tout retenir. Une ou deux '
+        'phrases par réponse suffisent.',
+    Sq3rStep.read,
+  ),
+  explain(
+    'Explication',
+    'Fiche masquée : explique la notion avec tes mots, comme à un ami. Puis '
+        'dis à quel point tu la maîtrises.',
+    Sq3rStep.review,
+  );
+
+  const StudyStage(this.label, this.instruction, this.step);
+
+  final String label;
+  final String instruction;
+
+  /// Étape SQ3R enregistrée (les données restent celles des sessions SQ3R).
+  final Sq3rStep step;
+
+  bool get isLast => this == StudyStage.explain;
+
+  static StudyStage of(Sq3rStep step) => switch (step) {
+        Sq3rStep.survey || Sq3rStep.question => StudyStage.preview,
+        Sq3rStep.read || Sq3rStep.recite => StudyStage.read,
+        Sq3rStep.review => StudyStage.explain,
+      };
+}
+
+/// Titres Markdown d'une fiche, transformés en questions toutes prêtes : un
+/// appui suffit à les ajouter (« Qu'est-ce que la glycolyse ? »).
+List<String> suggestedQuestions(Note note) {
+  final headings = RegExp(r'^#{1,6}\s+(.+)$', multiLine: true)
+      .allMatches(note.content)
+      .map((m) => m.group(1)!.trim())
+      .where((h) => h.isNotEmpty);
+  return [
+    for (final heading in headings.take(6))
+      heading.endsWith('?') ? heading : 'Que faut-il retenir sur « $heading » ?',
+  ];
+}
+
+/// Étude guidée d'une fiche — « outil de lecture guidée avec étapes
+/// interactives » et « expliquer avec ses propres mots » (CdC), réunis.
+///
+/// 1. Survol & questions clés → 2. Lecture ciblée (une réponse par question)
+/// → 3. Explication sans la fiche, avec son niveau de maîtrise. La fin du
+/// parcours ouvre la fiche de révision.
 class Sq3rPage extends ConsumerStatefulWidget {
-  const Sq3rPage({super.key, required this.noteId});
+  const Sq3rPage({super.key, required this.noteId, this.initialStage});
 
   final String noteId;
+
+  /// Étape d'ouverture ; à défaut, celle où l'étude s'était arrêtée.
+  final StudyStage? initialStage;
 
   @override
   ConsumerState<Sq3rPage> createState() => _Sq3rPageState();
@@ -22,8 +86,15 @@ class Sq3rPage extends ConsumerStatefulWidget {
 
 class _Sq3rPageState extends ConsumerState<Sq3rPage> {
   Sq3rSession? _session;
-  final _textController = TextEditingController();
-  final _questionController = TextEditingController();
+  StudyStage _stage = StudyStage.preview;
+
+  final _survey = TextEditingController();
+  final _question = TextEditingController();
+  final _explanation = TextEditingController();
+  final _toReview = TextEditingController();
+  final List<TextEditingController> _answers = [];
+  int _confidence = 3;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -33,8 +104,9 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
 
   @override
   void dispose() {
-    _textController.dispose();
-    _questionController.dispose();
+    for (final c in [_survey, _question, _explanation, _toReview, ..._answers]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -44,98 +116,109 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
     if (!mounted || session == null) return;
     setState(() {
       _session = session;
-      _textController.text = _textFor(session, session.currentStep);
+      _stage = widget.initialStage ?? StudyStage.of(session.currentStep);
+      _survey.text = session.surveyNotes;
+      _toReview.text = session.reviewNotes;
+      _syncAnswerFields(session);
     });
   }
 
-  String _textFor(Sq3rSession session, Sq3rStep step) => switch (step) {
-        Sq3rStep.survey => session.surveyNotes,
-        Sq3rStep.recite => session.reciteNotes,
-        Sq3rStep.review => session.reviewNotes,
-        _ => '',
-      };
+  /// Un champ de réponse par question, dans l'ordre.
+  void _syncAnswerFields(Sq3rSession session) {
+    final answers = session.answers;
+    while (_answers.length > answers.length) {
+      _answers.removeLast().dispose();
+    }
+    for (var i = 0; i < answers.length; i++) {
+      if (i < _answers.length) continue;
+      _answers.add(TextEditingController(text: answers[i]));
+    }
+  }
 
-  Sq3rSession _withText(Sq3rSession session, Sq3rStep step, String text) =>
-      switch (step) {
-        Sq3rStep.survey => session.copyWith(surveyNotes: text),
-        Sq3rStep.recite => session.copyWith(reciteNotes: text),
-        Sq3rStep.review => session.copyWith(reviewNotes: text),
-        _ => session,
-      };
+  /// Session avec la saisie en cours (survol, réponses, à revoir).
+  Sq3rSession _current(Sq3rSession session) => session
+      .copyWith(surveyNotes: _survey.text, reviewNotes: _toReview.text)
+      .withAnswers([for (final c in _answers) c.text]);
 
-  Future<void> _goTo(Sq3rStep step) async {
+  Future<void> _goTo(StudyStage stage) async {
     final session = _session;
     if (session == null) return;
-
-    // On enregistre la saisie de l'étape courante avant de changer d'écran.
-    final saved = _withText(session, session.currentStep, _textController.text)
-        .copyWith(
-      currentStep: step,
-      completedAt: step == Sq3rStep.review && session.currentStep.isLast
-          ? DateTime.now()
-          : null,
-    );
-
-    await ref.read(reviewActionsProvider).saveSession(saved);
-    if (!mounted) return;
-
+    final saved = _current(session).copyWith(currentStep: stage.step);
     setState(() {
       _session = saved;
-      _textController.text = _textFor(saved, step);
+      _stage = stage;
     });
-  }
-
-  Future<void> _complete() async {
-    final session = _session;
-    if (session == null) return;
-
-    final saved = _withText(session, session.currentStep, _textController.text)
-        .copyWith(completedAt: DateTime.now());
     await ref.read(reviewActionsProvider).saveSession(saved);
-    if (mounted) context.pop();
   }
 
-  void _addQuestion() {
+  void _addQuestion(String text) {
     final session = _session;
-    final text = _questionController.text.trim();
-    if (session == null || text.isEmpty) return;
-
-    final updated = session.copyWith(questions: [...session.questions, text]);
-    _questionController.clear();
-    setState(() => _session = updated);
-    ref.read(reviewActionsProvider).saveSession(updated);
+    final question = text.trim();
+    if (session == null || question.isEmpty) return;
+    if (session.questions.contains(question)) return;
+    final updated = _current(session)
+        .copyWith(questions: [...session.questions, question]);
+    _answers.add(TextEditingController());
+    _question.clear();
+    setState(() => _session = _current(updated));
+    ref.read(reviewActionsProvider).saveSession(_session!);
   }
 
   void _removeQuestion(int index) {
     final session = _session;
     if (session == null) return;
-
     final questions = [...session.questions]..removeAt(index);
-    final updated = session.copyWith(questions: questions);
+    _answers.removeAt(index).dispose();
+    final updated = _current(session.copyWith(questions: questions));
     setState(() => _session = updated);
     ref.read(reviewActionsProvider).saveSession(updated);
+  }
+
+  Future<void> _finish() async {
+    final session = _session;
+    if (session == null || _saving) return;
+    setState(() => _saving = true);
+    final actions = ref.read(reviewActionsProvider);
+    final text = _explanation.text.trim();
+    if (text.isNotEmpty) {
+      await actions.saveExplanation(Explanation(
+        id: LocalFirstNoteRepository.newId(),
+        userId: '',
+        noteId: widget.noteId,
+        content: text,
+        confidence: _confidence,
+        createdAt: DateTime.now(),
+        isSynced: false,
+      ));
+    }
+    await actions.saveSession(_current(session).copyWith(
+      currentStep: StudyStage.explain.step,
+      completedAt: DateTime.now(),
+    ));
+    if (!mounted) return;
+    // La fiche de révision remplace le parcours : « retour » ramène à
+    // l'espace Réviser.
+    context.pushReplacement(AppRoute.studySheetFor(widget.noteId));
   }
 
   @override
   Widget build(BuildContext context) {
     final note = ref.watch(noteByIdProvider(widget.noteId));
     final session = _session;
-
     if (session == null || note == null) {
-      return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
+      return Scaffold(
+        body: Center(
+            child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
 
-    final step = session.currentStep;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lecture guidée'),
+        title: const Text('Étude guidée'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(3),
           child: LinearProgressIndicator(
-            value: session.progress,
+            value: (_stage.index + 1) / StudyStage.values.length,
             minHeight: 3,
             backgroundColor: context.cq.beigeDark,
             color: context.cq.vertDark,
@@ -145,134 +228,213 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _StepBar(current: step, onSelect: _goTo),
+            _StageBar(current: _stage, onSelect: _goTo),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                padding: const EdgeInsets.fromLTRB(
+                    Space.xl, Space.xs, Space.xl, Space.xl),
                 children: [
                   Text(note.displayTitle,
                       style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: context.cq.vert.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(Radii.md),
-                      border: Border.all(
-                          color: context.cq.vert.withValues(alpha: 0.25)),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                         Icon(Icons.lightbulb_outline,
-                            size: 17, color: context.cq.vertDark),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            step.instruction,
-                            style:  TextStyle(
-                                fontSize: TypeScale.body,
-                                color: context.cq.vertDark,
-                                height: 1.4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  if (step == Sq3rStep.question)
-                    _QuestionsStep(
-                      questions: session.questions,
-                      controller: _questionController,
-                      onAdd: _addQuestion,
-                      onRemove: _removeQuestion,
-                    )
-                  else if (step == Sq3rStep.read)
-                    _ReadStep(
-                      noteContent: note.content.trim().isEmpty
-                          ? note.excerpt
-                          : note.content,
-                      questions: session.questions,
-                    )
-                  else
-                    TextField(
-                      controller: _textController,
-                      minLines: 8,
-                      maxLines: null,
-                      keyboardType: TextInputType.multiline,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        hintText: switch (step) {
-                          Sq3rStep.survey =>
-                            'De quoi ce texte va-t-il parler ?',
-                          Sq3rStep.recite =>
-                            'Réponds à tes questions, sans regarder.',
-                          _ => 'Que retiens-tu ? Que dois-tu revoir ?',
-                        },
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-
-                  if (step == Sq3rStep.recite && session.questions.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                     Text('Tes questions',
-                        style: TextStyle(
-                            fontSize: TypeScale.caption,
-                            fontWeight: FontWeight.w600,
-                            color: context.cq.textMuted)),
-                    const SizedBox(height: 8),
-                    for (final question in session.questions)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('• $question',
-                            style:  TextStyle(
-                                fontSize: TypeScale.body,
-                                color: context.cq.textMuted,
-                                height: 1.4)),
-                      ),
-                  ],
+                  const SizedBox(height: Space.sm),
+                  Text(_stage.instruction,
+                      style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: Space.lg),
+                  ...switch (_stage) {
+                    StudyStage.preview => _preview(context, note, session),
+                    StudyStage.read => _read(context, note, session),
+                    StudyStage.explain => _explain(context, session),
+                  },
                 ],
               ),
             ),
             _NavBar(
-              step: step,
-              onBack: step.index == 0
+              stage: _stage,
+              busy: _saving,
+              onBack: _stage.index == 0
                   ? null
-                  : () => _goTo(Sq3rStep.fromIndex(step.index - 1)),
-              onNext: step.isLast
-                  ? _complete
-                  : () => _goTo(Sq3rStep.fromIndex(step.index + 1)),
+                  : () => _goTo(StudyStage.values[_stage.index - 1]),
+              onNext: _stage.isLast
+                  ? _finish
+                  : () => _goTo(StudyStage.values[_stage.index + 1]),
             ),
           ],
         ),
       ),
     );
   }
+
+  List<Widget> _preview(BuildContext context, Note note, Sq3rSession session) {
+    final suggestions = [
+      for (final q in suggestedQuestions(note))
+        if (!session.questions.contains(q)) q,
+    ];
+    return [
+      TextField(
+        controller: _survey,
+        minLines: 2,
+        maxLines: 4,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(
+          labelText: 'En une phrase, de quoi parle cette fiche ?',
+          alignLabelWithHint: true,
+        ),
+      ),
+      const SizedBox(height: Space.xl),
+      Text('Questions clés', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: Space.sm),
+      TextField(
+        controller: _question,
+        textInputAction: TextInputAction.done,
+        onSubmitted: _addQuestion,
+        decoration: InputDecoration(
+          hintText: 'Ex : Pourquoi l’entropie augmente-t-elle ?',
+          prefixIcon: const Icon(Icons.help_outline, size: Sizes.iconMd),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.add, size: Sizes.iconMd),
+            tooltip: 'Ajouter la question',
+            onPressed: () => _addQuestion(_question.text),
+          ),
+        ),
+      ),
+      if (suggestions.isNotEmpty) ...[
+        const SizedBox(height: Space.md),
+        Text('Tirées des titres de la fiche — un appui pour ajouter :',
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: Space.sm),
+        Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          children: [
+            for (final q in suggestions)
+              ActionChip(
+                avatar: const Icon(Icons.add, size: Sizes.iconSm),
+                label: Text(q),
+                onPressed: () => _addQuestion(q),
+              ),
+          ],
+        ),
+      ],
+      const SizedBox(height: Space.md),
+      for (var i = 0; i < session.questions.length; i++)
+        CqListRow(
+          title: session.questions[i],
+          leadingIcon: Icons.help_outline,
+          trailing: IconButton(
+            tooltip: 'Retirer la question',
+            icon: Icon(Icons.close, size: Sizes.iconSm,
+                color: context.cq.textHint),
+            onPressed: () => _removeQuestion(i),
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _read(BuildContext context, Note note, Sq3rSession session) {
+    final content = note.content.trim().isEmpty ? note.excerpt : note.content;
+    return [
+      CqCard(
+        child: Text(
+          content.isEmpty
+              ? 'Cette fiche est vide. Ajoute son contenu pour la lire ici.'
+              : content,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+      const SizedBox(height: Space.xl),
+      if (session.questions.isEmpty)
+        Text('Pas de question : reviens au survol pour en noter une ou deux.',
+            style: Theme.of(context).textTheme.bodySmall)
+      else
+        for (var i = 0; i < session.questions.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.lg),
+            child: TextField(
+              controller: _answers[i],
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: session.questions[i],
+                alignLabelWithHint: true,
+              ),
+            ),
+          ),
+      if (session.legacyRecite.isNotEmpty) ...[
+        Text('Récitation précédente',
+            style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: Space.xs),
+        Text(session.legacyRecite,
+            style: Theme.of(context).textTheme.bodySmall),
+      ],
+    ];
+  }
+
+  List<Widget> _explain(BuildContext context, Sq3rSession session) {
+    return [
+      if (session.questions.isNotEmpty) ...[
+        Text('Pour t’aider, tes questions :',
+            style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: Space.xs),
+        for (final q in session.questions)
+          Text('• $q', style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: Space.lg),
+      ],
+      TextField(
+        controller: _explanation,
+        minLines: 6,
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+        textCapitalization: TextCapitalization.sentences,
+        onChanged: (_) => setState(() {}),
+        decoration: const InputDecoration(
+          hintText: 'Avec tes mots, sans jargon…',
+          alignLabelWithHint: true,
+        ),
+      ),
+      const SizedBox(height: Space.xl),
+      Text('Ta maîtrise', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: Space.sm),
+      ConfidencePicker(
+        value: _confidence,
+        onChanged: (value) => setState(() => _confidence = value),
+      ),
+      const SizedBox(height: Space.xl),
+      TextField(
+        controller: _toReview,
+        minLines: 1,
+        maxLines: 3,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(
+          labelText: 'À revoir (facultatif)',
+          hintText: 'Ce qui a résisté',
+        ),
+      ),
+    ];
+  }
 }
 
-class _StepBar extends StatelessWidget {
-  const _StepBar({required this.current, required this.onSelect});
+class _StageBar extends StatelessWidget {
+  const _StageBar({required this.current, required this.onSelect});
 
-  final Sq3rStep current;
-  final ValueChanged<Sq3rStep> onSelect;
+  final StudyStage current;
+  final ValueChanged<StudyStage> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(
+          horizontal: Space.xl, vertical: Space.sm),
+      child: Row(
         children: [
-          for (final step in Sq3rStep.values)
+          for (final stage in StudyStage.values)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.only(right: Space.sm),
               child: ChoiceChip(
-                label: Text(step.label, style: const TextStyle(fontSize: TypeScale.caption)),
-                selected: step == current,
-                onSelected: (_) => onSelect(step),
+                label: Text('${stage.index + 1}. ${stage.label}'),
+                selected: stage == current,
+                onSelected: (_) => onSelect(stage),
               ),
             ),
         ],
@@ -281,145 +443,248 @@ class _StepBar extends StatelessWidget {
   }
 }
 
-class _QuestionsStep extends StatelessWidget {
-  const _QuestionsStep({
-    required this.questions,
-    required this.controller,
-    required this.onAdd,
-    required this.onRemove,
+class _NavBar extends StatelessWidget {
+  const _NavBar({
+    required this.stage,
+    required this.busy,
+    required this.onBack,
+    required this.onNext,
   });
 
-  final List<String> questions;
-  final TextEditingController controller;
-  final VoidCallback onAdd;
-  final ValueChanged<int> onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextField(
-          controller: controller,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => onAdd(),
-          decoration: InputDecoration(
-            hintText: 'Ex : Pourquoi l\'entropie augmente-t-elle ?',
-            prefixIcon: const Icon(Icons.help_outline, size: 20),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.add, size: 20),
-              tooltip: 'Ajouter la question',
-              onPressed: onAdd,
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        if (questions.isEmpty)
-           Text(
-            'Aucune question pour l\'instant. Transforme chaque titre du '
-            'cours en question : c\'est ce qui rend la lecture active.',
-            style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textHint, height: 1.4),
-          )
-        else
-          for (var i = 0; i < questions.length; i++)
-            Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                dense: true,
-                title: Text(questions[i],
-                    style: const TextStyle(fontSize: TypeScale.body)),
-                trailing: IconButton(
-                  visualDensity: VisualDensity.compact,
-                  icon:  Icon(Icons.close, size: 16,
-                      color: context.cq.textHint),
-                  onPressed: () => onRemove(i),
-                ),
-              ),
-            ),
-      ],
-    );
-  }
-}
-
-class _ReadStep extends StatelessWidget {
-  const _ReadStep({required this.noteContent, required this.questions});
-
-  final String noteContent;
-  final List<String> questions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (questions.isNotEmpty) ...[
-           Text('Garde ces questions en tête',
-              style: TextStyle(
-                  fontSize: TypeScale.caption,
-                  fontWeight: FontWeight.w600,
-                  color: context.cq.textMuted)),
-          const SizedBox(height: 8),
-          for (final question in questions)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Text('• $question',
-                  style:  TextStyle(
-                      fontSize: TypeScale.body, color: context.cq.vertDark, height: 1.4)),
-            ),
-          const SizedBox(height: 18),
-        ],
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.cq.cardColor,
-            borderRadius: BorderRadius.circular(AppTheme.radius),
-            border: Border.all(color: context.cq.beigeDark),
-          ),
-          child: Text(
-            noteContent.isEmpty
-                ? 'Cette fiche est vide. Ajoute son contenu pour la lire ici.'
-                : noteContent,
-            style:  TextStyle(
-                fontSize: TypeScale.body, height: 1.55, color: context.cq.textPrimary),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _NavBar extends StatelessWidget {
-  const _NavBar({required this.step, required this.onBack, required this.onNext});
-
-  final Sq3rStep step;
+  final StudyStage stage;
+  final bool busy;
   final VoidCallback? onBack;
   final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration:  BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(
+          Space.xl, Space.md, Space.xl, Space.lg),
+      decoration: BoxDecoration(
         border: Border(top: BorderSide(color: context.cq.beigeDark)),
       ),
       child: Row(
         children: [
-          if (onBack != null)
+          if (onBack != null) ...[
             Expanded(
               child: OutlinedButton(
                 onPressed: onBack,
                 child: const Text('Précédent'),
               ),
             ),
-          if (onBack != null) const SizedBox(width: 10),
+            const SizedBox(width: Space.md),
+          ],
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: onNext,
-              child: Text(step.isLast ? 'Terminer' : 'Étape suivante'),
+              onPressed: busy ? null : onNext,
+              child: Text(stage.isLast ? 'Terminer' : 'Étape suivante'),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Fiche de révision ──────────────────────────────────────────────────────
+
+/// Fiche de révision : tout ce que l'étude guidée a produit sur une fiche,
+/// ouvert comme une fiche de cours — propriétés, questions et réponses,
+/// explications, maîtrise — et l'accès direct à l'étude ou à la révision.
+class StudySheetPage extends ConsumerWidget {
+  const StudySheetPage({super.key, required this.noteId});
+
+  final String noteId;
+
+  static const List<String> _months = [
+    'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+    'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+  ];
+
+  static String _date(DateTime d) => '${d.day} ${_months[d.month - 1]} ${d.year}';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final note = ref.watch(noteByIdProvider(noteId));
+    final session = ref.watch(studySessionForNoteProvider(noteId));
+    final explanations = ref.watch(explanationsForNoteProvider(noteId));
+    final cards = ref.watch(cardsForNoteProvider(noteId));
+    final text = Theme.of(context).textTheme;
+
+    if (note == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const CqEmptyState(
+          icon: Icons.description_outlined,
+          message: 'Cette fiche n’existe plus.',
+        ),
+      );
+    }
+
+    final latest = explanations.firstOrNull;
+    final dueCards = cards.where((c) => c.isDue).length;
+    final answers = session?.answers ?? const <String>[];
+
+    Widget section(String title, List<Widget> children) => Padding(
+          padding: const EdgeInsets.only(bottom: Space.lg),
+          child: CqCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: text.titleSmall),
+                const SizedBox(height: Space.sm),
+                ...children,
+              ],
+            ),
+          ),
+        );
+
+    Widget property(String label, String value) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: Space.xs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                  width: Space.xxxl * 2.5,
+                  child: Text(label, style: text.bodySmall)),
+              Expanded(child: Text(value, style: text.bodyMedium)),
+            ],
+          ),
+        );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Fiche de révision'),
+        actions: [
+          IconButton(
+            tooltip: 'Ouvrir la fiche de cours',
+            icon: const Icon(Icons.description_outlined),
+            onPressed: () => context.push('${AppRoute.notes}/$noteId'),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+            Space.xl, Space.sm, Space.xl, Space.xxxl),
+        children: [
+          Text(note.displayTitle, style: text.headlineSmall),
+          const SizedBox(height: Space.lg),
+          Wrap(
+            spacing: Space.sm,
+            runSpacing: Space.sm,
+            children: [
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoute.sq3rFor(noteId)),
+                icon: const Icon(Icons.school_outlined, size: Sizes.iconMd),
+                label: Text(session?.isComplete ?? false
+                    ? 'Réétudier'
+                    : 'Reprendre l’étude'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => context.push(AppRoute.explainFor(noteId)),
+                icon: const Icon(Icons.record_voice_over_outlined,
+                    size: Sizes.iconMd),
+                label: const Text('Réexpliquer'),
+              ),
+              if (cards.isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      context.push(AppRoute.reviewSessionFor(noteId)),
+                  icon: const Icon(Icons.style_outlined, size: Sizes.iconMd),
+                  label: Text('Réviser ses ${cards.length} carte'
+                      '${cards.length > 1 ? 's' : ''}'),
+                ),
+            ],
+          ),
+          const SizedBox(height: Space.xl),
+          section('Maîtrise', [
+            property(
+                'Niveau',
+                latest == null
+                    ? 'Pas encore évalué'
+                    : '${latest.confidence}/5 — '
+                        '${ConfidencePicker.labels[latest.confidence - 1]}'),
+            property('Explications', '${explanations.length}'),
+            property(
+                'Cartes',
+                cards.isEmpty
+                    ? 'Aucune'
+                    : '${cards.length} dont $dueCards à revoir'),
+            if (session != null)
+              property(
+                  'Étude',
+                  session.isComplete
+                      ? 'Terminée le ${_date(session.completedAt!)}'
+                      : 'En cours : ${StudyStage.of(session.currentStep).label}'),
+          ]),
+          section('Propriétés', [
+            property('Matière', note.subject ?? '—'),
+            property('Tags',
+                note.tags.isEmpty ? '—' : note.tags.map((t) => '#$t').join(' ')),
+            property('Importance',
+                NoteImportance.fromLevel(note.importance).label),
+            property('Créée le', _date(note.createdAt)),
+            property('Modifiée le', _date(note.updatedAt)),
+          ]),
+          if (session != null && session.surveyNotes.trim().isNotEmpty)
+            section('Survol', [Text(session.surveyNotes, style: text.bodyMedium)]),
+          if (session != null && session.questions.isNotEmpty)
+            section('Questions et réponses', [
+              for (var i = 0; i < session.questions.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Space.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(session.questions[i],
+                          style: text.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600)),
+                      Text(
+                        answers[i].trim().isEmpty
+                            ? 'Pas encore de réponse.'
+                            : answers[i],
+                        style: answers[i].trim().isEmpty
+                            ? text.bodySmall
+                            : text.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+            ]),
+          if (explanations.isNotEmpty)
+            section('Mon explication', [
+              Text(latest!.content, style: text.bodyMedium),
+              const SizedBox(height: Space.xs),
+              Text('${_date(latest.createdAt)} · maîtrise ${latest.confidence}/5',
+                  style: text.bodySmall),
+              if (explanations.length > 1)
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(
+                      'Explications précédentes (${explanations.length - 1})',
+                      style: text.bodySmall),
+                  children: [
+                    for (final e in explanations.skip(1))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: Space.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(e.content, style: text.bodyMedium),
+                            Text(
+                                '${_date(e.createdAt)} · maîtrise '
+                                '${e.confidence}/5',
+                                style: text.bodySmall),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+            ]),
+          if (session != null && session.reviewNotes.trim().isNotEmpty)
+            section('À revoir', [Text(session.reviewNotes, style: text.bodyMedium)]),
         ],
       ),
     );

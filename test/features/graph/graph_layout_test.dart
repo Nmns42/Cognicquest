@@ -67,4 +67,71 @@ void main() {
       expect(layout.size, Size.zero);
     });
   });
+
+  group('GraphSimulation', () {
+    GraphSimulation simulate(List<String> ids, List<(String, String)> edges) {
+      final sim = GraphSimulation()
+        ..load(GraphLayout.compute(ids, edges), edges);
+      sim.settle();
+      return sim;
+    }
+
+    test('se pose d\'elle-même : l\'énergie retombe et la boucle s\'arrête',
+        () {
+      final sim = GraphSimulation()
+        ..load(GraphLayout.compute(['a', 'b', 'c'], [('a', 'b')]), [('a', 'b')]);
+      expect(sim.isActive, isTrue);
+      var ticks = 0;
+      while (sim.isActive && ticks < 1000) {
+        sim.tick();
+        ticks++;
+      }
+      expect(sim.isActive, isFalse);
+      expect(ticks, lessThan(400));
+    });
+
+    test('deux fiches liées restent plus proches que deux fiches isolées', () {
+      final sim = simulate(['a', 'b', 'c', 'd'], [('a', 'b')]);
+      final p = sim.positions;
+      final linked = (p['a']! - p['b']!).distance;
+      final unlinked = (p['c']! - p['d']!).distance;
+      expect(linked, lessThan(unlinked));
+    });
+
+    test('une fiche tenue suit le doigt et entraîne ses voisines', () {
+      final sim = simulate(['a', 'b', 'c'], [('a', 'b')]);
+      final b0 = sim.positions['b']!;
+      final target = sim.positions['a']! + const Offset(600, 0);
+
+      sim.pin('a', target);
+      for (var i = 0; i < 120; i++) {
+        sim.tick();
+      }
+      expect(sim.positions['a'], target, reason: 'la fiche tenue reste au doigt');
+      expect(sim.positions['b']!.dx, greaterThan(b0.dx + 100),
+          reason: 'la voisine suit le ressort');
+      expect(sim.isActive, isTrue, reason: 'actif tant que la fiche est tenue');
+
+      sim.release();
+      sim.settle();
+      expect(sim.isActive, isFalse);
+    });
+
+    test('ajouter une fiche ne rebat pas les autres', () {
+      final edges = [('a', 'b')];
+      final sim = simulate(['a', 'b'], edges);
+      final before = Map.of(sim.positions);
+      sim.load(GraphLayout.compute(['a', 'b', 'c'], edges), edges);
+      expect(sim.positions['a'], before['a']);
+      expect(sim.positions['b'], before['b']);
+      expect(sim.positions, contains('c'));
+    });
+
+    test('touche une fiche dans son rayon, rien au-delà', () {
+      final sim = simulate(['a'], const []);
+      final a = sim.positions['a']!;
+      expect(sim.hitTest(a + const Offset(5, 0), 10), 'a');
+      expect(sim.hitTest(a + const Offset(50, 0), 10), isNull);
+    });
+  });
 }

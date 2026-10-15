@@ -71,12 +71,12 @@ void main() {
     finish(1);
     await tester.pump();
     final newest = 'Fiche n${(above).toString().padLeft(2, '0')}';
-    expect(find.text(newest), findsOneWidget);
+    expect(find.semantics.byLabel(newest), findsOne);
 
     // … puis l'ancien, qui ne connaît pas la dernière fiche.
     finish(0);
     await tester.pump();
-    expect(find.text(newest), findsOneWidget,
+    expect(find.semantics.byLabel(newest), findsOne,
         reason: 'la carte la plus récente a été remplacée par une ancienne');
     expect(tester.takeException(), isNull);
   });

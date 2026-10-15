@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/motion/reduce_motion.dart';
@@ -5,12 +9,86 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../../core/theme/tokens.dart';
 
+/// Carte saisie. [front] et [back] sont le texte enregistré de chaque face,
+/// image comprise (cf. [CardSide.encode]).
 class FlashcardDraft {
   const FlashcardDraft({required this.front, required this.back, this.deck});
 
   final String front;
   final String back;
   final String? deck;
+}
+
+/// Poids maximal d'une image de carte : elle est enregistrée dans la carte
+/// elle-même, donc synchronisée avec elle.
+const int maxCardImageBytes = 1536 * 1024;
+
+/// Choisit une image sur l'appareil et la renvoie encodée
+/// (`data:image/…;base64,…`), ou `null` (annulé, trop lourde, impossible).
+Future<String?> pickCardImage(BuildContext context) async {
+  void tell(String text) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)),
+        snackBarAnimationStyle: Motion.style(context));
+  }
+
+  try {
+    final file = (await FilePicker.pickFiles(type: FileType.image)).firstOrNull;
+    if (file == null) return null;
+    if ((await file.length() ?? 0) > maxCardImageBytes) {
+      tell('Image trop lourde (1,5 Mo au plus).');
+      return null;
+    }
+    final bytes = await file.readAsBytes();
+    final mime = switch (file.extension?.toLowerCase()) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+    return 'data:$mime;base64,${base64Encode(bytes)}';
+  } catch (_) {
+    tell('Impossible d’ouvrir le sélecteur d’images ici.');
+    return null;
+  }
+}
+
+/// Image d'une face de carte : encodée ou par lien, cadrée sans déformation.
+class CardImage extends StatelessWidget {
+  const CardImage({super.key, required this.source, this.maxHeight = 260});
+
+  final String source;
+  final double maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget broken(BuildContext context, Object _, StackTrace? __) => Container(
+          height: Sizes.control,
+          alignment: Alignment.center,
+          color: context.cq.beige,
+          child: Icon(Icons.broken_image_outlined, color: context.cq.textHint),
+        );
+    Uint8List? bytes;
+    if (source.startsWith('data:')) {
+      try {
+        bytes = base64Decode(source.substring(source.indexOf(',') + 1));
+      } catch (_) {
+        bytes = null;
+      }
+    }
+    final image = source.startsWith('data:')
+        ? (bytes == null
+            ? broken(context, '', null)
+            : Image.memory(bytes, fit: BoxFit.contain, errorBuilder: broken))
+        : Image.network(source, fit: BoxFit.contain, errorBuilder: broken);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(Radii.sm),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Semantics(image: true, label: 'Image de la carte', child: image),
+      ),
+    );
+  }
 }
 
 /// Création / édition d'une carte.
@@ -40,10 +118,14 @@ class FlashcardEditorSheet extends StatefulWidget {
 
 class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
   final _formKey = GlobalKey<FormState>();
+  late final CardSide? _initialFront = widget.card?.frontSide;
+  late final CardSide? _initialBack = widget.card?.backSide;
   late final TextEditingController _frontController =
-      TextEditingController(text: widget.card?.front ?? '');
+      TextEditingController(text: _initialFront?.text ?? '');
   late final TextEditingController _backController =
-      TextEditingController(text: widget.card?.back ?? '');
+      TextEditingController(text: _initialBack?.text ?? '');
+  late String? _frontImage = _initialFront?.image;
+  late String? _backImage = _initialBack?.image;
   late final TextEditingController _deckController = TextEditingController(
     text: widget.card?.deck ?? widget.suggestedDeck ?? '',
   );
@@ -62,8 +144,8 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
     Navigator.pop(
       context,
       FlashcardDraft(
-        front: _frontController.text.trim(),
-        back: _backController.text.trim(),
+        front: CardSide(_frontController.text, _frontImage).encode(),
+        back: CardSide(_backController.text, _backImage).encode(),
         deck: deck.isEmpty ? null : deck,
       ),
     );
@@ -118,9 +200,16 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
                     labelText: 'Question',
                     hintText: 'Ce que tu dois pouvoir retrouver',
                   ),
-                  validator: (value) => (value ?? '').trim().isEmpty
-                      ? 'Écris la question.'
-                      : null,
+                  // Une image seule suffit (schéma à légender, carte…).
+                  validator: (value) =>
+                      (value ?? '').trim().isEmpty && _frontImage == null
+                          ? 'Écris la question ou ajoute une image.'
+                          : null,
+                ),
+                _ImageField(
+                  image: _frontImage,
+                  label: 'Image de la question',
+                  onChanged: (image) => setState(() => _frontImage = image),
                 ),
                 const SizedBox(height: 14),
 
@@ -130,9 +219,15 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
                   maxLines: 6,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(labelText: 'Réponse'),
-                  validator: (value) => (value ?? '').trim().isEmpty
-                      ? 'Écris la réponse.'
-                      : null,
+                  validator: (value) =>
+                      (value ?? '').trim().isEmpty && _backImage == null
+                          ? 'Écris la réponse ou ajoute une image.'
+                          : null,
+                ),
+                _ImageField(
+                  image: _backImage,
+                  label: 'Image de la réponse',
+                  onChanged: (image) => setState(() => _backImage = image),
                 ),
                 const SizedBox(height: 14),
 
@@ -155,6 +250,60 @@ class _FlashcardEditorSheetState extends State<FlashcardEditorSheet> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Ajout, aperçu et retrait de l'image d'une face.
+class _ImageField extends StatelessWidget {
+  const _ImageField({
+    required this.image,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final String? image;
+  final String label;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = image;
+    if (current == null) {
+      return Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton.icon(
+          onPressed: () async {
+            final picked = await pickCardImage(context);
+            if (picked != null) onChanged(picked);
+          },
+          icon: const Icon(Icons.add_photo_alternate_outlined,
+              size: Sizes.iconMd),
+          label: Text('Ajouter une image'),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: Space.sm),
+      child: Stack(
+        children: [
+          CardImage(source: current, maxHeight: 180),
+          Positioned(
+            top: Space.xs,
+            right: Space.xs,
+            child: Material(
+              color: context.cq.cardColor,
+              shape: const CircleBorder(),
+              child: IconButton(
+                tooltip: 'Retirer : $label',
+                icon: Icon(Icons.close,
+                    size: Sizes.iconSm, color: context.cq.textMuted),
+                onPressed: () => onChanged(null),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
