@@ -428,7 +428,8 @@ create table if not exists public.note_blocks (
   note_id    uuid not null references public.notes (id) on delete cascade,
   type       text not null default 'paragraph'
                check (type in ('paragraph','heading','bulleted','todo',
-                               'quote','code','image','link','divider')),
+                               'quote','code','image','video','link',
+                               'divider')),
   content    text not null default '',
   is_checked boolean not null default false,
   position   integer not null default 0
