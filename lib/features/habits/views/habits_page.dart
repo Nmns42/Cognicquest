@@ -43,7 +43,8 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
         title: const Text('Supprimer cette habitude ?'),
         content: Text(
           '${habit.name}\n\nSon historique (${habit.totalCompletions} '
-          'jour${habit.totalCompletions > 1 ? 's' : ''} validé'
+          '${habit.frequency.unit(habit.totalCompletions)} validé'
+          '${habit.frequency == HabitFrequency.weekly ? 'e' : ''}'
           '${habit.totalCompletions > 1 ? 's' : ''}) sera perdu.',
         ),
         actions: [
@@ -191,7 +192,7 @@ class _SummaryHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$doneToday / ${habits.length} aujourd\'hui',
+            '$doneToday / ${habits.length} à jour',
             style: TextStyle(
               color: context.onAccent,
               fontSize: TypeScale.headline,
@@ -201,8 +202,9 @@ class _SummaryHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             doneToday == habits.length
-                ? 'Routine du jour bouclée. Belle constance.'
-                : 'Encore ${habits.length - doneToday} à valider.',
+                ? 'Tout est validé pour la période en cours. Belle constance.'
+                : 'Encore ${habits.length - doneToday} à valider '
+                    '(jour, semaine ou mois selon l\'habitude).',
             style: TextStyle(
                 color: context.cq.onVertMuted, fontSize: TypeScale.body),
           ),
@@ -213,14 +215,15 @@ class _SummaryHeader extends StatelessWidget {
             children: [
               Flexible(
                 child: _MiniStat(
-                  label: 'Meilleure série',
-                  value: '$bestStreak j',
+                  // Séries en jours, semaines ou mois : pas d'unité commune.
+                  label: 'Meilleure série en cours',
+                  value: '$bestStreak',
                 ),
               ),
               const SizedBox(width: 24),
               Flexible(
                 child: _MiniStat(
-                  label: 'Régularité 30 j',
+                  label: 'Régularité récente',
                   value: '${(averageConsistency * 100).round()} %',
                 ),
               ),
@@ -279,11 +282,94 @@ class _HabitTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   static const List<String> _dayInitials = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+  static const List<String> _dayNames = [
+    'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche',
+  ];
+  static const List<String> _monthInitials = [
+    'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D',
+  ];
+  static const List<String> _monthNames = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
+    'septembre', 'octobre', 'novembre', 'décembre',
+  ];
+
+  /// Cases de la période, selon la fréquence, et leur total.
+  ///
+  /// - Quotidienne : les 7 jours de la semaine en cours (L → D), « 5/7 cette
+  ///   semaine ».
+  /// - Hebdomadaire : les 4 semaines du mois, chacune validée dès qu'un jour
+  ///   y est coché, « 2/4 ce mois ».
+  /// - Mensuelle : les 12 mois de l'année (J → D), « 3/12 cette année ».
+  ///
+  /// Chaque case passée ou en cours se coche et se décoche (rattrapage d'un
+  /// oubli) ; les cases à venir sont grisées.
+  (List<Widget>, String) _periodCells(DateTime now) {
+    final today = DateTime(now.year, now.month, now.day);
+    switch (habit.frequency) {
+      case HabitFrequency.daily:
+        final days = Habit.currentWeekDays(now);
+        return (
+          [
+            for (final (i, day) in days.indexed)
+              _PeriodCell(
+                label: _dayInitials[i],
+                semanticLabel: _dayNames[i],
+                done: habit.isCompletedOn(day),
+                isCurrent: day == today,
+                onTap: day.isAfter(today) ? null : () => onToggleDay(day),
+              ),
+          ],
+          '${habit.doneThisWeek}/7 cette semaine',
+        );
+      case HabitFrequency.weekly:
+        final current = Habit.weekOfMonth(now);
+        final done = [
+          for (var week = 1; week <= 4; week++)
+            habit.isWeekDone(now.year, now.month, week),
+        ];
+        return (
+          [
+            for (var week = 1; week <= 4; week++)
+              _PeriodCell(
+                label: 'Sem. $week',
+                semanticLabel: 'Semaine $week du mois',
+                done: done[week - 1],
+                isCurrent: week == current,
+                onTap: week > current
+                    ? null
+                    : () => onToggleDay(
+                        Habit.startOfWeekOfMonth(now.year, now.month, week)),
+              ),
+          ],
+          '${done.where((d) => d).length}/4 ce mois',
+        );
+      case HabitFrequency.monthly:
+        final done = [
+          for (var month = 1; month <= 12; month++)
+            habit.isMonthDone(now.year, month),
+        ];
+        return (
+          [
+            for (var month = 1; month <= 12; month++)
+              _PeriodCell(
+                label: _monthInitials[month - 1],
+                semanticLabel: _monthNames[month - 1],
+                done: done[month - 1],
+                isCurrent: month == now.month,
+                onTap: month > now.month
+                    ? null
+                    : () => onToggleDay(DateTime(now.year, month)),
+              ),
+          ],
+          '${done.where((d) => d).length}/12 cette année',
+        );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDone = habit.completedToday;
-    final today = DateTime.now();
+    final (cells, total) = _periodCells(DateTime.now());
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -361,7 +447,7 @@ class _HabitTile extends StatelessWidget {
                       : Padding(
                           padding: const EdgeInsets.only(right: 4),
                           child: Text(
-                            '🔥 $streak',
+                            '🔥 $streak ${habit.frequency.shortUnit}',
                             style: TextStyle(
                               fontSize: TypeScale.body,
                               color: context.cq.errorColor,
@@ -389,40 +475,24 @@ class _HabitTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            // Grille des 7 derniers jours — CdC : « Tableau visuel de
-            // progression (cases cochées par jour) ». Chaque case est
-            // cliquable : on peut rattraper un oubli de la veille.
+            // Tableau de progression — CdC : « cases cochées par jour » —
+            // adapté à la fréquence (jours, semaines du mois ou mois).
             Padding(
               padding: const EdgeInsets.only(left: 36, right: 8),
               child: Row(
                 children: [
-                  // Sept cases de 32 px : sur un écran étroit (≤ 390 px), la
-                  // ligne débordait de quelques pixels. Elles rétrécissent
-                  // désormais au lieu de déborder.
+                  // Sur un écran étroit (≤ 390 px) ou à 200 % de texte, les
+                  // cases rétrécissent au lieu de déborder.
                   Expanded(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
-                      child: Row(
-                        children: [
-                          for (var i = 6; i >= 0; i--)
-                            _DayCell(
-                              initial: _dayInitials[
-                                  today.subtract(Duration(days: i)).weekday -
-                                      1],
-                              done: habit.isCompletedOn(
-                                  today.subtract(Duration(days: i))),
-                              isToday: i == 0,
-                              onTap: () => onToggleDay(
-                                  today.subtract(Duration(days: i))),
-                            ),
-                        ],
-                      ),
+                      child: Row(children: cells),
                     ),
                   ),
                   const SizedBox(width: Space.xs),
                   Text(
-                    '${(habit.successRateLast30Days * 100).round()} %',
+                    total,
                     style: TextStyle(
                       fontSize: TypeScale.caption,
                       color: context.cq.textMuted,
@@ -439,46 +509,64 @@ class _HabitTile extends StatelessWidget {
   }
 }
 
-class _DayCell extends StatelessWidget {
-  const _DayCell({
-    required this.initial,
+/// Case d'une période (jour, semaine ou mois) : pleine si validée, cerclée
+/// si c'est la période en cours, grisée et inactive si elle est à venir.
+class _PeriodCell extends StatelessWidget {
+  const _PeriodCell({
+    required this.label,
+    required this.semanticLabel,
     required this.done,
-    required this.isToday,
+    required this.isCurrent,
     required this.onTap,
   });
 
-  final String initial;
+  final String label;
+  final String semanticLabel;
   final bool done;
-  final bool isToday;
-  final VoidCallback onTap;
+  final bool isCurrent;
+
+  /// `null` pour une période à venir.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final upcoming = onTap == null;
     return Padding(
       padding: const EdgeInsets.only(right: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.md),
-        child: AnimatedContainer(
-          duration: Motion.duration(context, const Duration(milliseconds: 180)),
-          width: 26,
-          height: 26,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: done
-                ? context.cq.vert
-                : context.cq.beigeDark.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: isToday
-                ? Border.all(color: context.cq.vertDark, width: 1.6)
-                : null,
-          ),
-          child: Text(
-            initial,
-            style: TextStyle(
-              fontSize: TypeScale.caption,
-              fontWeight: FontWeight.w600,
-              color: done ? context.onAccent : context.cq.textMuted,
+      child: Semantics(
+        label: semanticLabel,
+        checked: done,
+        enabled: !upcoming,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: AnimatedContainer(
+            duration:
+                Motion.duration(context, const Duration(milliseconds: 180)),
+            constraints: const BoxConstraints(minWidth: 26),
+            height: 26,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: done
+                  ? context.cq.vert
+                  : context.cq.beigeDark
+                      .withValues(alpha: upcoming ? 0.25 : 0.6),
+              borderRadius: BorderRadius.circular(Radii.md),
+              border: isCurrent
+                  ? Border.all(color: context.cq.vertDark, width: 1.6)
+                  : null,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: TypeScale.caption,
+                fontWeight: FontWeight.w600,
+                color: done
+                    ? context.onAccent
+                    : (upcoming ? context.cq.textHint : context.cq.textMuted),
+              ),
             ),
           ),
         ),

@@ -57,16 +57,32 @@ class HabitNotifier extends StreamNotifier<List<Habit>> {
 
   Future<void> toggleToday(Habit habit) => toggleOn(habit, DateTime.now());
 
+  /// Bascule la période (jour, semaine du mois ou mois) qui contient [day].
+  ///
+  /// Décocher une semaine ou un mois peut retirer plusieurs jours, et cocher
+  /// une période en ajoute un, pas forcément [day] : on enregistre donc
+  /// chaque jour qui change réellement.
   Future<void> toggleOn(Habit habit, DateTime day) {
     final updated = habit.withToggleOn(day);
+    final before = habit.completedDates.toSet();
+    final after = updated.completedDates.toSet();
     return _mutate(
       optimistic: (habits) =>
           [for (final h in habits) if (h.id == habit.id) updated else h],
-      action: (repository) => repository.setCompletion(
-        habit.id,
-        day,
-        done: updated.isCompletedOn(day),
-      ),
+      action: (repository) async {
+        for (final key in after.difference(before)) {
+          final date = Habit.parseKey(key);
+          if (date != null) {
+            await repository.setCompletion(habit.id, date, done: true);
+          }
+        }
+        for (final key in before.difference(after)) {
+          final date = Habit.parseKey(key);
+          if (date != null) {
+            await repository.setCompletion(habit.id, date, done: false);
+          }
+        }
+      },
     );
   }
 
@@ -121,7 +137,8 @@ final habitProvider = StreamNotifierProvider<HabitNotifier, List<Habit>>(
   HabitNotifier.new,
 );
 
-/// Agrégat affiché en tête du tracker : combien d'habitudes validées ce jour.
+/// Agrégat affiché en tête du tracker : combien d'habitudes sont à jour sur
+/// leur période en cours (jour, semaine du mois ou mois).
 final habitsCompletedTodayProvider = Provider<int>((ref) {
   final habits = ref.watch(habitProvider).valueOrNull ?? const <Habit>[];
   return habits.where((h) => h.completedToday).length;
