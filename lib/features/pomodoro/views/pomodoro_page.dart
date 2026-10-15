@@ -93,11 +93,25 @@ class PomodoroPage extends ConsumerWidget {
                     )
                   : Column(
                       children: [
-                        _PhaseHeader(state: state, color: color),
+                        _shrinkToFit(
+                          maxHeight: box.maxHeight * 0.2,
+                          width: box.maxWidth - 2 * side,
+                          child: _PhaseHeader(state: state, color: color),
+                        ),
                         SizedBox(height: gap),
                         Expanded(child: dial),
                         SizedBox(height: gap),
-                        ...controls,
+                        // Petit écran ou texte très agrandi : les commandes
+                        // rétrécissent au lieu de déborder (pas de
+                        // défilement sur cet écran).
+                        _shrinkToFit(
+                          maxHeight: box.maxHeight * 0.55,
+                          width: box.maxWidth - 2 * side,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: controls,
+                          ),
+                        ),
                       ],
                     ),
             );
@@ -107,6 +121,21 @@ class PomodoroPage extends ConsumerWidget {
     );
   }
 }
+
+/// Contenu à sa taille naturelle, réduit d'un bloc s'il dépasse
+/// [maxHeight] : jamais de débordement, même à 200 % de texte.
+Widget _shrinkToFit({
+  required double maxHeight,
+  required double width,
+  required Widget child,
+}) =>
+    ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: SizedBox(width: width, child: child),
+      ),
+    );
 
 /// Cadran à la taille de la place que lui laisse la page : le plus grand
 /// cercle qui y tient, avec une petite marge pour la pulsation.

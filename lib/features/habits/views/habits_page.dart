@@ -491,12 +491,17 @@ class _HabitTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: Space.xs),
-                  Text(
+                  // Flexible : à 200 % de texte, le total passe à la ligne
+                  // au lieu de pousser les cases hors de l'écran.
+                  Flexible(
+                    child: Text(
                     total,
+                    textAlign: TextAlign.end,
                     style: TextStyle(
                       fontSize: TypeScale.caption,
                       color: context.cq.textMuted,
                       fontWeight: FontWeight.w600,
+                    ),
                     ),
                   ),
                 ],
