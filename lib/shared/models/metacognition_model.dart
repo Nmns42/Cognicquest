@@ -79,44 +79,63 @@ enum BlockerType {
   }
 }
 
-/// Distorsions cognitives courantes, pour le recadrage.
+/// Pièges de pensée courants (distorsions cognitives), pour le recadrage.
+///
+/// Libellés volontairement concrets, en mots d'étudiant : on reconnaît le
+/// piège à sa phrase, sans vocabulaire de psychologie. Les [value]
+/// enregistrées ne changent pas.
 enum CognitiveDistortion {
   allOrNothing(
     'all_or_nothing',
-    'Tout ou rien',
-    'Soit je réussis parfaitement, soit j\'ai tout raté.',
+    'Si ce n’est pas parfait, c’est nul',
+    '« J’ai eu 12 au lieu de 16 : j’ai tout raté. »',
+    'Sur une échelle de 0 à 10, où en es-tu vraiment ? Qu’est-ce qui est '
+        'réussi, même en partie ?',
   ),
   overgeneralisation(
     'overgeneralisation',
-    'Généralisation',
-    'Un échec devient « je n\'y arrive jamais ».',
+    'Un raté, et je me dis « je rate toujours »',
+    '« J’ai raté cet exercice, je n’y arriverai jamais. »',
+    'Combien de fois exactement ? Cite une fois où ça a marché.',
   ),
   labelling(
     'labelling',
-    'Étiquetage',
-    'Je confonds ce que j\'ai fait et ce que je suis.',
+    'Je me colle une étiquette (« je suis nul »)',
+    '« Je suis nul en maths » au lieu de « j’ai raté ce chapitre ».',
+    'Qu’as-tu fait, précisément ? Décris l’action, pas la personne.',
   ),
   mindReading(
     'mind_reading',
-    'Lecture de pensée',
-    'Je suppose ce que les autres pensent de moi.',
+    'Je devine ce que les autres pensent de moi',
+    '« Le prof doit me trouver idiot. »',
+    'Qu’est-ce qui te prouve qu’il pense ça ? Te l’a-t-il dit ?',
   ),
   catastrophising(
     'catastrophising',
-    'Catastrophisme',
-    'J\'imagine le pire scénario comme s\'il était certain.',
+    'J’imagine tout de suite le pire',
+    '« Si je rate ce partiel, mon année est fichue. »',
+    'Que va-t-il se passer le plus probablement ? Et que ferais-tu alors ?',
   ),
   discounting(
     'discounting',
-    'Minimisation',
-    'Mes réussites « ne comptent pas ».',
+    'Mes réussites « ne comptent pas »',
+    '« J’ai réussi, mais c’était facile » ou « c’était de la chance ».',
+    'Si un ami avait fait la même chose, dirais-tu que ça ne compte pas ?',
   );
 
-  const CognitiveDistortion(this.value, this.label, this.example);
+  const CognitiveDistortion(
+      this.value, this.label, this.example, this.challenge);
 
   final String value;
+
+  /// Le piège, dit comme on se le dit.
   final String label;
+
+  /// Une phrase typique de ce piège.
   final String example;
+
+  /// La question qui le désamorce, posée à l'étape des preuves.
+  final String challenge;
 
   static CognitiveDistortion? fromValue(String? value) {
     if (value == null) return null;
@@ -125,6 +144,37 @@ enum CognitiveDistortion {
     }
     return null;
   }
+}
+
+/// Les meilleures questions des 5 Pourquoi, posées dans le recadrage avant
+/// de reformuler : on cherche d'où vient la pensée avant de la contester.
+///
+/// Les réponses sont enregistrées comme une chaîne de « pourquoi »
+/// ([WhyChain]) qui partage l'identifiant du recadrage : pas de nouvelle
+/// table, et la cause profonde reste exploitable par les statistiques.
+abstract final class ReframeDigging {
+  static const List<(String, String)> questions = [
+    (
+      'Qu’est-ce qui s’est passé juste avant ?',
+      'Ex : « J’ai bloqué 20 minutes sur un exercice de suites »',
+    ),
+    (
+      'Pourquoi est-ce que ça te touche autant ?',
+      'Ex : « Le partiel est dans deux semaines et je me sens en retard »',
+    ),
+    (
+      'Et au fond, pourquoi ça arrive ?',
+      'Ex : « Je n’ai jamais revu le cours de base sur les limites »',
+    ),
+  ];
+
+  /// La cause profonde, en mots simples (nature du frein).
+  static String causeLabel(BlockerType type) => switch (type) {
+        BlockerType.cognitive => 'Je ne comprends pas encore la notion',
+        BlockerType.emotional => 'Stress, peur de rater, découragement',
+        BlockerType.sensory => 'Fatigue, bruit, inconfort',
+        BlockerType.environmental => 'Organisation, lieu, interruptions',
+      };
 }
 
 /// Entrée du journal métacognitif, humeur et effort compris.

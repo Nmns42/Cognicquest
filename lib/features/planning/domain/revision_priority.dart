@@ -12,7 +12,8 @@ class RankedTarget {
 
   final ExamTarget target;
 
-  /// Points récupérables par heure de travail, pondérés par l'urgence.
+  /// Points pondérés (écart de note × coefficient) récupérables par heure de
+  /// travail, ajustés par l'urgence.
   final double score;
 
   final double gainablePoints;
@@ -24,9 +25,11 @@ class RankedTarget {
   /// Explication lisible du classement, pour que l'utilisateur puisse
   /// contester le calcul plutôt que de le subir.
   String get rationale {
-    final points = gainablePoints.toStringAsFixed(1);
+    final gap = (target.reachableGrade - target.currentGrade)
+        .clamp(0.0, 20.0)
+        .toStringAsFixed(0);
     final hours = estimatedCost.toStringAsFixed(1);
-    final base = '$points pts récupérables pour ~$hours h';
+    final base = '+$gap pts × coeff. ${target.coefficient} pour ~$hours h';
     if (urgencyFactor > 1.05) {
       final days = target.daysUntilExam;
       return '$base · examen dans $days j';
@@ -106,10 +109,10 @@ abstract final class RevisionPriority {
       final days = target.daysUntilExam;
       if (days != null && days < 0) {
         out.add((target, 'Examen passé'));
+      } else if (target.coefficient <= 0) {
+        out.add((target, 'Aucun coefficient déclaré'));
       } else if (target.gainablePoints <= 0) {
         out.add((target, 'Rien de plus à y gagner'));
-      } else if (target.examWeight <= 0) {
-        out.add((target, 'Aucun point déclaré à l\'examen'));
       }
     }
     return out;

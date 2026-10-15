@@ -9,6 +9,7 @@ import '../domain/metacognition_insights.dart';
 import '../providers/metacognition_provider.dart';
 import '../widgets/mood_trend_chart.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 /// Point d'entrée de la métacognition : état du moment, outils, historique.
 class JournalHubPage extends ConsumerStatefulWidget {
@@ -47,8 +48,6 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              if (profile != null && !profile.isComplete)
-                _ProfilingPrompt(progress: profile.progress),
               _StrainCard(
                   insights: insights, hasEntryToday: todayEntry != null),
               const SizedBox(height: 20),
@@ -70,16 +69,10 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
               _ToolTile(
                 icon: Icons.psychology_alt_outlined,
                 title: 'Recadrage cognitif',
-                subtitle: 'Transformer une pensée bloquante en objectif',
+                subtitle: 'Comprendre d’où vient une pensée qui bloque, '
+                    'puis la transformer en premier pas',
                 badge: unfinished.isEmpty ? null : '${unfinished.length}',
                 onTap: () => context.push(AppRoute.reframe),
-              ),
-              const SizedBox(height: 8),
-              _ToolTile(
-                icon: Icons.account_tree_outlined,
-                title: 'Les 5 Pourquoi',
-                subtitle: 'Remonter d\'un blocage à sa cause réelle',
-                onTap: () => context.push(AppRoute.whyChain),
               ),
               const SizedBox(height: 8),
               _ToolTile(
@@ -101,12 +94,14 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
                         profile!.processingStyle?.label,
                         profile.preferredChannel?.label,
                       ].whereType<String>().join(' · ')
-                    : 'Découvrir mon mode d\'emploi',
+                    : 'Comment tu apprends le mieux',
                 onTap: () => context.push(AppRoute.profiling),
               ),
               if (!errorPattern.isEmpty) ...[
                 const SizedBox(height: 24),
-                _InsightBanner(
+                // Refermable ; il revient quand le constat change.
+                CqDismissibleBanner(
+                  bannerId: 'journal.erreurs.${errorPattern.summary.hashCode}',
                   icon: Icons.rule_outlined,
                   message: errorPattern.summary,
                 ),
@@ -120,63 +115,6 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ProfilingPrompt extends StatelessWidget {
-  const _ProfilingPrompt({required this.progress});
-
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.cq.warning.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: context.cq.warning.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.fingerprint, size: 18, color: context.cq.warning),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Ton mode d\'emploi',
-                  style: TextStyle(
-                    fontSize: TypeScale.body,
-                    fontWeight: FontWeight.w600,
-                    color: context.cq.warning,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Cinq questions pour comprendre comment tu apprends. '
-            'L\'application adaptera ensuite ses conseils.',
-            style: TextStyle(
-                fontSize: TypeScale.caption,
-                color: context.cq.textMuted,
-                height: 1.4),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => context.push(AppRoute.profiling),
-              child: Text(progress == 0 ? 'Commencer' : 'Reprendre'),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -376,41 +314,6 @@ class _ToolTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _InsightBanner extends StatelessWidget {
-  const _InsightBanner({required this.icon, required this.message});
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.cq.vert.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: context.cq.vert.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 17, color: context.cq.vertDark),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                  fontSize: TypeScale.caption,
-                  color: context.cq.vertDark,
-                  height: 1.4),
-            ),
-          ),
-        ],
       ),
     );
   }

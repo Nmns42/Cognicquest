@@ -296,7 +296,22 @@ class ExamTarget {
   final String? noteId;
   final String title;
   final String? subject;
+
+  /// Coefficient de la matière (ou du chapitre) à l'examen, de 1 à 10.
+  ///
+  /// Le nom de colonne historique reste `exam_weight` ; c'est bien un
+  /// coefficient, pas une note ni un nombre de points.
   final double examWeight;
+
+  /// Bornes du coefficient.
+  static const int minCoefficient = 1;
+  static const int maxCoefficient = 10;
+
+  /// Coefficient arrondi et borné (les anciennes saisies en « points »,
+  /// jusqu'à 40, sont ramenées à 10).
+  int get coefficient =>
+      examWeight <= 0 ? 0 : examWeight.round().clamp(minCoefficient, maxCoefficient);
+
   final double currentGrade;
   final double reachableGrade;
   final double lengthHours;
@@ -305,11 +320,12 @@ class ExamTarget {
   final DateTime createdAt;
   final bool isSynced;
 
-  /// Points réellement récupérables : l'écart entre là où on est et là où on
-  /// peut aller, rapporté au poids du chapitre.
+  /// Points pondérés récupérables : l'écart entre la note actuelle et la
+  /// note atteignable (sur 20), multiplié par le coefficient — exactement
+  /// ce que ce chapitre peut ajouter à la moyenne coefficientée.
   double get gainablePoints {
     final gap = (reachableGrade - currentGrade).clamp(0.0, 20.0);
-    return examWeight * (gap / 20);
+    return coefficient * gap;
   }
 
   /// Coût estimé en heures, la difficulté alourdissant la longueur.

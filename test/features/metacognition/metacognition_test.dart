@@ -402,4 +402,70 @@ void main() {
       expect(BlockerType.values, hasLength(4));
     });
   });
+
+  group('Recadrage : pièges en mots simples', () {
+    test('aucun jargon de psychologie dans les libellés', () {
+      const jargon = [
+        'distorsion',
+        'catastroph',
+        'généralisation',
+        'étiquetage',
+        'minimisation',
+        'lecture de pensée',
+        'tout ou rien',
+      ];
+      for (final distortion in CognitiveDistortion.values) {
+        final label = distortion.label.toLowerCase();
+        for (final word in jargon) {
+          expect(label, isNot(contains(word)), reason: distortion.name);
+        }
+      }
+    });
+
+    test('chaque piège a une phrase typique et sa question pour le désamorcer',
+        () {
+      for (final distortion in CognitiveDistortion.values) {
+        expect(distortion.example, isNotEmpty, reason: distortion.name);
+        expect(distortion.challenge, contains('?'), reason: distortion.name);
+      }
+    });
+
+    test('les valeurs enregistrées ne changent pas', () {
+      expect(CognitiveDistortion.fromValue('all_or_nothing'),
+          CognitiveDistortion.allOrNothing);
+      expect(CognitiveDistortion.fromValue('catastrophising'),
+          CognitiveDistortion.catastrophising);
+    });
+  });
+
+  group('Recadrage : exploration issue des 5 Pourquoi', () {
+    test('trois questions pour creuser, chacune avec un exemple', () {
+      expect(ReframeDigging.questions, hasLength(3));
+      for (final (question, hint) in ReframeDigging.questions) {
+        expect(question, endsWith('?'));
+        expect(hint, startsWith('Ex :'));
+      }
+    });
+
+    test('chaque nature de cause a un libellé concret', () {
+      final labels = BlockerType.values.map(ReframeDigging.causeLabel).toSet();
+      expect(labels, hasLength(BlockerType.values.length));
+    });
+
+    test('l\'exploration est une chaîne de pourquoi complète', () {
+      final chain = WhyChain(
+        id: 'r1',
+        userId: 'u1',
+        problem: 'Je suis nul en maths',
+        answers: const ['Bloqué sur un exercice', 'Partiel proche',
+            'Cours de base jamais revu'],
+        rootCause: 'Cours de base jamais revu',
+        blockerType: BlockerType.cognitive,
+        actionPlan: 'Refaire 3 exercices corrigés',
+        createdAt: DateTime(2026, 10, 15),
+      );
+      expect(chain.depth, 3);
+      expect(chain.isComplete, isTrue);
+    });
+  });
 }

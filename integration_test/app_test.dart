@@ -97,7 +97,6 @@ void main() {
       AppRoute.journal,
       AppRoute.journalEntry,
       AppRoute.reframe,
-      AppRoute.whyChain,
       AppRoute.errorLogs,
       AppRoute.profiling,
       AppRoute.settings,

@@ -23,7 +23,6 @@ import '../features/metacognition/views/journal_entry_page.dart';
 import '../features/metacognition/views/journal_hub_page.dart';
 import '../features/metacognition/views/profiling_page.dart';
 import '../features/metacognition/views/reframe_page.dart';
-import '../features/metacognition/views/why_chain_page.dart';
 import '../features/notes/views/note_editor_page.dart';
 import '../features/notes/views/notes_page.dart';
 import '../features/planning/views/gantt_page.dart';
@@ -66,7 +65,6 @@ abstract final class AppRoute {
   static const String journal = '/journal';
   static const String journalEntry = '/journal/entry';
   static const String reframe = '/journal/reframe';
-  static const String whyChain = '/journal/why';
   static const String errorLogs = '/journal/errors';
   static const String profiling = '/journal/profile';
   static const String reviewSession = '/review/session';
@@ -248,10 +246,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'reframe',
                 builder: (_, __) => const PanelSettle(child: ReframePage()),
-              ),
-              GoRoute(
-                path: 'why',
-                builder: (_, __) => const PanelSettle(child: WhyChainPage()),
               ),
               GoRoute(
                 path: 'errors',

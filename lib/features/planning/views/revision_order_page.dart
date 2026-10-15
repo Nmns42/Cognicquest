@@ -240,7 +240,7 @@ class _RankedRow extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                         color: context.cq.vertDark),
                   ),
-                   Text('pts/h',
+                   Text('pts pondérés/h',
                       style: TextStyle(
                           fontSize: TypeScale.caption, color: context.cq.textHint)),
                 ],
@@ -299,7 +299,7 @@ class _EmptyState extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
            Text(
-            'Déclare tes chapitres avec leur poids à l\'examen, ta note '
+            'Déclare tes chapitres avec leur coefficient à l\'examen, ta note '
             'actuelle et la note que tu penses pouvoir atteindre. '
             'CognicQuest te dira par quoi commencer.',
             textAlign: TextAlign.center,

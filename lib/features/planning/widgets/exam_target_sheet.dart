@@ -35,7 +35,11 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
   late final TextEditingController _subjectController =
       TextEditingController(text: widget.target?.subject ?? '');
 
-  late double _weight = widget.target?.examWeight ?? 10;
+  /// Coefficient de 1 à 10 (une ancienne saisie en points est ramenée dans
+  /// ces bornes).
+  late double _weight = (widget.target?.coefficient ?? 2)
+      .clamp(ExamTarget.minCoefficient, ExamTarget.maxCoefficient)
+      .toDouble();
   late double _current = widget.target?.currentGrade ?? 8;
   late double _reachable = widget.target?.reachableGrade ?? 16;
   late double _length = widget.target?.lengthHours ?? 3;
@@ -167,12 +171,13 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                 const SizedBox(height: 20),
 
                 _Slider(
-                  label: 'Poids à l\'examen',
-                  valueLabel: '${_weight.toStringAsFixed(0)} pts',
+                  label: 'Coefficient à l\'examen',
+                  valueLabel: 'Coeff. ${_weight.toStringAsFixed(0)}',
                   value: _weight,
-                  min: 0,
-                  max: 40,
-                  divisions: 40,
+                  min: ExamTarget.minCoefficient.toDouble(),
+                  max: ExamTarget.maxCoefficient.toDouble(),
+                  divisions:
+                      ExamTarget.maxCoefficient - ExamTarget.minCoefficient,
                   onChanged: (v) => setState(() => _weight = v),
                 ),
                 _Slider(
@@ -265,10 +270,13 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                               color: context.cq.vertDark)),
                       const SizedBox(height: 6),
                       Text(
-                        '${preview.gainablePoints.toStringAsFixed(1)} pts '
-                        'récupérables pour ~'
+                        '+${(_reachable - _current).toStringAsFixed(0)} pts '
+                        '× coeff. ${_weight.toStringAsFixed(0)} = '
+                        '${preview.gainablePoints.toStringAsFixed(0)} points '
+                        'pondérés pour ~'
                         '${preview.estimatedCost.toStringAsFixed(1)} h '
-                        '→ ${RevisionPriority.scoreFor(preview).toStringAsFixed(1)} pts/h',
+                        '→ ${RevisionPriority.scoreFor(preview).toStringAsFixed(1)} '
+                        'par heure',
                         style:  TextStyle(
                             fontSize: TypeScale.caption,
                             color: context.cq.textPrimary,

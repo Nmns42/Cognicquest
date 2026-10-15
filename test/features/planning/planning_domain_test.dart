@@ -9,7 +9,7 @@ final _today = DateTime(2026, 4, 10);
 
 ExamTarget target({
   required String id,
-  double weight = 10,
+  double weight = 2,
   double current = 0,
   double reachable = 20,
   double length = 2,
@@ -185,22 +185,37 @@ void main() {
   group('RevisionPriority — rentabilité', () {
     test('classe en tête le meilleur rapport points / heures', () {
       final ranked = RevisionPriority.rank([
-        // 10 pts pour 10 h.
-        target(id: 'long', weight: 10, length: 10),
-        // 10 pts pour 2 h → bien plus rentable.
-        target(id: 'court', weight: 10, length: 2),
+        // Même coefficient, 10 h de travail.
+        target(id: 'long', weight: 2, length: 10),
+        // Même coefficient, 2 h → bien plus rentable.
+        target(id: 'court', weight: 2, length: 2),
       ]);
 
       expect(ranked.first.target.id, 'court');
     });
 
-    test('les points récupérables tiennent compte de la note actuelle', () {
-      // Déjà à 15/20 : il ne reste qu'un quart des points à prendre.
-      final almostDone = target(id: 'a', weight: 20, current: 15);
-      expect(almostDone.gainablePoints, closeTo(5, 0.01));
+    test('les points récupérables = écart de note × coefficient', () {
+      // Déjà à 15/20, coefficient 4 : 5 points × 4.
+      final almostDone = target(id: 'a', weight: 4, current: 15);
+      expect(almostDone.gainablePoints, closeTo(20, 0.01));
 
-      final fromScratch = target(id: 'b', weight: 20, current: 0);
-      expect(fromScratch.gainablePoints, closeTo(20, 0.01));
+      final fromScratch = target(id: 'b', weight: 4, current: 0);
+      expect(fromScratch.gainablePoints, closeTo(80, 0.01));
+    });
+
+    test('le coefficient compte comme un multiplicateur, borné de 1 à 10', () {
+      // Même écart, coefficient double : deux fois plus de points.
+      expect(target(id: 'a', weight: 6, current: 10).gainablePoints,
+          2 * target(id: 'b', weight: 3, current: 10).gainablePoints);
+      // Ancienne saisie en « points » (jusqu'à 40) : ramenée au maximum.
+      expect(target(id: 'c', weight: 25).coefficient, 10);
+      expect(target(id: 'd', weight: 0).coefficient, 0);
+    });
+
+    test('le classement se justifie en coefficient', () {
+      final ranked = RevisionPriority.rank(
+          [target(id: 'a', weight: 3, current: 12, reachable: 16)]);
+      expect(ranked.single.rationale, startsWith('+4 pts × coeff. 3'));
     });
 
     test('la difficulté alourdit le coût estimé', () {
@@ -213,11 +228,11 @@ void main() {
 
     test('un examen proche remonte le chapitre', () {
       final ranked = RevisionPriority.rank([
-        target(id: 'lointain', weight: 12, length: 2, examInDays: 90),
-        target(id: 'proche', weight: 10, length: 2, examInDays: 2),
+        target(id: 'lointain', weight: 6, length: 2, examInDays: 90),
+        target(id: 'proche', weight: 5, length: 2, examInDays: 2),
       ]);
 
-      // Sans urgence, « lointain » gagnerait (12 pts contre 10).
+      // Sans urgence, « lointain » gagnerait (coeff. 6 contre 5).
       expect(ranked.first.target.id, 'proche');
     });
 
@@ -253,6 +268,7 @@ void main() {
       expect(excluded, hasLength(3));
       expect(excluded.map((e) => e.$2), contains('Examen passé'));
       expect(excluded.map((e) => e.$2), contains('Rien de plus à y gagner'));
+      expect(excluded.map((e) => e.$2), contains('Aucun coefficient déclaré'));
     });
 
     test('totalise l\'effort des premiers chapitres', () {
@@ -513,8 +529,8 @@ void main() {
     test('sert les chapitres les plus rentables en premier', () {
       final plan = AdaptiveSchedule.generate(
         [
-          target(id: 'peu_rentable', weight: 5, length: 10),
-          target(id: 'rentable', weight: 20, length: 2),
+          target(id: 'peu_rentable', weight: 2, length: 10),
+          target(id: 'rentable', weight: 8, length: 2),
         ],
         dailyCapacityHours: 2,
         horizonDays: 2,
