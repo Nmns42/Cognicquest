@@ -147,12 +147,14 @@ class _ProfilingPrompt extends StatelessWidget {
             children: [
               Icon(Icons.fingerprint, size: 18, color: context.cq.warning),
               SizedBox(width: 8),
-              Text(
-                'Ton mode d\'emploi',
-                style: TextStyle(
-                  fontSize: TypeScale.body,
-                  fontWeight: FontWeight.w600,
-                  color: context.cq.warning,
+              Flexible(
+                child: Text(
+                  'Ton mode d\'emploi',
+                  style: TextStyle(
+                    fontSize: TypeScale.body,
+                    fontWeight: FontWeight.w600,
+                    color: context.cq.warning,
+                  ),
                 ),
               ),
             ],
@@ -228,21 +230,29 @@ class _StrainCard extends StatelessWidget {
           ),
           if (!insights.isEmpty) ...[
             const SizedBox(height: 16),
+            // Flexible : à grande taille de texte, les libellés passent à
+            // la ligne au lieu de déborder.
             Row(
               children: [
-                _Metric(
-                  value: insights.averageMood.toStringAsFixed(1),
-                  label: 'humeur / 5',
+                Flexible(
+                  child: _Metric(
+                    value: insights.averageMood.toStringAsFixed(1),
+                    label: 'humeur / 5',
+                  ),
                 ),
                 const SizedBox(width: 22),
-                _Metric(
-                  value: insights.averageRpe.toStringAsFixed(1),
-                  label: 'effort / 10',
+                Flexible(
+                  child: _Metric(
+                    value: insights.averageRpe.toStringAsFixed(1),
+                    label: 'effort / 10',
+                  ),
                 ),
                 const SizedBox(width: 22),
-                _Metric(
-                  value: '${insights.currentStreak} j',
-                  label: 'de suivi',
+                Flexible(
+                  child: _Metric(
+                    value: '${insights.currentStreak} j',
+                    label: 'de suivi',
+                  ),
                 ),
               ],
             ),

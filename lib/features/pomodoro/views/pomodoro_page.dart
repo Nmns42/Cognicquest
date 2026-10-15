@@ -164,29 +164,37 @@ class _TimerDial extends StatelessWidget {
               ),
             ),
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                state.timeDisplay,
-                style: TextStyle(
-                  fontSize: size * 0.24,
-                  fontWeight: FontWeight.bold,
-                  color: context.cq.textPrimary,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+          // À 200 % de texte, minuteur et statut dépassaient du cadran :
+          // ils rétrécissent pour rester dans l'anneau.
+          Padding(
+            padding: EdgeInsets.all(size * 0.12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.timeDisplay,
+                    style: TextStyle(
+                      fontSize: size * 0.24,
+                      fontWeight: FontWeight.bold,
+                      color: context.cq.textPrimary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    switch (state.status) {
+                      PomodoroStatus.running => 'En cours',
+                      PomodoroStatus.paused => 'En pause',
+                      PomodoroStatus.idle => 'Prêt',
+                    },
+                    style: TextStyle(
+                        color: context.cq.textMuted, fontSize: TypeScale.body),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                switch (state.status) {
-                  PomodoroStatus.running => 'En cours',
-                  PomodoroStatus.paused => 'En pause',
-                  PomodoroStatus.idle => 'Prêt',
-                },
-                style: TextStyle(
-                    color: context.cq.textMuted, fontSize: TypeScale.body),
-              ),
-            ],
+            ),
           ),
         ],
       ),

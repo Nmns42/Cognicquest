@@ -87,16 +87,9 @@ void main() {
     'Réglages': () => const SettingsPage(),
   };
 
-  // Débordements recensés le 2026-10-12 (police Roboto réelle), en attente
-  // de décision : ces écrans sont ignorés tant qu'ils ne sont pas corrigés.
-  // Retirer une entrée dès que l'écran est corrigé.
-  const knownOverflows = {
-    'Tableau de bord': '25 débordements à droite, dès 100 % sur 320 et 360 px',
-    'Pomodoro': '4 débordements en bas, à 200 %',
-    'Journal': '3 débordements à droite, à 200 %',
-    'Réglages': '2 débordements à droite, à 200 %',
-    'Tâches (Kanban)': '1 débordement à droite (2 px), à 200 %',
-  };
+  // Écrans à débordement connu, ignorés en attendant leur correction (nom →
+  // description). Vide depuis le 2026-10-14 : tous les écrans sont corrigés.
+  const knownOverflows = <String, String>{};
 
   for (final MapEntry(key: name, value: screen) in screens.entries) {
     final known = knownOverflows[name];

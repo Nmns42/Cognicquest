@@ -454,19 +454,23 @@ class _ShortcutList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 7),
               child: Row(
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: context.cq.cardColor,
-                      borderRadius: BorderRadius.circular(Radii.md),
-                      border: Border.all(color: context.cq.beigeDark),
+                  // Flexible : à 200 %, la touche passe à la ligne dans sa
+                  // pastille au lieu de déborder.
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: context.cq.cardColor,
+                        borderRadius: BorderRadius.circular(Radii.md),
+                        border: Border.all(color: context.cq.beigeDark),
+                      ),
+                      child: Text(keys,
+                          style: TextStyle(
+                              fontSize: TypeScale.caption,
+                              fontFamily: 'monospace',
+                              color: context.cq.textPrimary)),
                     ),
-                    child: Text(keys,
-                        style: TextStyle(
-                            fontSize: TypeScale.caption,
-                            fontFamily: 'monospace',
-                            color: context.cq.textPrimary)),
                   ),
                   const SizedBox(width: 11),
                   Expanded(
