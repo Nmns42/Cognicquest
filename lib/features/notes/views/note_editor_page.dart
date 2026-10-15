@@ -123,14 +123,26 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     final command = await showSlashMenu(context, anchor: anchor);
     if (command == null || !mounted) return;
 
-    // Le « / » tapé est remplacé par la syntaxe de la commande ; au milieu
-    // d'une ligne, la commande commence une nouvelle ligne.
     final value = _contentController.value;
     final slash = value.selection.baseOffset - 1;
     if (slash < 0 || value.text[slash] != '/') return;
+
+    // Image ou vidéo : le « / » disparaît et un bloc média s'ajoute, prêt à
+    // recevoir un fichier ou un lien.
+    final blockType = command.blockType;
+    if (command.isMedia && blockType != null) {
+      _replaceContent(slash, slash + 1, '');
+      _addBlock(blockType);
+      return;
+    }
+
+    // Le « / » tapé est remplacé par la syntaxe de la commande ; au milieu
+    // d'une ligne, la commande commence une nouvelle ligne. Le curseur se
+    // place entre l'ouverture et la fermeture (sous-titre, code).
     final atLineStart = slash == 0 || value.text[slash - 1] == '\n';
     final insert = '${atLineStart ? '' : '\n'}${command.markdown}';
-    _replaceContent(slash, slash + 1, insert);
+    _replaceContent(slash, slash + 1, insert + command.suffix,
+        caret: slash + insert.length);
     if (command == SlashCommand.noteLink) await _insertNoteLink();
   }
 
@@ -149,11 +161,12 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     _replaceContent(start, caret, '[[${target.displayTitle}]]');
   }
 
-  void _replaceContent(int start, int end, String insert) {
+  void _replaceContent(int start, int end, String insert, {int? caret}) {
     final text = _contentController.text.replaceRange(start, end, insert);
     _contentController.value = TextEditingValue(
       text: text,
-      selection: TextSelection.collapsed(offset: start + insert.length),
+      selection:
+          TextSelection.collapsed(offset: caret ?? start + insert.length),
     );
     _lastContent = text;
     _scheduleSave();
@@ -335,8 +348,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   style:  TextStyle(
                       fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
                   decoration: const InputDecoration(
-                    hintText: 'Écris ici. Tape / pour insérer un titre, une '
-                        'liste, une citation… et [[ pour lier une fiche.',
+                    hintText: 'Écris ici. Tape / pour un titre, une liste, du '
+                        'code, une image ou une vidéo, et [[ pour lier une '
+                        'fiche.',
                     filled: false,
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -353,8 +367,6 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   onChanged: (blocks) =>
                       _updateDraft((d) => d.copyWith(blocks: blocks)),
                 ),
-                const SizedBox(height: 16),
-                _AddBlockBar(onAdd: _addBlock),
               ],
             ),
       bottomNavigationBar: _SaveIndicator(
@@ -406,54 +418,6 @@ class _MetaSummary extends StatelessWidget {
   }
 }
 
-class _AddBlockBar extends StatelessWidget {
-  const _AddBlockBar({required this.onAdd});
-
-  final ValueChanged<NoteBlockType> onAdd;
-
-  static const List<(NoteBlockType, IconData)> _options = [
-    (NoteBlockType.todo, Icons.check_box_outlined),
-    (NoteBlockType.bulleted, Icons.format_list_bulleted),
-    (NoteBlockType.heading, Icons.title),
-    (NoteBlockType.quote, Icons.format_quote),
-    (NoteBlockType.code, Icons.code),
-    (NoteBlockType.link, Icons.link),
-    (NoteBlockType.image, Icons.image_outlined),
-    (NoteBlockType.divider, Icons.horizontal_rule),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-         Text(
-          'Ajouter un bloc',
-          style: TextStyle(
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w600,
-            color: context.cq.textMuted,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final (type, icon) in _options)
-              ActionChip(
-                avatar: Icon(icon, size: 15),
-                label: Text(type.label, style: const TextStyle(fontSize: TypeScale.caption)),
-                onPressed: () => onAdd(type),
-                visualDensity: VisualDensity.compact,
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
 class _MarkdownPreview extends ConsumerWidget {
   const _MarkdownPreview({required this.note});
 
@@ -476,6 +440,22 @@ class _MarkdownPreview extends ConsumerWidget {
             fontSize: TypeScale.headline, fontWeight: FontWeight.bold, color: context.cq.textPrimary),
         h2:  TextStyle(
             fontSize: TypeScale.title, fontWeight: FontWeight.w600, color: context.cq.textPrimary),
+        h3: TextStyle(
+            fontSize: TypeScale.bodyLarge,
+            fontWeight: FontWeight.w600,
+            color: context.cq.textPrimary),
+        h4: TextStyle(
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w700,
+            color: context.cq.textPrimary),
+        h5: TextStyle(
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w600,
+            color: context.cq.textMuted),
+        h6: TextStyle(
+            fontSize: TypeScale.caption,
+            fontWeight: FontWeight.w600,
+            color: context.cq.textMuted),
         p:  TextStyle(fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
         blockquoteDecoration: BoxDecoration(
           color: context.cq.beigeDark.withValues(alpha: 0.5),

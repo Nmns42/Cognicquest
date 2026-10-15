@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/sync_queue.dart';
+import '../../../core/ordering/manual_order.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'note_repository.dart';
 
@@ -62,9 +63,15 @@ class LocalFirstFolderRepository {
   static const String notesTable = 'notes';
   static const String cardsTable = 'flashcards';
 
+  /// Dossiers dans l'ordre de l'explorateur : ceux placés à la main (clé
+  /// d'ordre), puis les autres par nom.
   Stream<List<Folder>> watchAll() => (_db.select(_db.localFolders)
         ..where((t) => t.userId.equals(_userId))
-        ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        ..orderBy([
+          (t) => OrderingTerm(
+              expression: t.position, nulls: NullsOrder.last),
+          (t) => OrderingTerm.asc(t.name),
+        ]))
       .watch()
       .map((rows) => rows.map(_toFolder).toList());
 
@@ -114,6 +121,25 @@ class LocalFirstFolderRepository {
     _syncQuietly();
     return true;
   }
+
+  /// Enregistre de nouvelles clés d'ordre (glisser-déposer entre dossiers
+  /// frères), comme pour les fiches (cf. `ManualOrder.planMove`).
+  Future<void> applyPositions(List<KeyUpdate> updates) async {
+    if (updates.isEmpty) return;
+    await _db.transaction(() async {
+      for (final update in updates) {
+        await (_db.update(_db.localFolders)
+              ..where((t) => t.id.equals(update.id)))
+            .write(LocalFoldersCompanion(
+                position: Value(update.key), isSynced: const Value(false)));
+        await _queue.enqueue(table, update.id, 'upsert');
+      }
+    });
+    _syncQuietly();
+  }
+
+  /// Le dossier et tous ses descendants (copie, export, propriétés).
+  Future<Set<String>> subtreeOf(String id) => _subtree(id);
 
   /// Supprime un dossier et ses sous-dossiers. Les fiches et les cartes
   /// qu'ils contenaient reviennent à la racine, jamais supprimées (même

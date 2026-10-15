@@ -125,6 +125,39 @@ class NoteActions {
 
   Future<void> delete(String id) async => _repository?.delete(id);
 
+  /// Renomme une fiche.
+  Future<void> rename(Note note, String title) =>
+      save(note.copyWith(title: title.trim(), updatedAt: DateTime.now()));
+
+  /// Copie complète d'une fiche (texte, métadonnées, blocs), créée à côté de
+  /// l'original : « Titre (copie) ». Renvoie la copie, sans dossier : c'est
+  /// à l'appelant de la ranger.
+  Future<Note?> duplicate(Note note, {String suffix = ' (copie)'}) async {
+    final repository = _repository;
+    if (repository == null) return null;
+    final created = await repository.create(
+        title: '${note.displayTitle}$suffix', subject: note.subject);
+    final copy = created.copyWith(
+      content: note.content,
+      tags: note.tags,
+      importance: note.importance,
+      isFavorite: note.isFavorite,
+      blocks: [
+        for (final block in note.blocks)
+          NoteBlock(
+            id: LocalFirstNoteRepository.newId(),
+            noteId: created.id,
+            type: block.type,
+            content: block.content,
+            position: block.position,
+            isChecked: block.isChecked,
+          ),
+      ],
+    );
+    await repository.save(copy);
+    return copy;
+  }
+
   Future<void> toggleFavorite(Note note) =>
       save(note.copyWith(isFavorite: !note.isFavorite));
 

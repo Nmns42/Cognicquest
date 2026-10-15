@@ -1,7 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show File;
 
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
+import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 import '../../../core/theme/tokens.dart';
@@ -166,13 +172,16 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
           child: _BlockRow(
             index: index,
             block: block,
-            controller: block.type == NoteBlockType.divider
+            controller: block.type == NoteBlockType.divider ||
+                    block.type.isMedia
                 ? null
                 : _controllerFor(block),
             onContentChanged: (rowContext, value) => _onContentChanged(
                 rowContext, block, block.content, value),
             onToggleCheck: () =>
                 _update(block, block.copyWith(isChecked: !block.isChecked)),
+            onMediaChanged: (source) =>
+                _update(block, block.copyWith(content: source)),
             onRemove: () => _remove(block),
           ),
         );
@@ -188,6 +197,7 @@ class _BlockRow extends StatelessWidget {
     required this.controller,
     required this.onContentChanged,
     required this.onToggleCheck,
+    required this.onMediaChanged,
     required this.onRemove,
   });
 
@@ -197,6 +207,7 @@ class _BlockRow extends StatelessWidget {
   final void Function(BuildContext rowContext, String value)
       onContentChanged;
   final VoidCallback onToggleCheck;
+  final ValueChanged<String> onMediaChanged;
   final VoidCallback onRemove;
 
   @override
@@ -228,6 +239,9 @@ class _BlockRow extends StatelessWidget {
   Widget _content(BuildContext context) {
     if (block.type == NoteBlockType.divider) {
       return const Divider(height: 20);
+    }
+    if (block.type.isMedia) {
+      return _MediaBlock(block: block, onChanged: onMediaChanged);
     }
 
     final field = TextField(
@@ -356,6 +370,420 @@ class _BlockRow extends StatelessWidget {
         NoteBlockType.code => 'Extrait de code',
         NoteBlockType.link => 'https://…',
         NoteBlockType.image => 'URL de l\'image',
+        NoteBlockType.video => 'URL de la vidéo',
         _ => 'Texte',
       };
+}
+
+// ─── Blocs média ────────────────────────────────────────────────────────────
+
+/// Poids maximal d'une image importée : elle est enregistrée dans la fiche
+/// elle-même (image encodée), donc synchronisée avec elle.
+const int _maxImageBytes = 2 * 1024 * 1024;
+
+/// Bloc image ou vidéo. Vide, il propose d'importer un fichier ou de coller
+/// un lien ; rempli, il affiche l'image ou le lecteur vidéo.
+///
+/// Contenu du bloc :
+/// - image : lien `http(s)` ou image encodée `data:image/…;base64,…` ;
+/// - vidéo : lien `http(s)` (fichier vidéo ou page YouTube) ou chemin d'un
+///   fichier de l'appareil (lisible sur cet appareil seulement).
+class _MediaBlock extends StatelessWidget {
+  const _MediaBlock({required this.block, required this.onChanged});
+
+  final NoteBlock block;
+  final ValueChanged<String> onChanged;
+
+  bool get _isImage => block.type == NoteBlockType.image;
+
+  Future<void> _import(BuildContext context) async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: _isImage ? FileType.image : FileType.video,
+      );
+      final file = files.firstOrNull;
+      if (file == null) return;
+      if (_isImage) {
+        if ((await file.length() ?? 0) > _maxImageBytes) {
+          if (!context.mounted) return;
+          _snack(context, 'Image trop lourde (2 Mo au plus) : '
+                  'colle plutôt un lien.');
+          return;
+        }
+        final bytes = await file.readAsBytes();
+        onChanged('data:${_mimeOf(file.extension)};base64,'
+            '${base64Encode(bytes)}');
+      } else {
+        // Sur le web, un fichier choisi n'a pas de chemin durable.
+        final path = kIsWeb ? null : file.path;
+        if (path == null) {
+          if (!context.mounted) return;
+          _snack(context, 'Sur le web, ajoute la vidéo par un lien.');
+          return;
+        }
+        onChanged(path);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      _snack(context, 'Impossible d’ouvrir le sélecteur de fichiers ici.');
+    }
+  }
+
+  Future<void> _paste(BuildContext context) async {
+    final link = await showDialog<String>(
+      context: context,
+      animationStyle: Motion.style(context),
+      builder: (_) => _LinkDialog(isImage: _isImage, initial: block.content),
+    );
+    if (link != null && link.isNotEmpty) onChanged(link);
+  }
+
+  static String _mimeOf(String? extension) =>
+      switch (extension?.toLowerCase()) {
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        _ => 'image/jpeg',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    final source = block.content.trim();
+    if (source.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(Space.lg),
+        decoration: BoxDecoration(
+          color: cq.beige,
+          borderRadius: BorderRadius.circular(Radii.md),
+          border: Border.all(color: cq.beigeDark),
+        ),
+        child: Wrap(
+          spacing: Space.sm,
+          runSpacing: Space.sm,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Icon(_isImage ? Icons.image_outlined : Icons.smart_display_outlined,
+                size: Sizes.iconMd, color: cq.textMuted),
+            Text(_isImage ? 'Image' : 'Vidéo',
+                style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(width: Space.sm),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+              onPressed: () => _import(context),
+              icon: const Icon(Icons.upload_file, size: Sizes.iconSm),
+              label: const Text('Importer'),
+            ),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+              onPressed: () => _paste(context),
+              icon: const Icon(Icons.link, size: Sizes.iconSm),
+              label: const Text('Lien'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final media = _isImage
+        ? _ImageView(source: source)
+        : _VideoView(key: ValueKey(source), source: source);
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(Radii.md),
+          child: media,
+        ),
+        Positioned(
+          top: Space.xs,
+          right: Space.xs,
+          child: Material(
+            color: cq.cardColor,
+            shape: const CircleBorder(),
+            child: IconButton(
+              tooltip: _isImage ? 'Remplacer l’image' : 'Remplacer la vidéo',
+              icon: Icon(Icons.swap_horiz, size: Sizes.iconSm,
+                  color: cq.textMuted),
+              onPressed: () => onChanged(''),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ImageView extends StatelessWidget {
+  const _ImageView({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget broken(BuildContext context, Object _, StackTrace? __) =>
+        _MediaFallback(
+            icon: Icons.broken_image_outlined,
+            message: 'Image introuvable',
+            detail: source.startsWith('data:') ? null : source);
+
+    final Widget image;
+    if (source.startsWith('data:')) {
+      final comma = source.indexOf(',');
+      Uint8List? bytes;
+      try {
+        bytes = base64Decode(source.substring(comma + 1));
+      } catch (_) {
+        bytes = null;
+      }
+      image = bytes == null
+          ? broken(context, '', null)
+          : Image.memory(bytes, fit: BoxFit.contain, errorBuilder: broken);
+    } else {
+      image = Image.network(source, fit: BoxFit.contain, errorBuilder: broken);
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 420),
+      child: Semantics(image: true, label: 'Image de la fiche', child: image),
+    );
+  }
+}
+
+/// Lecteur vidéo : fichier ou lien direct dans un lecteur intégré ; une
+/// page YouTube s'affiche en aperçu (miniature et lien).
+class _VideoView extends StatefulWidget {
+  const _VideoView({super.key, required this.source});
+
+  final String source;
+
+  @override
+  State<_VideoView> createState() => _VideoViewState();
+}
+
+class _VideoViewState extends State<_VideoView> {
+  VideoPlayerController? _controller;
+  bool _failed = false;
+
+  /// Identifiant d'une vidéo YouTube, ou `null`.
+  static String? youTubeId(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return null;
+    if (uri.host.contains('youtu.be')) {
+      return uri.pathSegments.firstOrNull;
+    }
+    if (uri.host.contains('youtube.com')) {
+      return uri.queryParameters['v'] ??
+          (uri.pathSegments.length > 1 && uri.pathSegments.first == 'shorts'
+              ? uri.pathSegments[1]
+              : null);
+    }
+    return null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (youTubeId(widget.source) != null) return;
+    final isWeb = widget.source.startsWith('http');
+    final controller = isWeb
+        ? VideoPlayerController.networkUrl(Uri.parse(widget.source))
+        : (kIsWeb
+            ? null
+            : VideoPlayerController.file(File(widget.source)));
+    if (controller == null) {
+      _failed = true;
+      return;
+    }
+    _controller = controller;
+    controller.initialize().then((_) {
+      if (mounted) setState(() {});
+    }).catchError((Object _) {
+      if (mounted) setState(() => _failed = true);
+    });
+    controller.addListener(_onTick);
+  }
+
+  void _onTick() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    final controller = _controller;
+    if (controller != null) {
+      controller.removeListener(_onTick);
+      unawaited(controller.dispose().catchError((Object _) {}));
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    final youTube = youTubeId(widget.source);
+    if (youTube != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  'https://img.youtube.com/vi/$youTube/hqdefault.jpg',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => ColoredBox(color: cq.beigeDark),
+                ),
+                Center(
+                  child: Icon(Icons.play_circle_fill,
+                      size: Sizes.iconXl * 2, color: cq.cardColor),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(Space.sm),
+            child: SelectableText(widget.source,
+                style: Theme.of(context).textTheme.bodySmall),
+          ),
+        ],
+      );
+    }
+
+    final controller = _controller;
+    if (_failed || controller == null) {
+      return _MediaFallback(
+        icon: Icons.videocam_off_outlined,
+        message: 'Vidéo illisible ici',
+        detail: widget.source,
+      );
+    }
+    if (!controller.value.isInitialized) {
+      return AspectRatio(
+        aspectRatio: 16 / 9,
+        child: ColoredBox(
+          color: cq.beigeDark,
+          child: Center(
+            child: CircularProgressIndicator(
+                strokeWidth: Sizes.spinnerStroke, color: cq.vertDark),
+          ),
+        ),
+      );
+    }
+    final playing = controller.value.isPlaying;
+    return AspectRatio(
+      aspectRatio: controller.value.aspectRatio,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          VideoPlayer(controller),
+          Positioned.fill(
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: () => playing ? controller.pause() : controller.play(),
+                child: Semantics(
+                  button: true,
+                  label: playing ? 'Mettre en pause' : 'Lire la vidéo',
+                  child: Center(
+                    child: playing
+                        ? const SizedBox.shrink()
+                        : Icon(Icons.play_circle_fill,
+                            size: Sizes.iconXl * 2, color: cq.cardColor),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          VideoProgressIndicator(controller, allowScrubbing: true),
+        ],
+      ),
+    );
+  }
+}
+
+class _MediaFallback extends StatelessWidget {
+  const _MediaFallback({required this.icon, required this.message, this.detail});
+
+  final IconData icon;
+  final String message;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(Space.lg),
+      color: cq.beige,
+      child: Column(
+        children: [
+          Icon(icon, size: Sizes.iconXl, color: cq.textHint),
+          const SizedBox(height: Space.sm),
+          Text(message, style: Theme.of(context).textTheme.bodyMedium),
+          if (detail != null)
+            SelectableText(detail!,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+class _LinkDialog extends StatefulWidget {
+  const _LinkDialog({required this.isImage, required this.initial});
+
+  final bool isImage;
+  final String initial;
+
+  @override
+  State<_LinkDialog> createState() => _LinkDialogState();
+}
+
+class _LinkDialogState extends State<_LinkDialog> {
+  late final TextEditingController _controller = TextEditingController(
+      text: widget.initial.startsWith('http') ? widget.initial : '');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.pop(context, _controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      scrollable: true,
+      title: Text(widget.isImage ? 'Lien de l’image' : 'Lien de la vidéo'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        decoration: InputDecoration(
+          hintText: widget.isImage
+              ? 'https://…/image.png'
+              : 'https://youtu.be/… ou https://…/video.mp4',
+        ),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler'),
+        ),
+        TextButton(onPressed: _submit, child: const Text('Valider')),
+      ],
+    );
+  }
+}
+
+/// Message bref, animé selon le réglage « Réduire les animations ».
+void _snack(BuildContext context, String text) {
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)),
+      snackBarAnimationStyle: Motion.style(context));
 }

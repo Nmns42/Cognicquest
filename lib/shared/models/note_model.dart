@@ -10,6 +10,7 @@ enum NoteBlockType {
   quote('quote', 'Citation'),
   code('code', 'Code'),
   image('image', 'Image'),
+  video('video', 'Vidéo'),
   link('link', 'Lien'),
   divider('divider', 'Séparateur');
 
@@ -25,8 +26,11 @@ enum NoteBlockType {
     return NoteBlockType.paragraph;
   }
 
-  bool get isTextual =>
-      this != NoteBlockType.divider && this != NoteBlockType.image;
+  bool get isTextual => !isMedia && this != NoteBlockType.divider;
+
+  /// Bloc d'image ou de vidéo : son contenu est une adresse (lien, fichier
+  /// de l'appareil ou image encodée), jamais du texte à lire ni à chercher.
+  bool get isMedia => this == NoteBlockType.image || this == NoteBlockType.video;
 }
 
 class NoteBlock {
@@ -69,6 +73,7 @@ class NoteBlock {
         NoteBlockType.quote => '> $content',
         NoteBlockType.code => '```\n$content\n```',
         NoteBlockType.image => '![]($content)',
+        NoteBlockType.video => '[Vidéo]($content)',
         NoteBlockType.link => '<$content>',
         NoteBlockType.divider => '---',
         NoteBlockType.paragraph => content,
@@ -153,7 +158,11 @@ class Note {
   String get excerpt {
     final raw = content.trim().isNotEmpty
         ? content
-        : blocks.map((b) => b.content).where((c) => c.isNotEmpty).join(' · ');
+        : blocks
+            .where((b) => b.type.isTextual)
+            .map((b) => b.content)
+            .where((c) => c.isNotEmpty)
+            .join(' · ');
     final flattened = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
     return flattened.length <= 120 ? flattened : '${flattened.substring(0, 119)}…';
   }
@@ -170,8 +179,13 @@ class Note {
         subject ?? '',
         tags.join(' '),
         content,
-        ...blocks.map((b) => b.content),
+        // Une image encodée ou un lien de vidéo ne se cherche pas.
+        ...blocks.where((b) => !b.type.isMedia).map((b) => b.content),
       ].join(' ').toLowerCase();
+
+  /// Taille approximative de la fiche (Markdown complet, en octets UTF-8),
+  /// pour la fenêtre « Propriétés ».
+  int get sizeInBytes => utf8.encode(toMarkdown()).length;
 
   String toMarkdown() {
     final buffer = StringBuffer('# $displayTitle\n');

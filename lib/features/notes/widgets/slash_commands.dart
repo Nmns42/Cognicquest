@@ -7,31 +7,49 @@ import '../../../shared/models/note_model.dart';
 
 /// Commandes du menu « / » de l'éditeur de fiches (à la Notion).
 ///
-/// Dans le texte libre, une commande insère sa syntaxe Markdown ; dans un
-/// bloc vide, elle change le type du bloc ([blockType]).
+/// Dans le texte libre, une commande de texte insère sa syntaxe Markdown
+/// ([markdown], puis [suffix] après le curseur) ; une commande de média
+/// ajoute un bloc d'image ou de vidéo. Dans un bloc vide, elle change le
+/// type du bloc ([blockType]).
 enum SlashCommand {
-  heading('Titre', Icons.title, '# ', NoteBlockType.heading),
-  subheading('Sous-titre', Icons.text_fields, '## ', null),
+  h1('Titre 1', Icons.title, '# ', null),
+  h2('Titre 2', Icons.title, '## ', NoteBlockType.heading),
+  h3('Titre 3', Icons.title, '### ', null),
+  h4('Titre 4', Icons.title, '#### ', null),
+  h5('Titre 5', Icons.title, '##### ', null),
+  h6('Titre 6', Icons.title, '###### ', null),
+  subtitle('Sous-titre', Icons.short_text, '_', null, suffix: '_'),
+  paragraph('Texte', Icons.notes, '', NoteBlockType.paragraph),
   bulleted('Liste à puces', Icons.format_list_bulleted, '- ',
       NoteBlockType.bulleted),
   numbered('Liste numérotée', Icons.format_list_numbered, '1. ', null),
-  todo('Case à cocher', Icons.check_box_outlined, '- [ ] ', NoteBlockType.todo),
+  todo('Liste à cocher', Icons.check_box_outlined, '- [ ] ',
+      NoteBlockType.todo),
   quote('Citation', Icons.format_quote, '> ', NoteBlockType.quote),
-  code('Code', Icons.code, '```\n', NoteBlockType.code),
+  code('Code', Icons.code, '```\n', NoteBlockType.code, suffix: '\n```'),
   divider('Séparateur', Icons.horizontal_rule, '---\n', NoteBlockType.divider),
+  image('Image', Icons.image_outlined, '', NoteBlockType.image),
+  video('Vidéo', Icons.smart_display_outlined, '', NoteBlockType.video),
   noteLink('Lien vers une fiche', Icons.link, '[[', null);
 
-  const SlashCommand(this.label, this.icon, this.markdown, this.blockType);
+  const SlashCommand(this.label, this.icon, this.markdown, this.blockType,
+      {this.suffix = ''});
 
   final String label;
   final IconData icon;
 
-  /// Syntaxe insérée dans le texte libre.
+  /// Syntaxe insérée avant le curseur dans le texte libre.
   final String markdown;
+
+  /// Syntaxe insérée après le curseur (fermeture d'un bloc de code…).
+  final String suffix;
 
   /// Type de bloc correspondant, ou `null` si la commande n'existe pas en
   /// bloc.
   final NoteBlockType? blockType;
+
+  /// Image ou vidéo : la commande ajoute un bloc, elle n'écrit pas de texte.
+  bool get isMedia => blockType?.isMedia ?? false;
 
   /// Commandes proposées dans un bloc : celles qui ont un type de bloc, plus
   /// le lien vers une fiche.

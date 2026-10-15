@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cognicquest/core/database/app_database.dart';
 import 'package:cognicquest/core/database/sync_queue.dart';
+import 'package:cognicquest/core/ordering/manual_order.dart';
 import 'package:cognicquest/features/notes/data/folder_repository.dart';
 import 'package:cognicquest/features/notes/data/note_repository.dart';
 import 'package:drift/native.dart';
@@ -93,5 +94,37 @@ void main() {
     await folders.create('Cours');
     await folders.sync(); // ne doit rien tenter (client hors ligne)
     expect(await SyncQueue(db).pendingCount(), 1);
+  });
+
+  test('ordre manuel des dossiers : la clé d’ordre passe avant le nom, '
+      'et part au serveur', () async {
+    final a = await folders.create('Annales');
+    final b = await folders.create('Biologie');
+    final c = await folders.create('Chimie');
+
+    // « Chimie » glissé en tête, devant « Annales ».
+    final updates = ManualOrder.planMove(
+      [
+        OrderedItem(a.id, null),
+        OrderedItem(b.id, null),
+        OrderedItem(c.id, null),
+      ],
+      c.id,
+      0,
+    );
+    await folders.applyPositions(updates);
+
+    final all = await folders.watchAll().first;
+    expect(all.first.name, 'Chimie');
+    expect(await SyncQueue(db).pendingIds('folders'), contains(c.id));
+  });
+
+  test('sous-arbre d’un dossier : lui et tous ses descendants', () async {
+    final cours = await folders.create('Cours');
+    final cardio = await folders.create('Cardio', parentId: cours.id);
+    final ecg = await folders.create('ECG', parentId: cardio.id);
+    await folders.create('Annales');
+
+    expect(await folders.subtreeOf(cours.id), {cours.id, cardio.id, ecg.id});
   });
 }

@@ -76,4 +76,90 @@ void main() {
           command.blockType != null || command == SlashCommand.noteLink, isTrue);
     }
   });
+
+  group('menu « / » complet', () {
+    test('titres H1 à H6, sous-titre, listes, citation, code, séparateur, '
+        'image, vidéo', () {
+      expect(
+        SlashCommand.values.map((c) => c.label),
+        containsAll([
+          'Titre 1', 'Titre 2', 'Titre 3', 'Titre 4', 'Titre 5', 'Titre 6',
+          'Sous-titre', 'Texte', 'Liste à puces', 'Liste numérotée',
+          'Liste à cocher', 'Citation', 'Code', 'Séparateur', 'Image',
+          'Vidéo',
+        ]),
+      );
+    });
+
+    test('chaque niveau de titre insère le bon nombre de « # »', () {
+      final headings = [
+        SlashCommand.h1, SlashCommand.h2, SlashCommand.h3,
+        SlashCommand.h4, SlashCommand.h5, SlashCommand.h6,
+      ];
+      for (final (i, command) in headings.indexed) {
+        expect(command.markdown, '${'#' * (i + 1)} ');
+      }
+    });
+
+    test('le code et le sous-titre se referment après le curseur', () {
+      expect(SlashCommand.code.suffix, '\n```');
+      expect(SlashCommand.subtitle.markdown, '_');
+      expect(SlashCommand.subtitle.suffix, '_');
+    });
+
+    test('image et vidéo ajoutent un bloc média, pas du texte', () {
+      expect(SlashCommand.image.isMedia, isTrue);
+      expect(SlashCommand.video.isMedia, isTrue);
+      expect(SlashCommand.video.blockType, NoteBlockType.video);
+      expect(SlashCommand.quote.isMedia, isFalse);
+      expect(SlashCommand.forBlocks, containsAll([SlashCommand.image,
+          SlashCommand.video]));
+    });
+  });
+
+  group('blocs média', () {
+    final note = Note(
+      id: 'n1',
+      userId: 'u1',
+      title: 'Cellule',
+      content: '',
+      createdAt: DateTime(2026, 10, 1),
+      updatedAt: DateTime(2026, 10, 1),
+      blocks: const [
+        NoteBlock(
+            id: 'b1',
+            noteId: 'n1',
+            type: NoteBlockType.image,
+            content: 'data:image/png;base64,AAAA',
+            position: 0),
+        NoteBlock(
+            id: 'b2',
+            noteId: 'n1',
+            type: NoteBlockType.video,
+            content: 'https://youtu.be/abc',
+            position: 1),
+        NoteBlock(
+            id: 'b3',
+            noteId: 'n1',
+            type: NoteBlockType.paragraph,
+            content: 'Mitochondrie',
+            position: 2),
+      ],
+    );
+
+    test('ni l’extrait ni la recherche ne lisent une image ou une vidéo', () {
+      expect(note.excerpt, 'Mitochondrie');
+      expect(note.searchableText, isNot(contains('base64')));
+      expect(note.searchableText, isNot(contains('youtu')));
+    });
+
+    test('type vidéo relu depuis sa valeur enregistrée', () {
+      expect(NoteBlockType.fromValue('video'), NoteBlockType.video);
+      expect(note.blocks[1].toMarkdown(), '[Vidéo](https://youtu.be/abc)');
+    });
+
+    test('la taille compte le Markdown complet', () {
+      expect(note.sizeInBytes, greaterThan(0));
+    });
+  });
 }

@@ -16,6 +16,7 @@ import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../review/providers/review_provider.dart';
+import '../data/folder_repository.dart';
 import '../widgets/folder_explorer.dart';
 
 /// Bibliothèque de fiches — « Base de données intelligente » du CdC.
@@ -148,17 +149,29 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                     if (all.isEmpty) {
                       return _EmptyLibrary(onCreate: _createNote);
                     }
+                    final subfolders = [
+                      for (final folder in ref.watch(foldersProvider).valueOrNull ??
+                          const <Folder>[])
+                        if (!selection.unfiled &&
+                            folder.parentId == selection.folderId)
+                          folder,
+                    ];
                     if (notes.isEmpty &&
                         cardsHere.isEmpty &&
+                        subfolders.isEmpty &&
                         !selection.isAll) {
                       return const CqEmptyState(
                         icon: Icons.folder_open_outlined,
                         message:
-                            'Ce dossier est vide. Range-y une fiche avec le '
-                            'bouton dossier de sa carte.',
+                            'Ce dossier est vide. Glisses-y une fiche, ou '
+                            'utilise « Déplacer vers… » dans son menu.',
                       );
                     }
-                    if (notes.isEmpty) {
+                    final folderRows = _FolderRows(
+                      folders: subfolders,
+                      parentOf: selection.folderId,
+                    );
+                    if (notes.isEmpty && subfolders.isEmpty) {
                       return _NoResults(
                         onReset: () {
                           _searchController.clear();
@@ -176,6 +189,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                               padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
                               physics: const AlwaysScrollableScrollPhysics(),
                               buildDefaultDragHandles: false,
+                              header: folderRows,
                               itemCount: notes.length,
                               onReorderItem: (from, to) => ref
                                   .read(noteActionsProvider)
@@ -184,13 +198,17 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                                   CqReorderableItem(
                                 key: ValueKey(notes[index].id),
                                 index: index,
-                                child: _NoteCard(note: notes[index]),
+                                // L'appui long réordonne : pas de glisser
+                                // vers un dossier dans ce mode.
+                                child: _NoteCard(
+                                    note: notes[index], draggable: false),
                               ),
                             )
                           : ListView(
                               padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: [
+                                folderRows,
                                 for (final note in notes) _NoteCard(note: note),
                                 if (cardsHere.isNotEmpty) ...[
                                   const SizedBox(height: Space.lg),
@@ -441,9 +459,13 @@ class _Chip extends StatelessWidget {
 }
 
 class _NoteCard extends ConsumerWidget {
-  const _NoteCard({required this.note});
+  const _NoteCard({required this.note, this.draggable = true});
 
   final Note note;
+
+  /// Glisser la carte vers un dossier (désactivé en tri « Manuel », où
+  /// l'appui long réordonne la liste).
+  final bool draggable;
 
   static const List<String> _months = [
     'janv.',
@@ -476,6 +498,20 @@ class _NoteCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final importance = NoteImportance.fromLevel(note.importance);
 
+    // Clic droit / appui long : menu de l'explorateur ; glisser : ranger la
+    // fiche dans un dossier (arborescence ou dossiers en tête de liste).
+    return ExplorerItemShell(
+      item: NoteItem(note.id),
+      label: note.displayTitle,
+      icon: Icons.description_outlined,
+      draggable: draggable,
+      onMenu: (position) => showNoteMenu(context, ref, note, position),
+      child: _card(context, ref, importance),
+    );
+  }
+
+  Widget _card(
+      BuildContext context, WidgetRef ref, NoteImportance importance) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -514,18 +550,21 @@ class _NoteCard extends ConsumerWidget {
                       child: Icon(Icons.cloud_queue,
                           size: 14, color: context.cq.textHint),
                     ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Ranger dans un dossier',
-                    icon: Icon(Icons.drive_file_move_outline,
-                        size: Sizes.iconSm, color: context.cq.textMuted),
-                    onPressed: () async {
-                      final choice = await pickFolder(context, ref);
-                      if (choice == null) return;
-                      await ref
-                          .read(folderActionsProvider)
-                          .moveNote(note.id, choice.$2);
-                    },
+                  // Le même menu que le clic droit, accessible au clavier et
+                  // aux lecteurs d'écran.
+                  Builder(
+                    builder: (buttonContext) => IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Actions de la fiche',
+                      icon: Icon(Icons.more_horiz,
+                          size: Sizes.iconSm, color: context.cq.textMuted),
+                      onPressed: () {
+                        final box =
+                            buttonContext.findRenderObject() as RenderBox;
+                        showNoteMenu(context, ref, note,
+                            box.localToGlobal(box.size.bottomLeft(Offset.zero)));
+                      },
+                    ),
                   ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -592,6 +631,78 @@ class _NoteCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Dossiers en tête de liste, comme dans un explorateur de fichiers : un
+/// appui les ouvre, on y dépose une fiche ou un dossier. Dans un dossier,
+/// la première ligne remonte au dossier parent (et reçoit aussi les dépôts).
+class _FolderRows extends ConsumerWidget {
+  const _FolderRows({required this.folders, required this.parentOf});
+
+  final List<Folder> folders;
+
+  /// Dossier ouvert (`null` : vue « Tout »).
+  final String? parentOf;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final all = ref.watch(foldersProvider).valueOrNull ?? const <Folder>[];
+    final current = all.where((f) => f.id == parentOf).firstOrNull;
+    final select = ref.read(folderSelectionProvider.notifier).select;
+    if (folders.isEmpty && current == null) return const SizedBox.shrink();
+
+    Widget row({
+      required IconData icon,
+      required String title,
+      required VoidCallback onTap,
+    }) =>
+        CqCard(
+          padding: EdgeInsets.zero,
+          onTap: onTap,
+          child: CqListRow(title: title, leadingIcon: icon),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.md),
+      child: Column(
+        children: [
+          if (current != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.sm),
+              child: FolderDropTarget(
+                folderId: current.parentId,
+                child: row(
+                  icon: Icons.arrow_upward,
+                  title: 'Dossier parent',
+                  onTap: () => select(current.parentId == null
+                      ? const FolderSelection.all()
+                      : FolderSelection.folder(current.parentId!)),
+                ),
+              ),
+            ),
+          for (final folder in folders)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.sm),
+              child: FolderDropTarget(
+                folderId: folder.id,
+                child: ExplorerItemShell(
+                  item: FolderItem(folder.id),
+                  label: folder.name,
+                  icon: Icons.folder_outlined,
+                  onMenu: (position) =>
+                      showFolderMenu(context, ref, folder, position),
+                  child: row(
+                    icon: Icons.folder_outlined,
+                    title: folder.name,
+                    onTap: () => select(FolderSelection.folder(folder.id)),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
