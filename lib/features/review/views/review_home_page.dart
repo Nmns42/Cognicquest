@@ -9,7 +9,6 @@ import '../../notes/providers/note_provider.dart';
 import '../providers/review_provider.dart';
 import '../widgets/flashcard_editor_sheet.dart';
 import '../../../core/theme/tokens.dart';
-import '../../../core/ui/ui.dart';
 import 'explain_page.dart';
 import 'sq3r_page.dart';
 
@@ -49,6 +48,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
     final selectedDeck = ref.watch(selectedDeckProvider);
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Révisions actives')),
       body: cardsAsync.when(
         loading: () =>  Center(
           child: CircularProgressIndicator(color: context.cq.vertDark),
@@ -65,11 +65,12 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
           color: context.cq.vertDark,
           onRefresh: () => ref.read(reviewActionsProvider).sync(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+            padding: const EdgeInsets.fromLTRB(
+                Space.xl, Space.xs, Space.xl, Space.xxxl * 2),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               _DueCard(stats: stats),
-              const SizedBox(height: 20),
+              const SizedBox(height: Space.xl),
 
               if (decks.isNotEmpty) ...[
                 _DeckFilter(
@@ -83,7 +84,7 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
 
               if (cards.isNotEmpty) ...[
                 const _SectionLabel('Charge des 7 prochains jours'),
-                const SizedBox(height: 10),
+                const SizedBox(height: Space.sm),
                 _UpcomingLoad(upcoming: stats.upcomingWeek),
                 const SizedBox(height: 24),
               ],
@@ -162,54 +163,80 @@ class _DueCard extends StatelessWidget {
 
   final ReviewQueueStats stats;
 
+  /// En dessous, le bouton passe sous le texte.
+  static const double _rowMin = 520;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      // Carte blanche éditoriale : le vert reste au bouton d'action.
-      decoration: context.chrome
-          .decoration(color: context.cq.cardColor, radius: Radii.card),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            stats.hasWork ? '${stats.dueCount}' : '✓',
-            style: Theme.of(context)
-                .textTheme
-                .displaySmall
-                ?.copyWith(fontFeatures: TypeScale.tabular),
+    final cq = context.cq;
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Réviser', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: Space.xs),
+        Text(
+          stats.hasWork
+              ? '${stats.dueCount} carte${stats.dueCount > 1 ? 's' : ''} '
+                  'à revoir'
+                  '${stats.newCount > 0 ? ' · ${stats.newCount} nouvelle${stats.newCount > 1 ? 's' : ''}' : ''}'
+              : stats.totalCards == 0
+                  ? 'Aucune carte pour le moment'
+                  : 'Tout est à jour. Reviens demain.',
+          style: TextStyle(
+            color: cq.textMuted,
+            fontSize: TypeScale.body,
+            fontFeatures: TypeScale.tabular,
           ),
-          const SizedBox(height: 2),
+        ),
+        if (stats.reviewedToday > 0) ...[
+          const SizedBox(height: Space.xs),
           Text(
-            stats.hasWork
-                ? 'carte${stats.dueCount > 1 ? 's' : ''} à revoir'
-                    '${stats.newCount > 0 ? ' · ${stats.newCount} nouvelle${stats.newCount > 1 ? 's' : ''}' : ''}'
-                : stats.totalCards == 0
-                    ? 'Aucune carte pour le moment'
-                    : 'Tout est à jour. Reviens demain.',
-            style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
+            '${stats.reviewedToday} déjà travaillée'
+            '${stats.reviewedToday > 1 ? 's' : ''} aujourd\'hui',
+            style: TextStyle(
+              color: cq.terre,
+              fontSize: TypeScale.caption,
+              fontFeatures: TypeScale.tabular,
+            ),
           ),
-          if (stats.reviewedToday > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              '${stats.reviewedToday} déjà travaillée'
-              '${stats.reviewedToday > 1 ? 's' : ''} aujourd\'hui',
-              style:  TextStyle(color: context.cq.terre, fontSize: TypeScale.caption),
-            ),
-          ],
-          if (stats.hasWork) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => context.push(AppRoute.reviewSession),
-                icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                label: const Text('Commencer la session'),
-              ),
-            ),
-          ],
         ],
+      ],
+    );
+    final start = FilledButton.icon(
+      onPressed: () => context.push(AppRoute.reviewSession),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(Sizes.touchTarget, Sizes.touchTarget),
+        padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.sm)),
+      ),
+      iconAlignment: IconAlignment.end,
+      icon: const Icon(Icons.arrow_forward, size: Sizes.iconMd),
+      label: const Text('Commencer la session'),
+    );
+
+    return DecoratedBox(
+      // Carte blanche éditoriale : le vert reste au bouton d'action.
+      decoration: context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
+      child: Padding(
+        padding: const EdgeInsets.all(Space.xl),
+        child: LayoutBuilder(builder: (context, box) {
+          if (!stats.hasWork) return summary;
+          if (box.maxWidth < _rowMin) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [summary, const SizedBox(height: Space.lg), start],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: summary),
+              const SizedBox(width: Space.lg),
+              start,
+            ],
+          );
+        }),
       ),
     );
   }
@@ -265,9 +292,16 @@ class _UpcomingLoad extends StatelessWidget {
     final max = upcoming.reduce((a, b) => a > b ? a : b);
     const labels = ["Auj.", 'J+1', 'J+2', 'J+3', 'J+4', 'J+5', 'J+6'];
 
-    return Card(
+    return DecoratedBox(
+      // Tuile pierre à filet fin : un graphe discret, pas une carte.
+      decoration: BoxDecoration(
+        color: context.cq.sauge,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: context.cq.beigeDark),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        padding: const EdgeInsets.fromLTRB(
+            Space.md, Space.md, Space.md, Space.sm),
         // Pas de hauteur fixe pour l'ensemble : 92 px ne laissaient pas de
         // place au libellé du jour dès que le texte grandit (1 px de
         // débordement à 100 % avec la vraie police, 14 px à 200 %). Chaque
@@ -320,12 +354,16 @@ class _UpcomingLoad extends StatelessWidget {
                                   : (upcoming[i] / max * _plotHeight)
                                       .clamp(3.0, _plotHeight),
                               decoration: BoxDecoration(
+                                // Sauge ; aujourd'hui (et le pic) en vert
+                                // foncé, pour attirer l'œil sans le
+                                // vert forêt réservé aux actions.
                                 color: upcoming[i] == 0
                                     ? context.cq.beigeDark
-                                    : context.cq.vertDark
-                                        .withValues(alpha: i == 0 ? 1 : 0.75),
+                                    : (i == 0 || upcoming[i] == max)
+                                        ? context.cq.vertDark
+                                        : context.cq.vertSauge,
                                 borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(Radii.md),
+                                  top: Radius.circular(Radii.xs),
                                 ),
                               ),
                             ),
@@ -343,7 +381,7 @@ class _UpcomingLoad extends StatelessWidget {
                                     : FontWeight.w500,
                                 color: i == 0
                                     ? context.cq.textPrimary
-                                    : context.cq.textHint,
+                                    : context.cq.terre,
                               ),
                             ),
                           ],
@@ -374,43 +412,79 @@ class _ToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final cq = context.cq;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.card),
+      side: BorderSide(color: cq.beigeDark),
+    );
+    return Material(
+      color: cq.cardColor,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        customBorder: shape,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+              horizontal: Space.lg, vertical: Space.md),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: context.cq.vertSauge.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Icon(icon, size: 20, color: context.cq.vertDark),
-              ),
-              const SizedBox(width: 14),
+              Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
+              const SizedBox(width: Space.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(title,
-                        style:  TextStyle(
+                        style: TextStyle(
                             fontSize: TypeScale.body,
                             fontWeight: FontWeight.w600,
-                            color: context.cq.textPrimary)),
-                    const SizedBox(height: 2),
+                            color: cq.textPrimary)),
                     Text(subtitle,
-                        style:  TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
+                        style: TextStyle(
+                            fontSize: TypeScale.caption, color: cq.textMuted)),
                   ],
                 ),
               ),
-               Icon(Icons.arrow_forward_ios_rounded,
-                  size: 13, color: context.cq.textMuted),
+              const SizedBox(width: Space.sm),
+              Icon(Icons.arrow_forward, size: Sizes.iconMd, color: cq.terre),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne de liste façon Notion : posée sur le fond, filet d'un pixel
+/// dessous, aplat discret au survol.
+class _DenseRow extends StatelessWidget {
+  const _DenseRow({required this.child, this.onTap, this.semanticLabel});
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Semantics(
+      button: onTap != null,
+      label: semanticLabel,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: cq.beigeDark)),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          hoverColor: cq.sauge,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: Space.sm, vertical: Space.sm),
+              child: child,
+            ),
           ),
         ),
       ),
@@ -436,14 +510,9 @@ class _CardRow extends StatelessWidget {
         ? 'à revoir'
         : (days == 1 ? 'demain' : 'dans $days j');
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-          child: Row(
+    return _DenseRow(
+      onTap: onEdit,
+      child: Row(
             children: [
               Expanded(
                 child: Column(
@@ -466,7 +535,7 @@ class _CardRow extends StatelessWidget {
                           style: TextStyle(
                             fontSize: TypeScale.caption,
                             color: card.isDue
-                                ? context.cq.vertDark
+                                ? context.cq.terre
                                 : context.cq.textMuted,
                             fontWeight:
                                 card.isDue ? FontWeight.w600 : FontWeight.normal,
@@ -506,14 +575,12 @@ class _CardRow extends StatelessWidget {
               IconButton(
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Supprimer',
-                icon:  Icon(Icons.delete_outline,
-                    size: 17, color: context.cq.textHint),
+                icon: Icon(Icons.delete_outline,
+                    size: Sizes.iconSm, color: context.cq.textHint),
                 onPressed: onDelete,
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -541,7 +608,7 @@ class _StudySheets extends ConsumerWidget {
         const SizedBox(height: Space.sm),
         for (final noteId in noteIds)
           Padding(
-            padding: const EdgeInsets.only(bottom: Space.sm),
+            padding: EdgeInsets.zero,
             child: _StudySheetRow(
               noteId: noteId,
               session: sessions.where((s) => s.noteId == noteId).firstOrNull,
@@ -577,16 +644,38 @@ class _StudySheetRow extends ConsumerWidget {
                 '${ConfidencePicker.labels[latest!.confidence - 1]}')
         : 'En cours · ${StudyStage.of(current.currentStep).label}';
     final questions = current?.questions.length ?? 0;
-    return CqCard(
-      padding: EdgeInsets.zero,
+    final cq = context.cq;
+    return _DenseRow(
       onTap: () => context.push(AppRoute.studySheetFor(noteId)),
       semanticLabel: 'Ouvrir la fiche de révision ${note.displayTitle}',
-      child: CqListRow(
-        title: note.displayTitle,
-        subtitle: questions == 0
-            ? status
-            : '$status · $questions question${questions > 1 ? 's' : ''}',
-        leadingIcon: Icons.school_outlined,
+      child: Row(
+        children: [
+          Icon(Icons.school_outlined, size: Sizes.iconMd, color: cq.textMuted),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  note.displayTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: TypeScale.body,
+                    fontWeight: FontWeight.w600,
+                    color: cq.textPrimary,
+                  ),
+                ),
+                Text(
+                  questions == 0
+                      ? status
+                      : '$status · $questions question${questions > 1 ? 's' : ''}',
+                  style: TextStyle(fontSize: TypeScale.caption, color: cq.terre),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
