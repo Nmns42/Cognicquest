@@ -24,6 +24,12 @@ void main() {
     'onVertMuted': (c) => c.copyWith(onVertMuted: other),
     'warning': (c) => c.copyWith(warning: other),
     'cardColor': (c) => c.copyWith(cardColor: other),
+    'vertLip': (c) => c.copyWith(vertLip: other),
+    'sauge': (c) => c.copyWith(sauge: other),
+    'ambre': (c) => c.copyWith(ambre: other),
+    'onAmbre': (c) => c.copyWith(onAmbre: other),
+    'ambreLip': (c) => c.copyWith(ambreLip: other),
+    'terre': (c) => c.copyWith(terre: other),
   };
 
   test('deux CognicColors identiques sont égaux et de même hashCode', () {
@@ -53,14 +59,16 @@ void main() {
         .allMatches(source.substring(start, end))
         .map((m) => m.group(1))
         .toSet();
-    expect(declared, hasLength(11));
+    expect(declared, hasLength(17));
     expect(changeOneField.keys.toSet(), declared);
   });
 
   test('lerp à 0 et à 1 rend des couleurs égales aux extrémités', () {
-    final target = changeOneField['vert']!(base);
-    expect(base.lerp(target, 0), base);
-    expect(base.lerp(target, 1), target);
+    for (final MapEntry(key: field, value: change) in changeOneField.entries) {
+      final target = change(base);
+      expect(base.lerp(target, 0), base, reason: field);
+      expect(base.lerp(target, 1), target, reason: field);
+    }
   });
 
   test('barre de navigation : mêmes styles qu\'avant pour chaque état', () {

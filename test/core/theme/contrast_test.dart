@@ -5,7 +5,7 @@ import 'package:cognicquest/core/theme/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Contraste WCAG 2.x des deux palettes (refonte « zen », Phase 0).
+/// Contraste WCAG 2.x des deux palettes (direction « Duolingo & végétal »).
 ///
 /// Texte : 4,5:1 minimum (AA, texte normal). Éléments non textuels qu'il
 /// faut percevoir (icônes inactives, poignées) : 3:1.
@@ -26,7 +26,11 @@ void main() {
     group('thème ${variant.label}', () {
       final cq = AppTheme.colorsFor(variant);
       final onAccent = AppTheme.onAccentFor(variant);
-      final backgrounds = {'fond': cq.beige, 'carte': cq.cardColor};
+      final backgrounds = {
+        'fond': cq.beige,
+        'carte': cq.cardColor,
+        'sauge': cq.sauge,
+      };
 
       final text = {
         'texte': cq.textPrimary,
@@ -34,6 +38,7 @@ void main() {
         'accent en texte': cq.vertDark,
         'erreur': cq.errorColor,
         'avertissement': cq.warning,
+        'terre': cq.terre,
       };
 
       for (final MapEntry(key: name, value: color) in text.entries) {
@@ -47,6 +52,25 @@ void main() {
       test('texte sur l\'accent plein ≥ 4,5:1', () {
         expect(ratio(onAccent, cq.vert), greaterThanOrEqualTo(4.5));
       });
+
+      test("texte secondaire sur l'accent ≥ 4,5:1", () {
+        expect(ratio(cq.onVertMuted, cq.vert), greaterThanOrEqualTo(4.5));
+      });
+
+      test("texte sur l'ambre ≥ 4,5:1", () {
+        expect(ratio(cq.onAmbre, cq.ambre), greaterThanOrEqualTo(4.5));
+      });
+
+      // La face d'un bouton en relief se confond avec le fond (vert vif sur
+      // crème : 2:1) : c'est sa lèvre qui le délimite (WCAG 1.4.11).
+      for (final MapEntry(key: bgName, value: bg) in {
+        'fond': cq.beige,
+        'carte': cq.cardColor,
+      }.entries) {
+        test('lèvre des boutons sur $bgName ≥ 3:1', () {
+          expect(ratio(cq.vertLip, bg), greaterThanOrEqualTo(3));
+        });
+      }
 
       test("sur l'accent et chaque teinte du dégradé : texte ≥ 4,5:1", () {
         final gradient = AppTheme.accentGradientFor(variant);

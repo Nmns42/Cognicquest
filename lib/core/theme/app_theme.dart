@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -47,6 +45,12 @@ class CognicColors extends ThemeExtension<CognicColors> {
     required this.onVertMuted,
     required this.warning,
     required this.cardColor,
+    required this.vertLip,
+    required this.sauge,
+    required this.ambre,
+    required this.onAmbre,
+    required this.ambreLip,
+    required this.terre,
   });
 
   /// Accent principal de la marque.
@@ -76,6 +80,25 @@ class CognicColors extends ThemeExtension<CognicColors> {
 
   final Color cardColor;
 
+  /// Lèvre des boutons en relief sous l'accent : plus sombre, elle dessine
+  /// aussi le contour du bouton sur le fond (≥ 3:1).
+  final Color vertLip;
+
+  /// Surface secondaire douce (sections, pistes, puces au repos).
+  final Color sauge;
+
+  /// Succès, séries, récompenses.
+  final Color ambre;
+
+  /// Texte et icônes posés sur [ambre].
+  final Color onAmbre;
+
+  /// Lèvre des boutons en relief ambrés.
+  final Color ambreLip;
+
+  /// Accent chaud lisible en texte, pour contraster avec le vert.
+  final Color terre;
+
   @override
   CognicColors copyWith({
     Color? vert,
@@ -89,6 +112,12 @@ class CognicColors extends ThemeExtension<CognicColors> {
     Color? onVertMuted,
     Color? warning,
     Color? cardColor,
+    Color? vertLip,
+    Color? sauge,
+    Color? ambre,
+    Color? onAmbre,
+    Color? ambreLip,
+    Color? terre,
   }) {
     return CognicColors(
       vert: vert ?? this.vert,
@@ -102,6 +131,12 @@ class CognicColors extends ThemeExtension<CognicColors> {
       onVertMuted: onVertMuted ?? this.onVertMuted,
       warning: warning ?? this.warning,
       cardColor: cardColor ?? this.cardColor,
+      vertLip: vertLip ?? this.vertLip,
+      sauge: sauge ?? this.sauge,
+      ambre: ambre ?? this.ambre,
+      onAmbre: onAmbre ?? this.onAmbre,
+      ambreLip: ambreLip ?? this.ambreLip,
+      terre: terre ?? this.terre,
     );
   }
 
@@ -120,6 +155,12 @@ class CognicColors extends ThemeExtension<CognicColors> {
       onVertMuted: Color.lerp(onVertMuted, other.onVertMuted, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       cardColor: Color.lerp(cardColor, other.cardColor, t)!,
+      vertLip: Color.lerp(vertLip, other.vertLip, t)!,
+      sauge: Color.lerp(sauge, other.sauge, t)!,
+      ambre: Color.lerp(ambre, other.ambre, t)!,
+      onAmbre: Color.lerp(onAmbre, other.onAmbre, t)!,
+      ambreLip: Color.lerp(ambreLip, other.ambreLip, t)!,
+      terre: Color.lerp(terre, other.terre, t)!,
     );
   }
 
@@ -141,7 +182,13 @@ class CognicColors extends ThemeExtension<CognicColors> {
           other.errorColor == errorColor &&
           other.onVertMuted == onVertMuted &&
           other.warning == warning &&
-          other.cardColor == cardColor;
+          other.cardColor == cardColor &&
+          other.vertLip == vertLip &&
+          other.sauge == sauge &&
+          other.ambre == ambre &&
+          other.onAmbre == onAmbre &&
+          other.ambreLip == ambreLip &&
+          other.terre == terre;
 
   @override
   int get hashCode => Object.hash(
@@ -156,6 +203,12 @@ class CognicColors extends ThemeExtension<CognicColors> {
         onVertMuted,
         warning,
         cardColor,
+        vertLip,
+        sauge,
+        ambre,
+        onAmbre,
+        ambreLip,
+        terre,
       );
 }
 
@@ -164,8 +217,8 @@ extension CognicColorsX on BuildContext {
   CognicColors get cq =>
       Theme.of(this).extension<CognicColors>() ?? AppTheme.fallbackColors;
 
-  /// Texte et icônes posés sur l'accent plein : blanc en clair, sombre en
-  /// sombre (le blanc sur le vert clair du thème sombre est illisible).
+  /// Texte et icônes posés sur l'accent plein : encre vert très foncé (le
+  /// blanc sur le vert vif est illisible).
   Color get onAccent => Theme.of(this).colorScheme.onPrimary;
 }
 
@@ -181,42 +234,55 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Direction « outil pro » (synthèse Craft, ElevenReader, Saturn, monday) :
-  // neutres froids presque purs, encre quasi noire, un seul accent cobalt,
-  // aucun dégradé visible. Les noms des champs (`vert`, `beige`) sont
-  // historiques : ce sont des rôles, plus des teintes.
-  // Contrastes mesurés (WCAG, cf. contrast_test) : texte 17:1, secondaire
-  // 6:1, accent en texte 7,9:1, blanc sur l'accent ≥ 6,3:1.
+  // Direction « Duolingo & végétal » : vert vif sur crème chaleureux, sauge
+  // doux en surface secondaire, ambre et terre pour contraster, boutons en
+  // relief. Les noms des champs (`vert`, `beige`) sont historiques : ce sont
+  // des rôles, plus des teintes.
+  // Le blanc sur le vert vif ne tient que 2,1:1 : le texte posé sur l'accent
+  // est une encre vert très foncé (6,7:1). Contrastes mesurés (WCAG, cf.
+  // contrast_test) : texte 14:1, secondaire 6:1, accent en texte 5,9:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFF3347D1),
-    vertDark: Color(0xFF2C3DB8),
-    beige: Color(0xFFF6F6F7),
-    beigeDark: Color(0xFFE6E6E9),
-    textPrimary: Color(0xFF111114),
-    textMuted: Color(0xFF5C5D66),
-    textHint: Color(0xFF85868F),
+    vert: Color(0xFF58CC02),
+    vertDark: Color(0xFF2A6F05),
+    beige: Color(0xFFFFF9EE),
+    beigeDark: Color(0xFFDCE6D3),
+    textPrimary: Color(0xFF1E2A1A),
+    textMuted: Color(0xFF56614F),
+    textHint: Color(0xFF646E5E),
     errorColor: Color(0xFFB42D23),
-    onVertMuted: Color(0xFFDCE1FF),
+    onVertMuted: Color(0xFF234D06),
     warning: Color(0xFF8A5A12),
     cardColor: Color(0xFFFFFFFF),
+    vertLip: Color(0xFF3A8F02),
+    sauge: Color(0xFFE4EEDC),
+    ambre: Color(0xFFFFC233),
+    onAmbre: Color(0xFF3A2600),
+    ambreLip: Color(0xFFD69E00),
+    terre: Color(0xFF8A4B14),
   );
 
-  /// Palette sombre : noir doux et surfaces étagées (fond, carte, filet),
-  /// accent cobalt éclairci sous un texte foncé. Valeurs recalculées pour le
+  /// Palette sombre : sous-bois (vert presque noir) et surfaces étagées,
+  /// accent vert éclairci sous une encre foncée. Valeurs recalculées pour le
   /// sombre, pas une inversion automatique.
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFF8FA0FF),
-    vertDark: Color(0xFFA3B1FF),
-    beige: Color(0xFF111113),
-    beigeDark: Color(0xFF2A2A2F),
-    textPrimary: Color(0xFFEDEDEF),
-    textMuted: Color(0xFFA1A1AA),
-    textHint: Color(0xFF75757E),
+    vert: Color(0xFF7BD83A),
+    vertDark: Color(0xFF8FE05A),
+    beige: Color(0xFF121A14),
+    beigeDark: Color(0xFF2E3D32),
+    textPrimary: Color(0xFFECF2E6),
+    textMuted: Color(0xFFA3B09B),
+    textHint: Color(0xFF8A9683),
     errorColor: Color(0xFFF2877B),
-    onVertMuted: Color(0xFF1C2558),
+    onVertMuted: Color(0xFF2A5A10),
     warning: Color(0xFFE2B064),
-    cardColor: Color(0xFF1B1B1F),
+    cardColor: Color(0xFF1B261D),
+    vertLip: Color(0xFF4E9A1C),
+    sauge: Color(0xFF22322A),
+    ambre: Color(0xFFFFC94D),
+    onAmbre: Color(0xFF3A2600),
+    ambreLip: Color(0xFFB88A1F),
+    terre: Color(0xFFE0A26B),
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {
@@ -224,23 +290,19 @@ class AppTheme {
         AppThemeVariant.dark => _darkColors,
       };
 
-  /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés).
-  static Color onAccentFor(AppThemeVariant variant) =>
-      variant.isDark ? const Color(0xFF0D1233) : Colors.white;
+  /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés) : une
+  /// encre vert très foncé dans les deux thèmes, le blanc ne tenant pas le
+  /// contraste sur un vert vif.
+  static Color onAccentFor(AppThemeVariant variant) => variant.isDark
+      ? const Color(0xFF0E2200)
+      : const Color(0xFF163300);
 
-  /// Dégradé d'accentuation, volontairement presque plat : un léger modelé,
-  /// jamais l'arc-en-ciel des interfaces générées.
-  static LinearGradient accentGradientFor(AppThemeVariant variant) =>
-      LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        // 145° CSS ≈ diagonale (135°) + 10°.
-        transform: const GradientRotation(10 * math.pi / 180),
-        colors: variant.isDark
-            ? const [Color(0xFF9AAAFF), Color(0xFF8FA0FF), Color(0xFF8294FA)]
-            : const [Color(0xFF3A4FD9), Color(0xFF3347D1), Color(0xFF2D3FC2)],
-        stops: const [0, 0.47, 1],
-      );
+  /// Dégradé d'accentuation : un aplat (la direction « Duolingo » n'en a
+  /// pas), gardé pour les composants qui peignent encore l'accent ainsi.
+  static LinearGradient accentGradientFor(AppThemeVariant variant) {
+    final vert = colorsFor(variant).vert;
+    return LinearGradient(colors: [vert, vert]);
+  }
 
   /// Thème clair, conservé pour les tests et les écrans hors préférences
   /// (démarrage, erreur fatale).
@@ -577,7 +639,7 @@ class CardChrome {
       // filet discret ; l'ombre ne se verrait pas.
       ? const CardChrome(
           border: BorderSide(
-              color: Color(0xFF2A2A2F), width: Chrome.borderWidth),
+              color: Color(0xFF2E3D32), width: Chrome.borderWidth),
           shadow: BoxShadow(
             color: Color(0x00000000),
             blurRadius: Chrome.shadowBlur,
@@ -586,9 +648,9 @@ class CardChrome {
         )
       : CardChrome(
           border: const BorderSide(
-              color: Color(0xFFE6E6E9), width: Chrome.borderWidth),
+              color: Color(0xFFDCE6D3), width: Chrome.borderWidth),
           shadow: BoxShadow(
-            color: const Color(0xFF111114)
+            color: const Color(0xFF1E2A1A)
                 .withValues(alpha: Chrome.shadowOpacity),
             blurRadius: Chrome.shadowBlur,
             offset: const Offset(0, Chrome.shadowOffsetY),

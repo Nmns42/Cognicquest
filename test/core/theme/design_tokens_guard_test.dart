@@ -50,7 +50,7 @@ void main() {
     ),
     // Rayons hors de [Radii].
     'rayon hors échelle': (
-      () => count((v) => notIn([Radii.sm, Radii.md, Radii.lg], v),
+      () => count((v) => notIn(Radii.scale, v),
           RegExp(r'Radius\.circular\(([0-9]+(?:\.[0-9]+)?)\)')),
       0,
     ),

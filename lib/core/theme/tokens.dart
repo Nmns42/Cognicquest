@@ -32,6 +32,22 @@ abstract final class Radii {
 
   /// Feuilles du bas et dialogues.
   static const double lg = 16;
+
+  /// Boutons tactiles en relief ([Press]) : rayon généreux, à la Duolingo.
+  static const double button = 16;
+
+  /// Cartes de la direction « Duolingo & végétal ».
+  static const double card = 20;
+
+  /// Toutes les valeurs autorisées, pour les garde-fous.
+  static const List<double> scale = [sm, md, lg, button, card];
+}
+
+/// Relief des boutons tactiles (`CqPressableButton`).
+abstract final class Press {
+  /// Épaisseur de la lèvre sous la face, et course de l'enfoncement : assez
+  /// pour lire le relief, assez peu pour garder la hauteur d'un contrôle.
+  static const double depth = 4;
 }
 
 /// Échelle typographique : six tailles, pas une de plus.
@@ -130,6 +146,9 @@ const String appFontFamily = 'PlusJakartaSans';
 /// le mouvement confirme une action, il ne décore pas. Les animations
 /// réduites passent toujours par `Motion.duration`, qui ramène tout à zéro.
 abstract final class CqMotion {
+  /// Enfoncement d'un bouton en relief : sec, comme une touche physique.
+  static const Duration press = Duration(milliseconds: 90);
+
   /// Pression, survol, bascule.
   static const Duration fast = Duration(milliseconds: 150);
 
