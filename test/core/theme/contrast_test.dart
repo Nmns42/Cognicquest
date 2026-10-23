@@ -61,14 +61,15 @@ void main() {
         expect(ratio(cq.onAmbre, cq.ambre), greaterThanOrEqualTo(4.5));
       });
 
-      // La face d'un bouton en relief se confond avec le fond (vert vif sur
-      // crème : 2:1) : c'est sa lèvre qui le délimite (WCAG 1.4.11).
+      // Un bouton en relief se délimite par sa face ou par sa lèvre : la plus
+      // contrastée des deux doit tenir 3:1 sur le fond (WCAG 1.4.11).
       for (final MapEntry(key: bgName, value: bg) in {
         'fond': cq.beige,
         'carte': cq.cardColor,
       }.entries) {
-        test('lèvre des boutons sur $bgName ≥ 3:1', () {
-          expect(ratio(cq.vertLip, bg), greaterThanOrEqualTo(3));
+        test('contour des boutons en relief sur $bgName ≥ 3:1', () {
+          expect(max(ratio(cq.vert, bg), ratio(cq.vertLip, bg)),
+              greaterThanOrEqualTo(3));
         });
       }
 

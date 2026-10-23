@@ -114,9 +114,16 @@ class _CqPressableButtonState extends State<CqPressableButton> {
       decoration: BoxDecoration(
         color: face,
         borderRadius: radius,
-        border: widget.tone == CqPressableTone.secondary
-            ? Border.all(color: lip, width: Borders.focus)
-            : null,
+        // Secondaire : contour marqué. Pleins : filet de la teinte de la
+        // lèvre, qui détoure nettement la face posée sur elle.
+        border: !_enabled
+            ? null
+            : Border.all(
+                color: lip,
+                width: widget.tone == CqPressableTone.secondary
+                    ? Borders.focus
+                    : Borders.thin,
+              ),
         boxShadow: [
           if (_enabled)
             BoxShadow(color: lip, offset: Offset(0, Press.depth - down)),

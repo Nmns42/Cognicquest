@@ -62,9 +62,10 @@ test/         miroir de lib/ + e2e/ + garde-fous
 - **Animations** : toute animation implicite passe par
   `Motion.duration(context, …)` (`test/features/motion/motion_inventory_test.dart`).
 - **Thèmes** : clair + sombre uniquement, contrastes ≥ 4,5:1. Direction
-  « Duolingo & végétal » : vert vif #58CC02 sur crème, sauge, ambre et terre
-  (`lib/core/theme/app_theme.dart`). Texte sur l'accent = encre foncée
-  (`context.onAccent`), jamais blanc (2,1:1 sur le vert vif).
+  « Duolingo & végétal » : vert forêt #083B32 (lèvre #01221B) sur crème,
+  sauge, ambre et terre (`lib/core/theme/app_theme.dart`). Texte sur
+  l'accent = crème #FFF9EE (`context.onAccent`) ; en sombre, accent forêt
+  éclairci #2E7D63 pour rester visible sur le fond.
 - **Boutons** : `CqButton.primary` / `.secondary` sont des boutons en relief
   (`CqPressableButton`, lèvre de `Press.depth`, action au relâcher).
 - **Police** : Plus Jakarta Sans embarquée (`assets/fonts/`).
@@ -107,6 +108,7 @@ positions absolues).
 | 2026-10-23 | Audit + filet CI (analyze + tests + e2e avant déploiement) | Fait, CI verte sous Linux |
 | 2026-10-23 | Éditeur : enregistrement à la fermeture (`deactivate`, plus de `ref` dans `dispose`) | Fait |
 | 2026-10-23 | Refonte « Duolingo & végétal » — étape 1 : tokens (palette, `Press`, `Radii.button/card`, `CqMotion.press`), `CqPressableButton`, délégation de `CqButton` | Fait ; écrans à reprendre un par un |
+| 2026-10-23 | Cartes Habitudes / Pomodoro / Tableau de bord (`Radii.card`, sauge, pastille de série ambre, terre) puis accent vert forêt #083B32 | Fait |
 
 Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 `flutter analyze` sans problème.

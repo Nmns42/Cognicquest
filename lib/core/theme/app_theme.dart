@@ -217,8 +217,8 @@ extension CognicColorsX on BuildContext {
   CognicColors get cq =>
       Theme.of(this).extension<CognicColors>() ?? AppTheme.fallbackColors;
 
-  /// Texte et icônes posés sur l'accent plein : encre vert très foncé (le
-  /// blanc sur le vert vif est illisible).
+  /// Texte et icônes posés sur l'accent plein : crème clair sur le vert
+  /// forêt.
   Color get onAccent => Theme.of(this).colorScheme.onPrimary;
 }
 
@@ -234,27 +234,26 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Direction « Duolingo & végétal » : vert vif sur crème chaleureux, sauge
+  // Direction « Duolingo & végétal » : vert forêt profond sur crème, sauge
   // doux en surface secondaire, ambre et terre pour contraster, boutons en
   // relief. Les noms des champs (`vert`, `beige`) sont historiques : ce sont
   // des rôles, plus des teintes.
-  // Le blanc sur le vert vif ne tient que 2,1:1 : le texte posé sur l'accent
-  // est une encre vert très foncé (6,7:1). Contrastes mesurés (WCAG, cf.
-  // contrast_test) : texte 14:1, secondaire 6:1, accent en texte 5,9:1.
+  // Texte crème sur l'accent (11,9:1). Contrastes mesurés (WCAG, cf.
+  // contrast_test) : texte 14:1, secondaire 6:1, accent en texte ≥ 5,5:1.
 
   static const CognicColors _lightColors = CognicColors(
-    vert: Color(0xFF58CC02),
-    vertDark: Color(0xFF2A6F05),
+    vert: Color(0xFF083B32),
+    vertDark: Color(0xFF0B6A47),
     beige: Color(0xFFFFF9EE),
     beigeDark: Color(0xFFDCE6D3),
     textPrimary: Color(0xFF1E2A1A),
     textMuted: Color(0xFF56614F),
     textHint: Color(0xFF646E5E),
     errorColor: Color(0xFFB42D23),
-    onVertMuted: Color(0xFF234D06),
+    onVertMuted: Color(0xFFA9D3BF),
     warning: Color(0xFF8A5A12),
     cardColor: Color(0xFFFFFFFF),
-    vertLip: Color(0xFF3A8F02),
+    vertLip: Color(0xFF011612),
     sauge: Color(0xFFE4EEDC),
     ambre: Color(0xFFFFC233),
     onAmbre: Color(0xFF3A2600),
@@ -263,21 +262,22 @@ class AppTheme {
   );
 
   /// Palette sombre : sous-bois (vert presque noir) et surfaces étagées,
-  /// accent vert éclairci sous une encre foncée. Valeurs recalculées pour le
+  /// accent forêt éclairci (le vert forêt du clair disparaîtrait sur ce
+  /// fond) sous un texte crème. Valeurs recalculées pour le
   /// sombre, pas une inversion automatique.
   static const CognicColors _darkColors = CognicColors(
-    vert: Color(0xFF7BD83A),
-    vertDark: Color(0xFF8FE05A),
+    vert: Color(0xFF2E7D63),
+    vertDark: Color(0xFF7FD1A8),
     beige: Color(0xFF121A14),
     beigeDark: Color(0xFF2E3D32),
     textPrimary: Color(0xFFECF2E6),
     textMuted: Color(0xFFA3B09B),
     textHint: Color(0xFF8A9683),
     errorColor: Color(0xFFF2877B),
-    onVertMuted: Color(0xFF2A5A10),
+    onVertMuted: Color(0xFFFFF9EE),
     warning: Color(0xFFE2B064),
     cardColor: Color(0xFF1B261D),
-    vertLip: Color(0xFF4E9A1C),
+    vertLip: Color(0xFF1B5A46),
     sauge: Color(0xFF22322A),
     ambre: Color(0xFFFFC94D),
     onAmbre: Color(0xFF3A2600),
@@ -290,12 +290,11 @@ class AppTheme {
         AppThemeVariant.dark => _darkColors,
       };
 
-  /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés) : une
-  /// encre vert très foncé dans les deux thèmes, le blanc ne tenant pas le
-  /// contraste sur un vert vif.
-  static Color onAccentFor(AppThemeVariant variant) => variant.isDark
-      ? const Color(0xFF0E2200)
-      : const Color(0xFF163300);
+  /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés) : le
+  /// crème du fond, dans les deux thèmes (11,9:1 sur le vert forêt, 4,7:1
+  /// sur sa version éclaircie du sombre).
+  static Color onAccentFor(AppThemeVariant variant) =>
+      const Color(0xFFFFF9EE);
 
   /// Dégradé d'accentuation : un aplat (la direction « Duolingo » n'en a
   /// pas), gardé pour les composants qui peignent encore l'accent ainsi.
