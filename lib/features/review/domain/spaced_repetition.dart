@@ -212,3 +212,66 @@ enum Sq3rStep {
   static Sq3rStep fromIndex(int index) =>
       values[index.clamp(0, values.length - 1)];
 }
+
+/// Taux de rétention : part des révisions où la carte a été **retrouvée**
+/// (« Difficile », « Correct » ou « Facile » — tout sauf « À revoir »), sur
+/// une fenêtre glissante de [window].
+///
+/// Chaque révision compte (pas chaque carte) : c'est le taux de rappel
+/// réussi des systèmes de répétition espacée, dont la cible usuelle est de
+/// 85 à 90 %. « Difficile » compte comme retrouvé : la réponse est venue,
+/// avec effort.
+class RetentionStats {
+  const RetentionStats({required this.reviews, required this.recalled});
+
+  const RetentionStats.empty()
+      : reviews = 0,
+        recalled = 0;
+
+  /// Fenêtre glissante du calcul.
+  static const Duration window = Duration(days: 30);
+
+  /// En dessous, le taux n'est pas significatif.
+  static const int minReviews = 10;
+
+  /// Seuils de lecture du taux (cf. [level]).
+  static const double consolidateBelow = 0.70;
+  static const double solidFrom = 0.90;
+
+  /// Calcul à partir des jugements de la fenêtre.
+  factory RetentionStats.fromGrades(Iterable<ReviewGrade> grades) {
+    var reviews = 0;
+    var recalled = 0;
+    for (final grade in grades) {
+      reviews++;
+      if (grade != ReviewGrade.again) recalled++;
+    }
+    return RetentionStats(reviews: reviews, recalled: recalled);
+  }
+
+  final int reviews;
+  final int recalled;
+
+  bool get isMeaningful => reviews >= minReviews;
+
+  /// De 0 à 1 ; 0 sans révision.
+  double get rate => reviews == 0 ? 0 : recalled / reviews;
+
+  /// Pourcentage arrondi, pour l'affichage.
+  int get percent => (rate * 100).round();
+
+  RetentionLevel get level => rate < consolidateBelow
+      ? RetentionLevel.consolidate
+      : (rate < solidFrom ? RetentionLevel.ideal : RetentionLevel.solid);
+}
+
+/// Lecture du taux de rétention.
+enum RetentionLevel {
+  consolidate('À consolider'),
+  ideal('Progression idéale'),
+  solid('Très solide');
+
+  const RetentionLevel(this.label);
+
+  final String label;
+}

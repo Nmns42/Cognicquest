@@ -73,6 +73,16 @@ final reviewedTodayProvider = FutureProvider<int>((ref) async {
   return repository.reviewedTodayCount();
 });
 
+/// Taux de rétention sur 30 jours glissants (cf. [RetentionStats]).
+final retentionProvider = FutureProvider<RetentionStats>((ref) async {
+  // Se recalcule dès qu'une carte est jugée.
+  ref.watch(flashcardsProvider);
+  final repository = ref.watch(reviewRepositoryProvider);
+  if (repository == null) return const RetentionStats.empty();
+  final since = DateTime.now().subtract(RetentionStats.window);
+  return RetentionStats.fromGrades(await repository.gradesSince(since));
+});
+
 final reviewStatsProvider = Provider<ReviewQueueStats>((ref) {
   final cards = ref.watch(flashcardsProvider).valueOrNull ?? const <Flashcard>[];
   if (cards.isEmpty) return const ReviewQueueStats.empty();

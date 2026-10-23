@@ -33,6 +33,9 @@ abstract interface class ReviewRepository {
   /// Nombre de cartes jugées aujourd'hui, toutes cartes confondues.
   Future<int> reviewedTodayCount();
 
+  /// Jugements portés depuis [since] (taux de rétention).
+  Future<List<ReviewGrade>> gradesSince(DateTime since);
+
   Future<void> saveExplanation(Explanation explanation);
 
   Future<Sq3rSession> sessionForNote(String noteId);
@@ -220,6 +223,16 @@ class LocalFirstReviewRepository implements ReviewRepository {
     // chiffre annoncé est « combien de cartes travaillées », pas « combien de
     // clics ».
     return rows.map((r) => r.cardId).toSet().length;
+  }
+
+  @override
+  Future<List<ReviewGrade>> gradesSince(DateTime since) async {
+    final rows = await (_db.select(_db.localReviewLogs)
+          ..where((t) =>
+              t.userId.equals(_userId) &
+              t.reviewedAt.isBiggerOrEqualValue(since)))
+        .get();
+    return [for (final row in rows) ReviewGrade.fromValue(row.grade)];
   }
 
   // ── Auto-explications ────────────────────────────────────────────────────

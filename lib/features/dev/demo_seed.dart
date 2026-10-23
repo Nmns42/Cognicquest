@@ -563,6 +563,36 @@ class _DemoSeeder {
         deck: notes[noteKey]!.subject,
       );
     }
+    await _seedReviewHistory();
+  }
+
+  /// Historique de révisions des 30 derniers jours (taux de rétention) :
+  /// 24 jugements, dont 3 « À revoir », soit 88 % de rétention.
+  Future<void> _seedReviewHistory() async {
+    final cards = await (db.select(db.localFlashcards)
+          ..where((t) => t.userId.equals(_user)))
+        .get();
+    if (cards.isEmpty) return;
+    const grades = [
+      'good', 'easy', 'good', 'again', 'good', 'hard', 'good', 'easy', //
+      'good', 'good', 'hard', 'easy', 'again', 'good', 'good', 'easy',
+      'good', 'hard', 'good', 'good', 'again', 'easy', 'good', 'good',
+    ];
+    final now = DateTime.now();
+    for (final (i, grade) in grades.indexed) {
+      await db.into(db.localReviewLogs).insert(
+            LocalReviewLogsCompanion.insert(
+              id: 'demo-review-$i',
+              userId: _user,
+              cardId: cards[i % cards.length].id,
+              grade: grade,
+              intervalDays: 1 + i % 6,
+              // Réparties sur 28 jours, la plus ancienne d'abord.
+              reviewedAt: now.subtract(Duration(days: 28 - i, hours: 3)),
+            ),
+            mode: InsertMode.insertOrReplace,
+          );
+    }
   }
 
   // ── Journal, erreurs ─────────────────────────────────────────────────────

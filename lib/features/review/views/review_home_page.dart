@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../notes/providers/note_provider.dart';
+import '../domain/spaced_repetition.dart';
 import '../providers/review_provider.dart';
 import '../widgets/flashcard_editor_sheet.dart';
 import '../../../core/theme/tokens.dart';
@@ -86,6 +87,14 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
                 const _SectionLabel('Charge des 7 prochains jours'),
                 const SizedBox(height: Space.sm),
                 _UpcomingLoad(upcoming: stats.upcomingWeek),
+                const SizedBox(height: 24),
+              ],
+
+              if (cards.isNotEmpty) ...[
+                _RetentionCard(
+                  stats: ref.watch(retentionProvider).valueOrNull ??
+                      const RetentionStats.empty(),
+                ),
                 const SizedBox(height: 24),
               ],
 
@@ -237,6 +246,97 @@ class _DueCard extends StatelessWidget {
             ],
           );
         }),
+      ),
+    );
+  }
+}
+
+/// Taux de rétention sur 30 jours : la vraie donnée, en chiffres
+/// tabulaires, avec sa lecture (à consolider, idéale, très solide).
+class _RetentionCard extends StatelessWidget {
+  const _RetentionCard({required this.stats});
+
+  final RetentionStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    final tabular = TypeScale.tabular;
+    final meaningful = stats.isMeaningful;
+    final warm = stats.level == RetentionLevel.consolidate;
+
+    final figure = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Taux de rétention · 30 jours',
+          style: TextStyle(fontSize: TypeScale.caption, color: cq.terre),
+        ),
+        const SizedBox(height: Space.xs),
+        Text(
+          meaningful ? '${stats.percent} %' : '—',
+          style: TextStyle(
+            fontSize: TypeScale.headline,
+            fontWeight: FontWeight.w700,
+            color: cq.textPrimary,
+            fontFeatures: tabular,
+          ),
+        ),
+        Text(
+          meaningful
+              ? '${stats.recalled} retrouvée${stats.recalled > 1 ? 's' : ''} '
+                  'sur ${stats.reviews} révision${stats.reviews > 1 ? 's' : ''}'
+              : 'Au moins ${RetentionStats.minReviews} révisions sur 30 '
+                  'jours pour un taux fiable (${stats.reviews} pour '
+                  'l\'instant).',
+          style: TextStyle(
+            fontSize: TypeScale.caption,
+            color: cq.textMuted,
+            fontFeatures: tabular,
+          ),
+        ),
+      ],
+    );
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: Space.md, vertical: Space.sm),
+      decoration: BoxDecoration(
+        color: cq.parchemin,
+        borderRadius: BorderRadius.circular(Radii.sm),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Text(
+        stats.level.label,
+        style: TextStyle(
+          fontSize: TypeScale.caption,
+          fontWeight: FontWeight.w600,
+          color: warm ? cq.terre : cq.vertSauge,
+        ),
+      ),
+    );
+
+    return Semantics(
+      container: true,
+      label: meaningful
+          ? 'Taux de rétention sur 30 jours : ${stats.percent} %, '
+              '${stats.level.label}'
+          : 'Taux de rétention : pas encore assez de révisions',
+      excludeSemantics: true,
+      child: DecoratedBox(
+        decoration:
+            context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
+        child: Padding(
+          padding: const EdgeInsets.all(Space.lg),
+          // Lecture à droite ; elle passe dessous quand la place manque.
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: Space.lg,
+            runSpacing: Space.md,
+            children: [figure, if (meaningful) badge],
+          ),
+        ),
       ),
     );
   }

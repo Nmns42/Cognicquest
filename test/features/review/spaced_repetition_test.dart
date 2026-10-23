@@ -290,4 +290,43 @@ void main() {
       ]);
     });
   });
+
+  group('rétention', () {
+    test('« Difficile », « Correct » et « Facile » comptent comme retrouvés',
+        () {
+      final stats = RetentionStats.fromGrades([
+        ReviewGrade.again,
+        ReviewGrade.hard,
+        ReviewGrade.good,
+        ReviewGrade.easy,
+      ]);
+      expect(stats.reviews, 4);
+      expect(stats.recalled, 3);
+      expect(stats.rate, 0.75);
+      expect(stats.percent, 75);
+    });
+
+    test('sans révision : taux nul et non significatif', () {
+      const stats = RetentionStats.empty();
+      expect(stats.rate, 0);
+      expect(stats.isMeaningful, isFalse);
+    });
+
+    test('significatif à partir de 10 révisions', () {
+      List<ReviewGrade> good(int n) => List.filled(n, ReviewGrade.good);
+      expect(RetentionStats.fromGrades(good(9)).isMeaningful, isFalse);
+      expect(RetentionStats.fromGrades(good(10)).isMeaningful, isTrue);
+    });
+
+    test('lecture : à consolider, idéale, très solide', () {
+      RetentionStats of(int recalled, int total) => RetentionStats(
+            reviews: total,
+            recalled: recalled,
+          );
+      expect(of(6, 10).level, RetentionLevel.consolidate);
+      expect(of(7, 10).level, RetentionLevel.ideal);
+      expect(of(88, 100).level, RetentionLevel.ideal);
+      expect(of(9, 10).level, RetentionLevel.solid);
+    });
+  });
 }
