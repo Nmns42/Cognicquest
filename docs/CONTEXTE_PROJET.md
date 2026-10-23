@@ -82,8 +82,14 @@ test/         miroir de lib/ + e2e/ + garde-fous
 | Lancer en mode démo | `flutter run --dart-define=DEV_BYPASS_AUTH=true` |
 | Régénérer Drift | `dart run build_runner build` |
 
-La CI exécute `flutter analyze` puis `flutter test --exclude-tags golden`
-avant chaque build web ; un échec bloque le déploiement.
+La CI (Linux) exécute `flutter analyze`, `flutter test --exclude-tags golden`
+puis la recette e2e avant chaque build web ; un échec bloque le déploiement.
+
+Pièges multi-plateformes : les tests qui mesurent du texte doivent charger
+la police de l'app depuis `assets/fonts/` (sinon police « Ahem », faux
+débordements) ; la disposition du graphe dépend de cos/sin, qui diffèrent
+entre Windows et Linux (comparer des déplacements relatifs, pas des
+positions absolues).
 
 ## 7. État des chantiers
 
@@ -93,22 +99,20 @@ avant chaque build web ; un échec bloque le déploiement.
 | 2026-10-13 | Refonte UI « zen » — tokens, garde-fous, nav à 4 espaces | Fait (phase 4 écran par écran en continu) |
 | 2026-10-15 | Agents 1-6 : design system, Pomodoro auto-switch, habitudes par fréquence, explorateur + éditeur Notion, SQ3R/graphe, coefficients + recadrage | Commité |
 | 2026-10-15 | Bloc vidéo dans `note_blocks` (schéma) | Commité |
-| 2026-10-23 | Audit + filet CI (analyze + tests avant déploiement) | Fait |
+| 2026-10-23 | Audit + filet CI (analyze + tests + e2e avant déploiement) | Fait, CI verte sous Linux |
+| 2026-10-23 | Éditeur : enregistrement à la fermeture (`deactivate`, plus de `ref` dans `dispose`) | Fait |
 
 Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 `flutter analyze` sans problème.
 
 ## 8. Dette connue / prochaines étapes
 
-1. **CI rouge sous Linux** : 7 tests échouent sur `ubuntu-latest` alors
-   qu'ils passent sous Windows (journaux à lire sur GitHub Actions). Ensuite,
-   réintégrer la recette e2e (réparée le 2026-10-23) à la CI.
-2. Découper les fichiers géants : `notes/widgets/folder_explorer.dart`
+1. Découper les fichiers géants : `notes/widgets/folder_explorer.dart`
    (1 333 l.), `kanban/views/kanban_page.dart` (1 025 l.).
-3. Tests widget pour kanban, habits, planning, review (1 fichier chacun).
-4. Sortir les migrations Drift dans un fichier dédié + test de montée v1 → v13.
-5. Migrations Supabase versionnées (`supabase/migrations/`).
-6. Backlog technique détaillé : `docs/backlog.md` (graphe à grande échelle…).
+2. Tests widget pour kanban, habits, planning, review (1 fichier chacun).
+3. Sortir les migrations Drift dans un fichier dédié + test de montée v1 → v13.
+4. Migrations Supabase versionnées (`supabase/migrations/`).
+5. Backlog technique détaillé : `docs/backlog.md` (graphe à grande échelle…).
 
 Manques fonctionnels vs cahier des charges : gamification avancée,
 notifications/rappels, export PDF/CSV, collaboration temps réel, IA,

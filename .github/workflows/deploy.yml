@@ -36,6 +36,9 @@ jobs:
       # Sans DEV_BYPASS_AUTH, la recette test/e2e est ignorée.
       - run: flutter test --exclude-tags golden
 
+      # Recette de bout en bout, en mode démo (aucun appel serveur).
+      - run: flutter test --dart-define=DEV_BYPASS_AUTH=true test/e2e
+
   build:
     needs: check
     runs-on: ubuntu-latest
