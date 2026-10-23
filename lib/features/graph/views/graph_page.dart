@@ -83,14 +83,29 @@ class _GraphPageState extends ConsumerState<GraphPage> {
           Expanded(
             child: nodes.isEmpty
                 ? const _EmptyGraph()
-                : _GraphCanvas(
-                    nodes: nodes,
-                    links: links,
-                    selectedNoteId: _selectedNoteId,
-                    onTapNode: (note) {
-                      setState(() => _selectedNoteId = note.id);
-                      NodePreviewSheet.show(context, noteId: note.id);
-                    },
+                // Fond de carte subtil : parchemin, filet fin, coins doux.
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        Space.xl, Space.xs, Space.xl, Space.xl),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: context.cq.parchemin,
+                        borderRadius: BorderRadius.circular(Radii.card),
+                        border: Border.all(color: context.cq.beigeDark),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(Radii.card),
+                        child: _GraphCanvas(
+                          nodes: nodes,
+                          links: links,
+                          selectedNoteId: _selectedNoteId,
+                          onTapNode: (note) {
+                            setState(() => _selectedNoteId = note.id);
+                            NodePreviewSheet.show(context, noteId: note.id);
+                          },
+                        ),
+                      ),
+                    ),
                   ),
           ),
         ],
@@ -349,9 +364,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
     final byId = {for (final node in widget.nodes) node.note.id: node};
     final cq = context.cq;
     final labelStyle = TextStyle(
-      fontFamily: Theme.of(context).textTheme.bodySmall?.fontFamily,
+      fontFamily: appFontFamily,
       fontSize: TypeScale.caption,
-      color: cq.textPrimary,
+      fontWeight: FontWeight.w500,
+      color: cq.terre,
     );
     // Changement de thème : les titres sont repeints dans la bonne couleur.
     final cached = _labels.values.firstOrNull?.text?.style?.color;
@@ -412,9 +428,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
                           type: _linkColor(context, type),
                       },
                       nodeColor: cq.vertSauge,
-                      isolatedColor: cq.textHint,
+                      // Fiche isolée : l'écorce la signale sans alarmer.
+                      isolatedColor: cq.terre,
                       ringColor: cq.textPrimary,
-                      background: cq.beige,
+                      background: cq.parchemin,
                       selectedId: widget.selectedNoteId,
                       focusId: _simulation.pinned ?? _hovered,
                       label: (node) => _labelFor(node, labelStyle),
@@ -430,6 +447,12 @@ class _GraphCanvasState extends State<_GraphCanvas>
               child: FloatingActionButton.small(
                 heroTag: 'graph-fit',
                 tooltip: 'Recentrer',
+                backgroundColor: cq.cardColor,
+                foregroundColor: cq.textPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(Radii.sm),
+                  side: BorderSide(color: cq.beigeDark),
+                ),
                 onPressed: () => _fit(viewport),
                 child: const Icon(Icons.center_focus_strong_outlined),
               ),
@@ -445,9 +468,10 @@ class _GraphCanvasState extends State<_GraphCanvas>
 
   static Color _linkColor(BuildContext context, NoteLinkType type) =>
       switch (type) {
-        NoteLinkType.related => context.cq.textHint,
+        // Tracés filaires sauge et écorce.
+        NoteLinkType.related => context.cq.vertSauge,
         NoteLinkType.seen => context.cq.vertDark,
-        NoteLinkType.toReview => context.cq.errorColor,
+        NoteLinkType.toReview => context.cq.terre,
         NoteLinkType.prerequisite => context.cq.warning,
       };
 }
@@ -489,7 +513,7 @@ class _GraphPainter extends CustomPainter {
   final ValueChanged<Note> onTapNode;
 
   static double radiusOf(GraphNode node) =>
-      5 + math.min(node.degree, 12) * 0.9;
+      4 + math.min(node.degree, 12) * 0.7;
 
   Set<String> get _neighbours {
     final focus = focusId;
@@ -526,40 +550,61 @@ class _GraphPainter extends CustomPainter {
       final color = linkColors[link.type]!;
       final paint = Paint()
         ..color = dimming && !touches ? color.withValues(alpha: 0.18) : color
-        ..strokeWidth = (touches ? 2.2 : 1.1) / math.sqrt(scale)
+        ..strokeWidth = (touches ? 1.6 : 0.8) / math.sqrt(scale)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(from, to, paint);
       if (link.type.isDirected) _drawArrow(canvas, from, to, paint.color);
     }
 
-    // Titres visibles de loin seulement pour la fiche en avant et ses
-    // voisines ; tous dès qu'on zoome assez pour les lire.
+    // Titres de toutes les fiches dès qu'on zoome assez ; de loin, ceux des
+    // carrefours, de la fiche en avant et de ses voisines.
     final showAllLabels = scale >= 0.55;
+    final labelled = <(GraphNode, Offset, double, bool)>[];
     for (final MapEntry(key: id, value: center) in positions.entries) {
       final node = nodes[id];
       if (node == null) continue;
       final faded = dimming && !neighbours.contains(id);
-      final radius = radiusOf(node);
+      // Taille minimale à l'écran : sur une vue d'ensemble, les points
+      // restent des cercles lisibles, proportionnés au nombre de liens.
+      final radius = math.max(radiusOf(node), _minScreenRadius(node) / scale);
       final base = node.isIsolated ? isolatedColor : nodeColor;
+      canvas.drawCircle(center, radius,
+          Paint()..color = faded ? base.withValues(alpha: 0.25) : base);
+      // Liseré couleur du fond : le point se détache des liens.
       canvas.drawCircle(
-          center, radius, Paint()..color = faded ? base.withValues(alpha: 0.25) : base);
+        center,
+        radius,
+        Paint()
+          ..color = background
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5 / scale,
+      );
       if (id == selectedId || id == focusId) {
         canvas.drawCircle(
           center,
-          radius + 3,
+          radius + 3 / scale,
           Paint()
             ..color = ringColor
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.6,
+            ..strokeWidth = 1.6 / scale,
         );
       }
-      if (!showAllLabels && !neighbours.contains(id) && id != selectedId) {
-        continue;
+      if (showAllLabels ||
+          neighbours.contains(id) ||
+          id == selectedId ||
+          _hubs.contains(id)) {
+        labelled.add((node, center, radius, faded));
       }
+    }
+    canvas.restore();
+
+    // Titres peints à taille d'écran : lisibles à tout niveau de zoom.
+    for (final (node, center, radius, faded) in labelled) {
       final text = label(node);
-      final topLeft =
-          center + Offset(-text.width / 2, radius + 4);
+      final topLeft = origin +
+          center * scale +
+          Offset(-text.width / 2, radius * scale + 4);
       if (faded) {
         canvas.saveLayer(
             topLeft & text.size,
@@ -570,8 +615,19 @@ class _GraphPainter extends CustomPainter {
         text.paint(canvas, topLeft);
       }
     }
-    canvas.restore();
   }
+
+  /// Rayon minimal à l'écran, en pixels.
+  static double _minScreenRadius(GraphNode node) =>
+      3 + math.min(node.degree, 12) * 0.4;
+
+  /// Carrefours : les fiches les plus reliées, nommées même de loin.
+  late final Set<String> _hubs = {
+    for (final node in (nodes.values.where((n) => n.degree >= 2).toList()
+          ..sort((a, b) => b.degree.compareTo(a.degree)))
+        .take(8))
+      node.note.id,
+  };
 
   void _drawArrow(Canvas canvas, Offset from, Offset to, Color color) {
     final delta = to - from;
@@ -635,35 +691,40 @@ class _InsightBanner extends StatelessWidget {
 
     final needsAttention = insights.isolatedNotes.isNotEmpty ||
         insights.componentCount > 1;
-    final color = needsAttention ? context.cq.warning : context.cq.vertDark;
+    final cq = context.cq;
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-      padding: const EdgeInsetsDirectional.fromSTEB(14, 4, 4, 4),
+      margin: const EdgeInsets.fromLTRB(Space.xl, Space.xs, Space.xl, Space.sm),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+          Space.lg, Space.xs, Space.xs, Space.xs),
+      // Bandeau d'information sobre : parchemin et filet fin.
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(Radii.md),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
+        color: cq.parchemin,
+        borderRadius: BorderRadius.circular(Radii.sm),
+        border: Border.all(color: cq.beigeDark),
       ),
       child: Row(
         children: [
           Icon(
             needsAttention ? Icons.lightbulb_outline : Icons.check_circle_outline,
-            size: 17,
-            color: color,
+            size: Sizes.iconMd,
+            color: needsAttention ? cq.terre : cq.vertSauge,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: Space.md),
           Expanded(
             child: Text(
               insights.summary,
-              style: TextStyle(fontSize: TypeScale.caption, color: color, height: 1.35),
+              style: TextStyle(
+                  fontSize: TypeScale.caption,
+                  color: cq.textPrimary,
+                  height: 1.35),
             ),
           ),
           IconButton(
             tooltip: 'Fermer l’analyse',
             visualDensity: VisualDensity.compact,
-            icon: Icon(Icons.close, size: Sizes.iconSm, color: color),
+            icon: Icon(Icons.close, size: Sizes.iconSm, color: cq.textMuted),
             onPressed: onClose,
           ),
         ],
@@ -689,7 +750,7 @@ class _SubjectFilterBar extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: Space.xl),
         children: [
           Padding(
             padding: const EdgeInsets.only(right: 8),

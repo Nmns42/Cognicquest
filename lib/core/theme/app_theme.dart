@@ -53,6 +53,7 @@ class CognicColors extends ThemeExtension<CognicColors> {
     required this.terre,
     required this.olive,
     required this.vertSauge,
+    required this.parchemin,
   });
 
   /// Accent principal de la marque.
@@ -110,6 +111,9 @@ class CognicColors extends ThemeExtension<CognicColors> {
   /// deux thèmes.
   final Color vertSauge;
 
+  /// Surface parchemin chaude (bandeaux d'information, fonds de carte).
+  final Color parchemin;
+
   @override
   CognicColors copyWith({
     Color? vert,
@@ -131,6 +135,7 @@ class CognicColors extends ThemeExtension<CognicColors> {
     Color? terre,
     Color? olive,
     Color? vertSauge,
+    Color? parchemin,
   }) {
     return CognicColors(
       vert: vert ?? this.vert,
@@ -152,6 +157,7 @@ class CognicColors extends ThemeExtension<CognicColors> {
       terre: terre ?? this.terre,
       olive: olive ?? this.olive,
       vertSauge: vertSauge ?? this.vertSauge,
+      parchemin: parchemin ?? this.parchemin,
     );
   }
 
@@ -178,6 +184,7 @@ class CognicColors extends ThemeExtension<CognicColors> {
       terre: Color.lerp(terre, other.terre, t)!,
       olive: Color.lerp(olive, other.olive, t)!,
       vertSauge: Color.lerp(vertSauge, other.vertSauge, t)!,
+      parchemin: Color.lerp(parchemin, other.parchemin, t)!,
     );
   }
 
@@ -207,7 +214,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
           other.ambreLip == ambreLip &&
           other.terre == terre &&
           other.olive == olive &&
-          other.vertSauge == vertSauge;
+          other.vertSauge == vertSauge &&
+          other.parchemin == parchemin;
 
   @override
   int get hashCode => Object.hash(
@@ -230,6 +238,7 @@ class CognicColors extends ThemeExtension<CognicColors> {
         terre,
         olive,
         vertSauge,
+        parchemin,
       );
 }
 
@@ -284,6 +293,7 @@ class AppTheme {
     terre: Color(0xFF7C4D25),
     olive: Color(0xFF5F7A38),
     vertSauge: Color(0xFF3D6A53),
+    parchemin: Color(0xFFFAF3E6),
   );
 
   /// Palette sombre : sous-bois (vert presque noir) et surfaces étagées,
@@ -310,6 +320,7 @@ class AppTheme {
     terre: Color(0xFFE0A26B),
     olive: Color(0xFF5F7A38),
     vertSauge: Color(0xFF7FB99A),
+    parchemin: Color(0xFF1C251E),
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {

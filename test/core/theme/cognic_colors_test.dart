@@ -32,6 +32,7 @@ void main() {
     'terre': (c) => c.copyWith(terre: other),
     'olive': (c) => c.copyWith(olive: other),
     'vertSauge': (c) => c.copyWith(vertSauge: other),
+    'parchemin': (c) => c.copyWith(parchemin: other),
   };
 
   test('deux CognicColors identiques sont égaux et de même hashCode', () {
@@ -61,7 +62,7 @@ void main() {
         .allMatches(source.substring(start, end))
         .map((m) => m.group(1))
         .toSet();
-    expect(declared, hasLength(19));
+    expect(declared, hasLength(20));
     expect(changeOneField.keys.toSet(), declared);
   });
 

@@ -30,6 +30,7 @@ void main() {
         'fond': cq.beige,
         'carte': cq.cardColor,
         'sauge': cq.sauge,
+        'parchemin': cq.parchemin,
       };
 
       final text = {
