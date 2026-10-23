@@ -25,139 +25,306 @@ class SettingsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Réglages')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-        children: [
-          const _SectionLabel('Apparence'),
-          const SizedBox(height: 10),
-          _ThemePicker(
-            selected: settings.themeVariant,
-            onSelect: notifier.setTheme,
-          ),
-          const SizedBox(height: 22),
+      // Colonne de lecture confortable sur grand écran.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxWidth),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+                Space.xl, Space.sm, Space.xl, Space.xxxl),
+            children: [
+              const _SectionLabel("Apparence de l'application"),
+              const SizedBox(height: Space.md),
+              _ThemePicker(
+                selected: settings.themeVariant,
+                onSelect: notifier.setTheme,
+              ),
+              const SizedBox(height: Space.xl),
 
-          const _SectionLabel('Taille du texte'),
-          const SizedBox(height: 4),
-          Text(
-            'S\'applique à toute l\'application, y compris aux écrans déjà '
-            'ouverts.',
-            style: TextStyle(
-                fontSize: TypeScale.caption, color: context.cq.textMuted),
-          ),
-          const SizedBox(height: 10),
-          SegmentedButton<TextScalePreset>(
-            segments: [
-              for (final preset in TextScalePreset.values)
-                ButtonSegment(
-                  value: preset,
-                  label: Text(preset.label,
-                      style: const TextStyle(fontSize: TypeScale.caption)),
+              const _SectionLabel('Taille du texte'),
+              const SizedBox(height: Space.xs),
+              Text(
+                'S\'applique à toute l\'application, y compris aux écrans déjà '
+                'ouverts.',
+                style: TextStyle(
+                    fontSize: TypeScale.caption, color: context.cq.textMuted),
+              ),
+              const SizedBox(height: Space.md),
+              _TextScaleSelector(
+                selected: settings.textScale,
+                onSelect: notifier.setTextScale,
+              ),
+              const SizedBox(height: Space.xl),
+
+              // Ambiance sonore : retirée de l'interface en attendant une
+              // intégration externe (le moteur reste en place, inactif).
+              const _SectionLabel('Paramètres de concentration'),
+              const SizedBox(height: Space.xs),
+              Text(
+                'Durées, nombre de sessions (la dernière est suivie de la '
+                'pause longue) et sonnerie de fin.',
+                style: TextStyle(
+                    fontSize: TypeScale.caption,
+                    color: context.cq.textMuted,
+                    height: 1.4),
+              ),
+              const SizedBox(height: Space.md),
+              _PomodoroSettings(
+                config: settings.pomodoro,
+                onChanged: notifier.setPomodoro,
+                onPreview: (ringtone) =>
+                    ref.read(pomodoroChimeProvider).play(ringtone),
+              ),
+              const SizedBox(height: Space.xl),
+
+              const _SectionLabel('Confort et accessibilité'),
+              const SizedBox(height: Space.md),
+              _Panel(
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: Space.lg),
+                    value: settings.reduceMotion,
+                    onChanged: (_) => notifier.toggleReduceMotion(),
+                    title: const Text('Réduire les animations',
+                        style: TextStyle(fontSize: TypeScale.body)),
+                    subtitle: Text(
+                      'Transitions plus courtes, moins de mouvement à l\'écran',
+                      style: TextStyle(
+                          fontSize: TypeScale.caption,
+                          color: context.cq.textMuted),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: Space.lg),
+                    value: settings.keyboardShortcutsEnabled,
+                    onChanged: (_) => notifier.toggleKeyboardShortcuts(),
+                    title: const Text('Raccourcis clavier',
+                        style: TextStyle(fontSize: TypeScale.body)),
+                    subtitle: Text(
+                      'Navigation rapide au clavier sur web et bureau',
+                      style: TextStyle(
+                          fontSize: TypeScale.caption,
+                          color: context.cq.textMuted),
+                    ),
+                  ),
+                ],
+              ),
+              if (settings.keyboardShortcutsEnabled) ...[
+                const SizedBox(height: Space.xl),
+                const _SectionLabel('Raccourcis clavier essentiels'),
+                const SizedBox(height: Space.md),
+                const _ShortcutList(),
+              ],
+              const SizedBox(height: Space.xl),
+
+              const _SectionLabel('Gestion des données'),
+              const SizedBox(height: Space.md),
+              const DemoDataButton(),
+              const SizedBox(height: Space.md),
+              // Action réversible : filet écorce discret, sans alarme.
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: context.cq.terre,
+                  backgroundColor: context.cq.cardColor,
+                  side: BorderSide(color: context.cq.terre),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(Radii.sm)),
                 ),
-            ],
-            selected: {settings.textScale},
-            showSelectedIcon: false,
-            onSelectionChanged: (values) => notifier.setTextScale(values.first),
-          ),
-          const SizedBox(height: 26),
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    animationStyle: Motion.style(context),
+                    builder: (context) => AlertDialog(
+                      scrollable: true,
+                      title: const Text('Rétablir les réglages ?'),
+                      content: const Text(
+                        'Thème, taille de texte et Pomodoro reviendront à leurs '
+                        'valeurs d\'origine, et les encadrés d\'aide fermés '
+                        'réapparaîtront. Tes données ne sont pas touchées.',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Annuler'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Rétablir'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed ?? false) notifier.resetToDefaults();
+                },
+                icon: const Icon(Icons.settings_backup_restore,
+                    size: Sizes.iconMd),
+                label: const Text('Rétablir les réglages par défaut'),
+              ),
 
-          // Ambiance sonore : retirée de l'interface en attendant une
-          // intégration externe (le moteur reste en place, inactif).
-          const _SectionLabel('Pomodoro'),
+              // Absent en mode démo : il n'y a pas de compte à supprimer.
+              if (ref.watch(currentUserProvider) != null) ...[
+                const SizedBox(height: Space.xl),
+                const _SectionLabel('Compte'),
+                const SizedBox(height: Space.md),
+                const SignOutButton(),
+                const SizedBox(height: Space.xl),
+                const _SensitiveZone(),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Largeur maximale de la colonne des réglages.
+  static const double _maxWidth = 720;
+}
+
+/// Groupe de réglages : carte blanche à filet, lignes séparées par un
+/// filet d'un pixel.
+class _Panel extends StatelessWidget {
+  const _Panel({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    // Un `Material` (pas une décoration) : les interrupteurs y gardent leur
+    // effet d'appui.
+    return Material(
+      color: cq.cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.card),
+        side: BorderSide(color: cq.beigeDark),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final (i, child) in children.indexed) ...[
+            if (i > 0)
+              Divider(
+                  height: Borders.thin,
+                  thickness: Borders.thin,
+                  color: cq.beigeDark),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Zone sensible : un encadré sobre, filet écorce, pour l'action
+/// irréversible.
+class _SensitiveZone extends StatelessWidget {
+  const _SensitiveZone();
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Container(
+      padding: const EdgeInsets.all(Space.lg),
+      decoration: BoxDecoration(
+        color: cq.parchemin,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: cq.terre.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Zone sensible',
+            style: TextStyle(
+              fontSize: TypeScale.body,
+              fontWeight: FontWeight.w600,
+              color: cq.terre,
+            ),
+          ),
           const SizedBox(height: Space.xs),
           Text(
-            'Règle tes cycles de concentration : durées, nombre de sessions '
-            '(la dernière est suivie de la pause longue) et sonnerie de fin.',
-            style: TextStyle(
-                fontSize: TypeScale.caption,
-                color: context.cq.textMuted,
-                height: 1.4),
+            'La suppression du compte efface définitivement tes données.',
+            style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
           ),
-          const SizedBox(height: Space.sm),
-          _PomodoroSettings(
-            config: settings.pomodoro,
-            onChanged: notifier.setPomodoro,
-            onPreview: (ringtone) =>
-                ref.read(pomodoroChimeProvider).play(ringtone),
-          ),
-          const SizedBox(height: Space.xl),
+          const SizedBox(height: Space.md),
+          const DeleteAccountButton(),
+        ],
+      ),
+    );
+  }
+}
 
-          const _SectionLabel('Confort et accessibilité'),
-          const SizedBox(height: 6),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: settings.reduceMotion,
-            onChanged: (_) => notifier.toggleReduceMotion(),
-            title: const Text('Réduire les animations',
-                style: TextStyle(fontSize: TypeScale.body)),
-            subtitle: Text(
-              'Transitions plus courtes, moins de mouvement à l\'écran',
-              style: TextStyle(
-                  fontSize: TypeScale.caption, color: context.cq.textMuted),
-            ),
-          ),
-          SwitchListTile.adaptive(
-            contentPadding: EdgeInsets.zero,
-            value: settings.keyboardShortcutsEnabled,
-            onChanged: (_) => notifier.toggleKeyboardShortcuts(),
-            title: const Text('Raccourcis clavier',
-                style: TextStyle(fontSize: TypeScale.body)),
-            subtitle: Text(
-              'Navigation rapide au clavier sur web et bureau',
-              style: TextStyle(
-                  fontSize: TypeScale.caption, color: context.cq.textMuted),
-            ),
-          ),
-          if (settings.keyboardShortcutsEnabled) ...[
-            const SizedBox(height: 10),
-            const _ShortcutList(),
-          ],
-          const SizedBox(height: 26),
+/// Taille du texte : piste pierre, segment actif blanc à filet.
+class _TextScaleSelector extends StatelessWidget {
+  const _TextScaleSelector({required this.selected, required this.onSelect});
 
-          OutlinedButton.icon(
-            onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                animationStyle: Motion.style(context),
-                builder: (context) => AlertDialog(
-                  scrollable: true,
-                  title: const Text('Rétablir les réglages ?'),
-                  content: const Text(
-                    'Thème, taille de texte et Pomodoro reviendront à leurs '
-                    'valeurs d\'origine, et les encadrés d\'aide fermés '
-                    'réapparaîtront. Tes données ne sont pas touchées.',
+  final TextScalePreset selected;
+  final ValueChanged<TextScalePreset> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Container(
+      padding: const EdgeInsets.all(Space.xs / 2),
+      decoration: BoxDecoration(
+        color: cq.sauge,
+        borderRadius: BorderRadius.circular(Radii.sm),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Row(
+        children: [
+          for (final preset in TextScalePreset.values)
+            Expanded(
+              child: Semantics(
+                button: true,
+                selected: preset == selected,
+                child: Material(
+                  color: preset == selected ? cq.cardColor : Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(Radii.xs),
+                    side: preset == selected
+                        ? BorderSide(color: cq.beigeDark)
+                        : BorderSide.none,
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Annuler'),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Radii.xs),
+                    onTap: () => onSelect(preset),
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(minHeight: Sizes.touchTarget - Space.sm),
+                      child: Center(
+                        // À 200 % de texte, le libellé rétrécit au lieu de
+                        // déborder.
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: Space.xs),
+                            child: Text(
+                              preset.label,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: TypeScale.caption,
+                                fontWeight: preset == selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: preset == selected
+                                    ? cq.textPrimary
+                                    : cq.terre,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Rétablir'),
-                    ),
-                  ],
+                  ),
                 ),
-              );
-              if (confirmed ?? false) notifier.resetToDefaults();
-            },
-            icon: const Icon(Icons.settings_backup_restore, size: 18),
-            label: const Text('Rétablir les réglages par défaut'),
-          ),
-
-          const SizedBox(height: Space.xxl),
-          const _SectionLabel('Données de démo'),
-          const SizedBox(height: Space.sm),
-          const DemoDataButton(),
-
-          // Absent en mode démo : il n'y a pas de compte à supprimer.
-          if (ref.watch(currentUserProvider) != null) ...[
-            const SizedBox(height: 32),
-            const _SectionLabel('Compte'),
-            const SizedBox(height: 10),
-            const SignOutButton(),
-            const SizedBox(height: Space.sm),
-            const DeleteAccountButton(),
-          ],
+              ),
+            ),
         ],
       ),
     );
@@ -183,6 +350,7 @@ class _PomodoroSettings extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        _Panel(children: [
         _Stepper(
           label: 'Session de travail',
           value: config.workMinutes,
@@ -216,7 +384,8 @@ class _PomodoroSettings extends StatelessWidget {
           onChanged: (v) =>
               onChanged(config.copyWith(sessionsBeforeLongBreak: v)),
         ),
-        const SizedBox(height: Space.md),
+        ]),
+        const SizedBox(height: Space.lg),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: Text('Sonnerie de fin',
@@ -266,38 +435,59 @@ class _Stepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cq = context.cq;
     final text = unit.isEmpty ? '$value' : '$value $unit';
+    // Bouton fin : filet d'un pixel, petit rayon, icône discrète.
+    final style = IconButton.styleFrom(
+      foregroundColor: cq.textPrimary,
+      side: BorderSide(color: cq.beigeDark),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.sm)),
+    );
     return Semantics(
       label: label,
       value: text,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-          IconButton(
-            tooltip: 'Diminuer : $label',
-            onPressed: value <= range.$1
-                ? null
-                : () => onChanged((value - step).clamp(range.$1, range.$2)),
-            icon: const Icon(Icons.remove, size: Sizes.iconMd),
-          ),
-          SizedBox(
-            width: Space.xxxl * 2,
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: Space.lg, vertical: Space.xs),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: TypeScale.body, color: cq.textPrimary)),
             ),
-          ),
-          IconButton(
-            tooltip: 'Augmenter : $label',
-            onPressed: value >= range.$2
-                ? null
-                : () => onChanged((value + step).clamp(range.$1, range.$2)),
-            icon: const Icon(Icons.add, size: Sizes.iconMd),
-          ),
-        ],
+            IconButton(
+              tooltip: 'Diminuer : $label',
+              style: style,
+              onPressed: value <= range.$1
+                  ? null
+                  : () => onChanged((value - step).clamp(range.$1, range.$2)),
+              icon: const Icon(Icons.remove, size: Sizes.iconSm),
+            ),
+            SizedBox(
+              width: Space.xxxl * 2,
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: TypeScale.body,
+                  fontWeight: FontWeight.w700,
+                  color: cq.terre,
+                  fontFeatures: TypeScale.tabular,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Augmenter : $label',
+              style: style,
+              onPressed: value >= range.$2
+                  ? null
+                  : () => onChanged((value + step).clamp(range.$1, range.$2)),
+              icon: const Icon(Icons.add, size: Sizes.iconSm),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -315,24 +505,24 @@ class _ThemePicker extends StatelessWidget {
       children: [
         for (final variant in AppThemeVariant.values)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: Space.sm),
             child: InkWell(
               onTap: () => onSelect(variant),
-              borderRadius: BorderRadius.circular(Radii.md),
+              borderRadius: BorderRadius.circular(Radii.card),
               child: AnimatedContainer(
                 duration:
                     Motion.duration(context, const Duration(milliseconds: 150)),
                 padding: const EdgeInsets.all(14),
+                // Carte radio épurée : blanche, la carte active cerclée de
+                // sauge.
                 decoration: BoxDecoration(
-                  color: variant == selected
-                      ? context.cq.vertSauge.withValues(alpha: 0.1)
-                      : context.cq.cardColor,
-                  borderRadius: BorderRadius.circular(Radii.md),
+                  color: context.cq.cardColor,
+                  borderRadius: BorderRadius.circular(Radii.card),
                   border: Border.all(
                     color: variant == selected
                         ? context.cq.vertSauge
                         : context.cq.beigeDark,
-                    width: variant == selected ? 1.8 : 1,
+                    width: variant == selected ? Borders.focus : Borders.thin,
                   ),
                 ),
                 child: Row(
@@ -352,7 +542,7 @@ class _ThemePicker extends StatelessWidget {
                           Text(variant.description,
                               style: TextStyle(
                                   fontSize: TypeScale.caption,
-                                  color: context.cq.textMuted)),
+                                  color: context.cq.terre)),
                         ],
                       ),
                     ),
@@ -433,49 +623,57 @@ class _ShortcutList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.cq.beigeDark.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      child: Column(
-        children: [
-          for (final (keys, description) in _shortcuts)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 7),
-              child: Row(
-                children: [
-                  // Flexible : à 200 %, la touche passe à la ligne dans sa
-                  // pastille au lieu de déborder.
-                  Flexible(
+    final cq = context.cq;
+    return _Panel(
+      children: [
+        for (final (keys, description) in _shortcuts)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Space.lg, vertical: Space.md),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(description,
+                      style: TextStyle(
+                          fontSize: TypeScale.body, color: cq.textPrimary)),
+                ),
+                const SizedBox(width: Space.md),
+                // Touche physique stylisée, alignée à droite. Flexible : à
+                // 200 %, elle passe à la ligne au lieu de déborder.
+                Flexible(
+                  flex: 2,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerEnd,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: context.cq.cardColor,
-                        borderRadius: BorderRadius.circular(Radii.md),
-                        border: Border.all(color: context.cq.beigeDark),
-                      ),
-                      child: Text(keys,
-                          style: TextStyle(
-                              fontSize: TypeScale.caption,
-                              fontFamily: 'monospace',
-                              color: context.cq.textPrimary)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Space.sm, vertical: Space.xs / 2),
+                    decoration: BoxDecoration(
+                      color: cq.parchemin,
+                      borderRadius: BorderRadius.circular(Radii.xs),
+                      border: Border.all(color: cq.beigeDark),
+                      // Relief de touche : un filet plus marqué dessous.
+                      boxShadow: [
+                        BoxShadow(
+                            color: cq.beigeDark,
+                            offset: const Offset(0, Borders.thin)),
+                      ],
+                    ),
+                    child: Text(keys,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: TypeScale.caption,
+                          fontWeight: FontWeight.w700,
+                          color: cq.terre,
+                          fontFeatures: TypeScale.tabular,
+                        )),
                     ),
                   ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Text(description,
-                        style: TextStyle(
-                            fontSize: TypeScale.caption,
-                            color: context.cq.textMuted)),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
@@ -486,12 +684,8 @@ class _SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: TextStyle(
-          fontSize: TypeScale.body,
-          fontWeight: FontWeight.w600,
-          color: context.cq.textPrimary,
-        ),
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        child: Text(text, style: Theme.of(context).textTheme.titleLarge),
       );
 }

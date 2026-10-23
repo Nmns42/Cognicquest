@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 import '../../auth/providers/auth_provider.dart';
 
 /// Suppression définitive du compte (RGPD, exigée par les stores).
@@ -22,11 +23,15 @@ class DeleteAccountButton extends ConsumerWidget {
 
     return OutlinedButton.icon(
       onPressed: isBusy ? null : () => _confirmAndDelete(context, ref),
+      // Rouge brique sobre : filet fin sur fond blanc, sans aplat agressif.
       style: OutlinedButton.styleFrom(
         foregroundColor: danger,
+        backgroundColor: context.cq.cardColor,
         side: BorderSide(color: danger.withValues(alpha: 0.6)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.sm)),
       ),
-      icon: const Icon(Icons.delete_forever_outlined, size: 18),
+      icon: const Icon(Icons.delete_forever_outlined, size: Sizes.iconMd),
       label: const Text('Supprimer mon compte'),
     );
   }
