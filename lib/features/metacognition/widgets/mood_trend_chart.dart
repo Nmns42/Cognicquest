@@ -36,6 +36,12 @@ class MoodTrendChart extends StatelessWidget {
     final best = logged.reduce((a, b) => a > b ? a : b);
 
     return Card(
+      // Alignée sur les autres cartes de la page : pas de marge, filet fin.
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.card),
+        side: BorderSide(color: context.cq.beigeDark),
+      ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         child: Column(
