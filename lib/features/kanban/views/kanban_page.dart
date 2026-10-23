@@ -95,6 +95,18 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
     });
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tâches'),
+        actions: [
+          // Une seule vue à la fois, sur les mêmes tâches : le tableau par
+          // état d'avancement, ou la matrice par urgence et importance.
+          _ViewToggle(
+            selected: _view,
+            onChanged: (view) => setState(() => _view = view),
+          ),
+          const SizedBox(width: Space.md),
+        ],
+      ),
       body: tasksAsync.when(
         skipLoadingOnRefresh: true,
         loading: () => Center(
@@ -107,23 +119,6 @@ class _KanbanPageState extends ConsumerState<KanbanPage> {
         data: (tasks) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Une seule vue à la fois, sur les mêmes tâches : le tableau par
-            // état d'avancement, ou la matrice par urgence et importance. Deux
-            // petites icônes à droite, au-dessus de la colonne « Terminé ».
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: MediaQuery.sizeOf(context).width >= kanbanWideMin
-                    ? Space.xl
-                    : Space.lg,
-              ),
-              child: Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: _ViewToggle(
-                  selected: _view,
-                  onChanged: (view) => setState(() => _view = view),
-                ),
-              ),
-            ),
             Expanded(
               child: RefreshIndicator(
                 color: context.cq.vertDark,
@@ -239,7 +234,7 @@ class _KanbanBoard extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(Space.xl),
+      padding: const EdgeInsets.fromLTRB(Space.xl, Space.sm, Space.xl, Space.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -427,11 +422,15 @@ class _ClosedDrawer extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(Radii.md),
                     border: Border.all(color: context.cq.vertSauge),
                   )
-                : context.chrome.decoration(color: context.cq.cardColor),
+                : BoxDecoration(
+                    color: context.cq.sauge,
+                    borderRadius: BorderRadius.circular(Radii.card),
+                    border: Border.all(color: context.cq.beigeDark),
+                  ),
             child: Material(
               type: MaterialType.transparency,
               child: InkWell(
-                borderRadius: BorderRadius.circular(Radii.md),
+                borderRadius: BorderRadius.circular(Radii.card),
                 onTap: onOpen,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(minHeight: Sizes.control),
@@ -480,8 +479,8 @@ class _KanbanColumn extends ConsumerWidget {
 
   (IconData, Color) _style(BuildContext context) => switch (status) {
         TaskStatus.todo => (Icons.circle_outlined, context.cq.textHint),
-        TaskStatus.doing => (Icons.timelapse, context.cq.vertDark),
-        TaskStatus.done => (Icons.check_circle, context.cq.textMuted),
+        TaskStatus.doing => (Icons.timelapse, context.cq.vertSauge),
+        TaskStatus.done => (Icons.check_circle_outline, context.cq.textMuted),
       };
 
   @override
@@ -498,33 +497,44 @@ class _KanbanColumn extends ConsumerWidget {
 
         return AnimatedContainer(
           duration: Motion.duration(context, const Duration(milliseconds: 160)),
-          padding: const EdgeInsets.all(Space.lg),
-          // Chrome des cartes principales ; la zone de dépôt survolée prend
-          // un filet d'accent.
-          decoration: context.chrome
-              .decoration(color: context.cq.cardColor)
-              .copyWith(
-                border: isHovered
-                    ? Border.all(
-                        color: context.cq.vertDark, width: Borders.focus)
-                    : null,
-              ),
+          padding: const EdgeInsets.all(Space.md),
+          // Colonne : fond pierre très doux et filet d'un pixel ; la zone de
+          // dépôt survolée prend un filet sauge.
+          decoration: BoxDecoration(
+            color: context.cq.sauge,
+            borderRadius: BorderRadius.circular(Radii.card),
+            border: isHovered
+                ? Border.all(color: context.cq.vertSauge, width: Borders.focus)
+                : Border.all(color: context.cq.beigeDark),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 8),
-                  Text(status.label,
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(width: 8),
+                  Icon(icon, color: color, size: Sizes.iconMd),
+                  const SizedBox(width: Space.sm),
+                  Flexible(
+                    child: Text(
+                      status.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: TypeScale.body,
+                        fontWeight: FontWeight.w600,
+                        color: context.cq.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: Space.sm),
+                  // Compteur : pastille blanche à filet, chiffres tabulaires.
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Space.sm, vertical: Space.xs / 2),
                     decoration: BoxDecoration(
-                      color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(Radii.md),
+                      color: context.cq.cardColor,
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                      border: Border.all(color: context.cq.beigeDark),
                     ),
                     child: Text(
                       '${tasks.length}',
@@ -532,6 +542,7 @@ class _KanbanColumn extends ConsumerWidget {
                         fontSize: TypeScale.caption,
                         fontWeight: FontWeight.w600,
                         color: context.cq.textMuted,
+                        fontFeatures: TypeScale.tabular,
                       ),
                     ),
                   ),
@@ -540,12 +551,12 @@ class _KanbanColumn extends ConsumerWidget {
                     tooltip: 'Ajouter dans « ${status.label} »',
                     visualDensity: VisualDensity.compact,
                     onPressed: onAdd,
-                    icon:
-                        Icon(Icons.add, size: 20, color: context.cq.textMuted),
+                    icon: Icon(Icons.add,
+                        size: Sizes.iconMd, color: context.cq.textMuted),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: Space.sm),
               if (tasks.isEmpty)
                 _EmptyColumn(isHovered: isHovered)
               else
@@ -788,10 +799,11 @@ class _EmptyColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 22),
+      padding: const EdgeInsets.symmetric(vertical: Space.xl),
       decoration: BoxDecoration(
-        color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(Radii.md),
+        color: context.cq.cardColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: context.cq.beigeDark),
       ),
       child: Text(
         isHovered ? 'Déposer ici' : 'Aucune tâche',

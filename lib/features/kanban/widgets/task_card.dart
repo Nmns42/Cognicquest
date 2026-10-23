@@ -6,10 +6,11 @@ import '../../../shared/models/task_model.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/cq_interactions.dart';
 
+/// Puce de priorité : écorce (haute), sauge (moyenne), gris (basse).
 Color priorityColor(BuildContext context, TaskPriority priority) =>
     switch (priority) {
-      TaskPriority.high => context.cq.errorColor,
-      TaskPriority.medium => context.cq.vertDark,
+      TaskPriority.high => context.cq.terre,
+      TaskPriority.medium => context.cq.vertSauge,
       TaskPriority.low => context.cq.textHint,
     };
 
@@ -47,13 +48,29 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final done = task.isDone;
 
+    final radius = BorderRadius.circular(Radii.card);
     return Opacity(
       opacity: isDragging ? 0.4 : 1,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: Space.sm),
+        // Carte blanche, filet fin, ombre ultra-légère ; une tâche en cours
+        // est cerclée de sauge.
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            boxShadow: [context.chrome.shadow],
+          ),
+          child: Card(
+        margin: EdgeInsets.zero,
+        color: context.cq.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(
+              color: task.isDoing ? context.cq.vertSauge : context.cq.beigeDark),
+        ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppTheme.radius),
+          borderRadius: radius,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Row(
@@ -77,6 +94,7 @@ class TaskCard extends StatelessWidget {
                         task.title,
                         style: TextStyle(
                           fontSize: TypeScale.body,
+                          fontWeight: FontWeight.w600,
                           height: 1.3,
                           color: done ? context.cq.textMuted : context.cq.textPrimary,
                           decoration: done ? TextDecoration.lineThrough : null,
@@ -104,9 +122,14 @@ class TaskCard extends StatelessWidget {
                           children: [
                             if (task.dueDate != null) _dueBadge(context),
                             if (task.isUrgent)
-                               _Badge(label: 'Urgent', color: context.cq.errorColor),
+                              _Badge(
+                                  label: 'Urgent',
+                                  color: context.cq.terre,
+                                  filled: true),
                             if (task.isImportant)
-                               _Badge(label: 'Important', color: context.cq.vertDark),
+                              _Badge(
+                                  label: 'Important',
+                                  color: context.cq.vertSauge),
                           ],
                         ),
                       ],
@@ -135,6 +158,8 @@ class TaskCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
         ),
       ),
     );
@@ -173,20 +198,20 @@ class _Checkbox extends StatelessWidget {
       label: 'Marquer comme terminée',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.xs),
         child: Padding(
           padding: const EdgeInsets.all(2),
           child: AnimatedContainer(
             duration: Motion.duration(context, const Duration(milliseconds: 180)),
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             decoration: BoxDecoration(
-              color: done ? context.cq.vertSauge : Colors.transparent,
+              color: done ? context.cq.vertSauge : context.cq.cardColor,
               border: Border.all(
-                color: done ? context.cq.vertSauge : context.cq.beigeDark,
-                width: 2,
+                color: done ? context.cq.vertSauge : context.cq.textHint,
+                width: Borders.thin,
               ),
-              borderRadius: BorderRadius.circular(Radii.md),
+              borderRadius: BorderRadius.circular(Radii.xs),
             ),
             child: done
                 ? Icon(Icons.check, size: 13, color: context.cq.beige)
@@ -199,25 +224,35 @@ class _Checkbox extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.color, this.icon});
+  const _Badge({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.filled = false,
+  });
 
   final String label;
   final Color color;
   final IconData? icon;
 
+  /// Aplat plein (texte couleur du fond, ≥ 4,5:1) plutôt que teinté.
+  final bool filled;
+
   @override
   Widget build(BuildContext context) {
+    final ink = filled ? context.cq.beige : color;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Space.sm, vertical: Space.xs / 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(Radii.md),
+        color: filled ? color : color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(Radii.xs),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 11, color: color),
+            Icon(icon, size: 11, color: ink),
             const SizedBox(width: 4),
           ],
           // En très grand texte sur petit écran, le badge est plus large que
@@ -229,8 +264,9 @@ class _Badge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: TypeScale.caption,
-                color: color,
-                fontWeight: FontWeight.w500,
+                color: ink,
+                fontWeight: FontWeight.w600,
+                fontFeatures: TypeScale.tabular,
               ),
             ),
           ),
