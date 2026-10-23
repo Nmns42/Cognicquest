@@ -16,7 +16,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Filet avant tout déploiement : analyse statique et tests doivent passer.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.7
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      # Goldens exclus : leurs images de référence sont générées sous Windows.
+      # Sans DEV_BYPASS_AUTH, la recette test/e2e est ignorée.
+      - run: flutter test --exclude-tags golden
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,5 @@
+# Étiquettes des tests.
+tags:
+  # Images de référence générées sous Windows : le rendu du texte diffère sous
+  # Linux, donc la CI les exclut (`--exclude-tags golden`). À lancer en local.
+  golden:

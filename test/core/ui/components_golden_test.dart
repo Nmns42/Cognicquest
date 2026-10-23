@@ -1,3 +1,7 @@
+// Étiquette `golden` : la CI (Linux) exclut ce fichier, cf. dart_test.yaml.
+@Tags(['golden'])
+library;
+
 import 'dart:io';
 
 import 'package:cognicquest/core/theme/app_theme.dart';
