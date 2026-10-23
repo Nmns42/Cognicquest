@@ -62,10 +62,16 @@ test/         miroir de lib/ + e2e/ + garde-fous
 - **Animations** : toute animation implicite passe par
   `Motion.duration(context, …)` (`test/features/motion/motion_inventory_test.dart`).
 - **Thèmes** : clair + sombre uniquement, contrastes ≥ 4,5:1. Direction
-  « Duolingo & végétal » : vert forêt #083B32 (lèvre #01221B) sur crème,
-  sauge, ambre et terre (`lib/core/theme/app_theme.dart`). Texte sur
-  l'accent = crème #FFF9EE (`context.onAccent`) ; en sombre, accent forêt
-  éclairci #2E7D63 pour rester visible sur le fond.
+  « Botanique sophistiqué & pleine conscience » : vert forêt #083B32 (bande /
+  lèvre #052822) pour bannières et bouton « + » (squircle), vert sauge
+  `vertSauge` #3D6A53 et écorce `terre` #7C4D25 pour badges et coches,
+  parchemin #FAF3E6, cartes crème #FDF9F1 (filet #E5DEC9, ombre douce),
+  olive #5F7A38 pour la navigation active. Texte sur forêt = crème #FFFDF9 ;
+  sur sauge / écorce = fond de l'app (`cq.beige`).
+- **Motifs végétaux** : `lib/core/ui/botanical_decorations.dart`
+  (filigranes du fond, feuillage de bannière, laurier de série, arbre
+  compagnon), teintes dans `lib/core/theme/botanical_palette.dart`. Décors
+  exclus de l'accessibilité, aucune couleur en dur hors thème.
 - **Boutons** : `CqButton.primary` / `.secondary` sont des boutons en relief
   (`CqPressableButton`, lèvre de `Press.depth`, action au relâcher).
 - **Police** : Plus Jakarta Sans embarquée (`assets/fonts/`).
@@ -109,6 +115,8 @@ positions absolues).
 | 2026-10-23 | Éditeur : enregistrement à la fermeture (`deactivate`, plus de `ref` dans `dispose`) | Fait |
 | 2026-10-23 | Refonte « Duolingo & végétal » — étape 1 : tokens (palette, `Press`, `Radii.button/card`, `CqMotion.press`), `CqPressableButton`, délégation de `CqButton` | Fait ; écrans à reprendre un par un |
 | 2026-10-23 | Cartes Habitudes / Pomodoro / Tableau de bord (`Radii.card`, sauge, pastille de série ambre, terre) puis accent vert forêt #083B32 | Fait |
+| 2026-10-23 | Palette adoucie d'après la maquette Habitudes (vert sauge forêt, olive, sable), badges pastille / cercle, case ronde | Fait |
+| 2026-10-23 | Direction « Botanique » : palette forêt / sauge / écorce / parchemin, motifs vectoriels, Habitudes (bannière bi-ton, grille ≥ 900 px, panneau « Arbre de détente »), fond du Shell | Fait ; Tableau de bord à reprendre |
 
 Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 `flutter analyze` sans problème.

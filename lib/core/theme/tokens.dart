@@ -122,14 +122,13 @@ abstract final class Borders {
   static const double focus = 2;
 }
 
-/// « Chrome » des cartes : contour fin d'un pixel et ombre à peine posée,
-/// à la manière de Craft, Linear ou Notion. La carte se détache par sa
-/// surface et son filet, pas par du relief.
+/// « Chrome » des cartes : filet fin et ombre portée douce, large et peu
+/// dense : un relief feutré, jamais l'aspect « jouet ».
 abstract final class Chrome {
   static const double borderWidth = Borders.thin;
-  static const double shadowBlur = 3;
-  static const double shadowOffsetY = 1;
-  static const double shadowOpacity = 0.04;
+  static const double shadowBlur = 18;
+  static const double shadowOffsetY = 6;
+  static const double shadowOpacity = 0.07;
 
   /// Élévation des feuilles du bas : assez pour les détacher, sans masse.
   static const double sheetElevation = 4;

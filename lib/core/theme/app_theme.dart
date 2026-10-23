@@ -51,6 +51,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
     required this.onAmbre,
     required this.ambreLip,
     required this.terre,
+    required this.olive,
+    required this.vertSauge,
   });
 
   /// Accent principal de la marque.
@@ -99,6 +101,15 @@ class CognicColors extends ThemeExtension<CognicColors> {
   /// Accent chaud lisible en texte, pour contraster avec le vert.
   final Color terre;
 
+  /// Vert olive vif : navigation active, logo, bouton d'ajout. Porte le
+  /// texte [AppTheme.onAccentFor] (≥ 4,5:1).
+  final Color olive;
+
+  /// Vert sauge des badges de réussite, coches et feuillages secondaires.
+  /// Porte le texte [beige] (le fond), comme [terre] : ≥ 4,5:1 dans les
+  /// deux thèmes.
+  final Color vertSauge;
+
   @override
   CognicColors copyWith({
     Color? vert,
@@ -118,6 +129,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
     Color? onAmbre,
     Color? ambreLip,
     Color? terre,
+    Color? olive,
+    Color? vertSauge,
   }) {
     return CognicColors(
       vert: vert ?? this.vert,
@@ -137,6 +150,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
       onAmbre: onAmbre ?? this.onAmbre,
       ambreLip: ambreLip ?? this.ambreLip,
       terre: terre ?? this.terre,
+      olive: olive ?? this.olive,
+      vertSauge: vertSauge ?? this.vertSauge,
     );
   }
 
@@ -161,6 +176,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
       onAmbre: Color.lerp(onAmbre, other.onAmbre, t)!,
       ambreLip: Color.lerp(ambreLip, other.ambreLip, t)!,
       terre: Color.lerp(terre, other.terre, t)!,
+      olive: Color.lerp(olive, other.olive, t)!,
+      vertSauge: Color.lerp(vertSauge, other.vertSauge, t)!,
     );
   }
 
@@ -188,7 +205,9 @@ class CognicColors extends ThemeExtension<CognicColors> {
           other.ambre == ambre &&
           other.onAmbre == onAmbre &&
           other.ambreLip == ambreLip &&
-          other.terre == terre;
+          other.terre == terre &&
+          other.olive == olive &&
+          other.vertSauge == vertSauge;
 
   @override
   int get hashCode => Object.hash(
@@ -209,6 +228,8 @@ class CognicColors extends ThemeExtension<CognicColors> {
         onAmbre,
         ambreLip,
         terre,
+        olive,
+        vertSauge,
       );
 }
 
@@ -234,31 +255,34 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Direction « Duolingo & végétal » : vert forêt profond sur crème, sauge
-  // doux en surface secondaire, ambre et terre pour contraster, boutons en
-  // relief. Les noms des champs (`vert`, `beige`) sont historiques : ce sont
+  // Direction « Botanique sophistiqué & pleine conscience » : vert forêt
+  // profond (bannières, bouton d'ajout) et sa bande plus sombre, sauge et
+  // écorce pour les réussites, sur parchemin chaud et cartes crème au relief
+  // feutré. Motifs végétaux : `lib/core/ui/botanical_decorations.dart`. Les noms des champs (`vert`, `beige`) sont historiques : ce sont
   // des rôles, plus des teintes.
-  // Texte crème sur l'accent (11,9:1). Contrastes mesurés (WCAG, cf.
+  // Texte crème sur l'accent (12,3:1), sur l'olive (4,8:1). Contrastes mesurés (WCAG, cf.
   // contrast_test) : texte 14:1, secondaire 6:1, accent en texte ≥ 5,5:1.
 
   static const CognicColors _lightColors = CognicColors(
     vert: Color(0xFF083B32),
-    vertDark: Color(0xFF0B6A47),
-    beige: Color(0xFFFFF9EE),
-    beigeDark: Color(0xFFDCE6D3),
+    vertDark: Color(0xFF2D6A4F),
+    beige: Color(0xFFFAF3E6),
+    beigeDark: Color(0xFFEFE7D6),
     textPrimary: Color(0xFF1E2A1A),
     textMuted: Color(0xFF56614F),
     textHint: Color(0xFF646E5E),
     errorColor: Color(0xFFB42D23),
     onVertMuted: Color(0xFFA9D3BF),
     warning: Color(0xFF8A5A12),
-    cardColor: Color(0xFFFFFFFF),
-    vertLip: Color(0xFF011612),
-    sauge: Color(0xFFE4EEDC),
+    cardColor: Color(0xFFFDF9F1),
+    vertLip: Color(0xFF052822),
+    sauge: Color(0xFFEEF1E6),
     ambre: Color(0xFFFFC233),
     onAmbre: Color(0xFF3A2600),
     ambreLip: Color(0xFFD69E00),
-    terre: Color(0xFF8A4B14),
+    terre: Color(0xFF7C4D25),
+    olive: Color(0xFF5F7A38),
+    vertSauge: Color(0xFF3D6A53),
   );
 
   /// Palette sombre : sous-bois (vert presque noir) et surfaces étagées,
@@ -283,6 +307,8 @@ class AppTheme {
     onAmbre: Color(0xFF3A2600),
     ambreLip: Color(0xFFB88A1F),
     terre: Color(0xFFE0A26B),
+    olive: Color(0xFF5F7A38),
+    vertSauge: Color(0xFF7FB99A),
   );
 
   static CognicColors colorsFor(AppThemeVariant variant) => switch (variant) {
@@ -291,10 +317,10 @@ class AppTheme {
       };
 
   /// Texte et icônes posés sur l'accent (boutons, pastilles, dégradés) : le
-  /// crème du fond, dans les deux thèmes (11,9:1 sur le vert forêt, 4,7:1
-  /// sur sa version éclaircie du sombre).
+  /// crème très clair, dans les deux thèmes (12,3:1 sur le vert forêt,
+  /// 4,8:1 sur l'olive, 4,9:1 sur l'accent du sombre).
   static Color onAccentFor(AppThemeVariant variant) =>
-      const Color(0xFFFFF9EE);
+      const Color(0xFFFFFDF9);
 
   /// Dégradé d'accentuation : un aplat (la direction « Duolingo » n'en a
   /// pas), gardé pour les composants qui peignent encore l'accent ainsi.
@@ -459,7 +485,10 @@ class AppTheme {
         focusElevation: 0,
         hoverElevation: 0,
         highlightElevation: 0,
-        shape: control,
+        // « Squircle » : angles continus, plus organiques qu'un cercle.
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.card * 2),
+        ),
       ),
 
       snackBarTheme: SnackBarThemeData(
@@ -508,7 +537,7 @@ class AppTheme {
       // la couleur dédiée, le libellé reste en couleur de texte.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert,
+        indicatorColor: cq.olive,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
@@ -530,7 +559,7 @@ class AppTheme {
 
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.vert,
+        indicatorColor: cq.olive,
         selectedIconTheme: IconThemeData(size: Sizes.iconLg, color: onAccent),
         unselectedIconTheme:
             IconThemeData(size: Sizes.iconLg, color: cq.textMuted),
@@ -647,7 +676,7 @@ class CardChrome {
         )
       : CardChrome(
           border: const BorderSide(
-              color: Color(0xFFDCE6D3), width: Chrome.borderWidth),
+              color: Color(0xFFE5DEC9), width: Chrome.borderWidth),
           shadow: BoxShadow(
             color: const Color(0xFF1E2A1A)
                 .withValues(alpha: Chrome.shadowOpacity),

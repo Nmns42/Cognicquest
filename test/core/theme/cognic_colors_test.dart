@@ -30,6 +30,8 @@ void main() {
     'onAmbre': (c) => c.copyWith(onAmbre: other),
     'ambreLip': (c) => c.copyWith(ambreLip: other),
     'terre': (c) => c.copyWith(terre: other),
+    'olive': (c) => c.copyWith(olive: other),
+    'vertSauge': (c) => c.copyWith(vertSauge: other),
   };
 
   test('deux CognicColors identiques sont égaux et de même hashCode', () {
@@ -59,7 +61,7 @@ void main() {
         .allMatches(source.substring(start, end))
         .map((m) => m.group(1))
         .toSet();
-    expect(declared, hasLength(17));
+    expect(declared, hasLength(19));
     expect(changeOneField.keys.toSet(), declared);
   });
 

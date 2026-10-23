@@ -57,6 +57,38 @@ void main() {
         expect(ratio(cq.onVertMuted, cq.vert), greaterThanOrEqualTo(4.5));
       });
 
+      test("texte sur l'olive (navigation active) ≥ 4,5:1", () {
+        expect(ratio(onAccent, cq.olive), greaterThanOrEqualTo(4.5));
+      });
+
+      // L'olive (navigation, bouton d'ajout) se pose sur le fond ou la carte,
+      // jamais sur la sauge.
+      for (final MapEntry(key: bgName, value: bg) in {
+        'fond': cq.beige,
+        'carte': cq.cardColor,
+      }.entries) {
+        test('olive sur $bgName ≥ 3:1 (indicateur visible)', () {
+          expect(ratio(cq.olive, bg), greaterThanOrEqualTo(3));
+        });
+      }
+
+      test('cases des habitudes : texte sur la face « faite » et sur le sable '
+          '≥ 4,5:1', () {
+        expect(ratio(onAccent, cq.vertLip), greaterThanOrEqualTo(4.5));
+        expect(ratio(cq.textMuted, cq.beigeDark), greaterThanOrEqualTo(4.5));
+      });
+
+      test("pastilles de série et coches : fond de l'app sur la sauge et "
+          "l'écorce ≥ 4,5:1", () {
+        expect(ratio(cq.beige, cq.vertSauge), greaterThanOrEqualTo(4.5));
+        expect(ratio(cq.beige, cq.terre), greaterThanOrEqualTo(4.5));
+      });
+
+      test('bande sombre de la bannière : chiffres et légendes ≥ 4,5:1', () {
+        expect(ratio(onAccent, cq.vertLip), greaterThanOrEqualTo(4.5));
+        expect(ratio(cq.onVertMuted, cq.vertLip), greaterThanOrEqualTo(4.5));
+      });
+
       test("texte sur l'ambre ≥ 4,5:1", () {
         expect(ratio(cq.onAmbre, cq.ambre), greaterThanOrEqualTo(4.5));
       });

@@ -5,6 +5,7 @@
 /// repris en Phase 4 les utilisent à la place de leurs widgets maison.
 library;
 
+export 'botanical_decorations.dart';
 export 'cq_button.dart';
 export 'cq_card.dart';
 export 'cq_chip.dart';

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -67,6 +69,96 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
     }
   }
 
+  /// Largeur à partir de laquelle les habitudes passent en grille, avec le
+  /// panneau « Arbre de détente » à droite.
+  static const double _wideLayoutMin = 900;
+  static const double _panelWidth = 300;
+
+  Widget _tile(List<Habit> habits, int index, {required bool grid}) {
+    final habit = habits[index];
+    final notifier = ref.read(habitProvider.notifier);
+    return _HabitTile(
+      habit: habit,
+      grid: grid,
+      onToggle: () => notifier.toggleToday(habit),
+      onToggleDay: (day) => notifier.toggleOn(habit, day),
+      onEdit: () => _openEditor(habit: habit),
+      onDelete: () => _delete(habit),
+      // En grille, pas de glisser-déposer : on déplace par le menu.
+      onMoveBefore: grid && index > 0
+          ? () => notifier.move(habit.id, index - 1)
+          : null,
+      onMoveAfter: grid && index < habits.length - 1
+          ? () => notifier.move(habit.id, index + 1)
+          : null,
+    );
+  }
+
+  /// Téléphone et écran moyen : liste réordonnable par glisser-déposer (R2).
+  Widget _narrowLayout(List<Habit> habits) {
+    return ReorderableListView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+      physics: const AlwaysScrollableScrollPhysics(),
+      header: Column(
+        children: [
+          _HeroBanner(habits: habits),
+          const SizedBox(height: 20),
+        ],
+      ),
+      buildDefaultDragHandles: false,
+      onReorderItem: (from, to) =>
+          ref.read(habitProvider.notifier).move(habits[from].id, to),
+      children: [
+        for (final (index, habit) in habits.indexed)
+          CqReorderableItem(
+            key: ValueKey(habit.id),
+            index: index,
+            child: _tile(habits, index, grid: false),
+          ),
+      ],
+    );
+  }
+
+  /// Grand écran : bannière et grille de cartes, panneau de détente à
+  /// droite.
+  Widget _wideLayout(List<Habit> habits) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+                Space.xl, Space.xl, Space.lg, Space.xxxl * 2),
+            children: [
+              _HeroBanner(habits: habits),
+              const SizedBox(height: Space.xl),
+              LayoutBuilder(builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 760 ? 3 : 2;
+                final width = (constraints.maxWidth -
+                        Space.lg * (columns - 1)) /
+                    columns;
+                return Wrap(
+                  spacing: Space.lg,
+                  runSpacing: Space.lg,
+                  children: [
+                    for (final (index, habit) in habits.indexed)
+                      SizedBox(
+                        key: ValueKey(habit.id),
+                        width: width,
+                        child: _tile(habits, index, grid: true),
+                      ),
+                  ],
+                );
+              }),
+            ],
+          ),
+        ),
+        SizedBox(width: _panelWidth, child: _MindfulPanel(habits: habits)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final habitsAsync = ref.watch(habitProvider);
@@ -120,38 +212,11 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
           onRefresh: () => ref.read(habitProvider.notifier).refresh(),
           child: habits.isEmpty
               ? const _EmptyHabits()
-              // Glisser-déposer pour réordonner (R2), synchronisé.
-              : ReorderableListView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  header: Column(
-                    children: [
-                      _SummaryHeader(habits: habits),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                  buildDefaultDragHandles: false,
-                  onReorderItem: (from, to) => ref
-                      .read(habitProvider.notifier)
-                      .move(habits[from].id, to),
-                  children: [
-                    for (final (index, habit) in habits.indexed)
-                      CqReorderableItem(
-                        key: ValueKey(habit.id),
-                        index: index,
-                        child: _HabitTile(
-                          habit: habit,
-                          onToggle: () => ref
-                              .read(habitProvider.notifier)
-                              .toggleToday(habit),
-                          onToggleDay: (day) => ref
-                              .read(habitProvider.notifier)
-                              .toggleOn(habit, day),
-                          onEdit: () => _openEditor(habit: habit),
-                          onDelete: () => _delete(habit),
-                        ),
-                      ),
-                  ],
+              : LayoutBuilder(
+                  builder: (context, constraints) =>
+                      constraints.maxWidth >= _wideLayoutMin
+                          ? _wideLayout(habits)
+                          : _narrowLayout(habits),
                 ),
         ),
       ),
@@ -165,101 +230,292 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
   }
 }
 
-// ─── En-tête de synthèse ────────────────────────────────────────────────────
+// ─── Bannière ───────────────────────────────────────────────────────────────
 
-class _SummaryHeader extends StatelessWidget {
-  const _SummaryHeader({required this.habits});
+/// Bannière bi-ton : le bilan sur le vert forêt, un bouquet de feuillage à
+/// droite, et une bande plus sombre de trois chiffres séparés par des
+/// filets.
+class _HeroBanner extends StatelessWidget {
+  const _HeroBanner({required this.habits});
 
   final List<Habit> habits;
 
+  /// En dessous, le feuillage gênerait la lecture du titre : il disparaît.
+  static const double _foliageMin = 520;
+
   @override
   Widget build(BuildContext context) {
+    final cq = context.cq;
     final doneToday = habits.where((h) => h.completedToday).length;
+    final allDone = doneToday == habits.length;
     final bestStreak =
         habits.fold<int>(0, (best, h) => h.streak > best ? h.streak : best);
-    final averageConsistency = habits.isEmpty
-        ? 0.0
-        : habits.map((h) => h.successRateLast30Days).reduce((a, b) => a + b) /
-            habits.length;
+    final averageConsistency = _averageConsistency(habits);
+    final radius = BorderRadius.circular(Radii.card);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: context.cq.vert,
-        borderRadius: BorderRadius.circular(Radii.card),
+        borderRadius: radius,
+        boxShadow: [context.chrome.shadow],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$doneToday / ${habits.length} à jour',
-            style: TextStyle(
-              color: context.onAccent,
-              fontSize: TypeScale.headline,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            doneToday == habits.length
-                ? 'Tout est validé pour la période en cours. Belle constance.'
-                : 'Encore ${habits.length - doneToday} à valider '
-                    '(jour, semaine ou mois selon l\'habitude).',
-            style: TextStyle(
-                color: context.cq.onVertMuted, fontSize: TypeScale.body),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            // Flexible : à 200 % de texte, les deux stats passent à la ligne
-            // au lieu de déborder.
+      child: ClipRRect(
+        borderRadius: radius,
+        child: ColoredBox(
+          color: cq.vert,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Flexible(
-                child: _MiniStat(
-                  // Séries en jours, semaines ou mois : pas d'unité commune.
-                  label: 'Meilleure série en cours',
-                  value: '$bestStreak',
-                ),
-              ),
-              const SizedBox(width: 24),
-              Flexible(
-                child: _MiniStat(
-                  label: 'Régularité récente',
-                  value: '${(averageConsistency * 100).round()} %',
+              LayoutBuilder(builder: (context, constraints) {
+                final foliage = constraints.maxWidth >= _foliageMin;
+                final foliageWidth = math.min(constraints.maxWidth * 0.4, 300.0);
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                      minHeight: foliage ? Space.xxxl * 3.5 : 0),
+                  child: Stack(
+                    children: [
+                      if (foliage)
+                        Positioned(
+                          right: Space.lg,
+                          top: Space.md,
+                          bottom: 0,
+                          width: foliageWidth,
+                          child: const HeroFoliageOverlay(),
+                        ),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(Space.xl, Space.xl,
+                            foliage ? foliageWidth + Space.xl : Space.xl,
+                            Space.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$doneToday / ${habits.length} à jour —\n'
+                              '${allDone ? 'Belle constance !' : 'Continue sur ta lancée !'}',
+                              style: TextStyle(
+                                color: context.onAccent,
+                                fontSize: TypeScale.headline,
+                                fontWeight: FontWeight.w700,
+                                height: TypeScale.titleHeight,
+                                letterSpacing: TypeScale.tracking(
+                                    TypeScale.headline, TypeScale.titleEm),
+                              ),
+                            ),
+                            const SizedBox(height: Space.sm),
+                            Text(
+                              allDone
+                                  ? 'Tout est validé pour la période en cours.'
+                                  : 'Encore ${habits.length - doneToday} à '
+                                      "valider (jour, semaine ou mois selon "
+                                      "l'habitude).",
+                              style: TextStyle(
+                                  color: cq.onVertMuted,
+                                  fontSize: TypeScale.body),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              ColoredBox(
+                color: cq.vertLip,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: Space.xl, vertical: Space.lg),
+                  child: _HeroStats(
+                    stats: [
+                      _HeroStat(
+                        leading: const LaurelStreakBadge(),
+                        // Séries en jours, semaines ou mois : pas d'unité
+                        // commune.
+                        value: '$bestStreak',
+                        label: 'Meilleure série en cours',
+                      ),
+                      _HeroStat(
+                        value: '${(averageConsistency * 100).round()} %',
+                        label: 'Régularité récente',
+                      ),
+                      _HeroStat(
+                        value: '${habits.length}',
+                        label: 'Habitudes suivies',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value});
+double _averageConsistency(List<Habit> habits) => habits.isEmpty
+    ? 0.0
+    : habits.map((h) => h.successRateLast30Days).reduce((a, b) => a + b) /
+        habits.length;
 
-  final String label;
-  final String value;
+/// Chiffres de la bande sombre : en colonnes séparées de filets verticaux,
+/// ou empilés sur un écran étroit (et à 200 % de texte).
+class _HeroStats extends StatelessWidget {
+  const _HeroStats({required this.stats});
+
+  final List<_HeroStat> stats;
+
+  static const double _columnsMin = 560;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final rule = context.cq.onVertMuted.withValues(alpha: 0.3);
+    return LayoutBuilder(builder: (context, constraints) {
+      if (constraints.maxWidth < _columnsMin) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, stat) in stats.indexed) ...[
+              if (i > 0)
+                Divider(
+                    height: Space.lg, thickness: Borders.thin, color: rule),
+              stat,
+            ],
+          ],
+        );
+      }
+      return IntrinsicHeight(
+        child: Row(
+          children: [
+            for (final (i, stat) in stats.indexed) ...[
+              if (i > 0)
+                VerticalDivider(
+                    width: Space.xl, thickness: Borders.thin, color: rule),
+              Expanded(child: stat),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({required this.value, required this.label, this.leading});
+
+  final String value;
+  final String label;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            color: context.onAccent,
-            fontSize: TypeScale.title,
-            fontWeight: FontWeight.w700,
+        if (leading != null) ...[leading!, const SizedBox(width: Space.md)],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: context.onAccent,
+                  fontSize: TypeScale.title,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                    color: context.cq.onVertMuted,
+                    fontSize: TypeScale.caption),
+              ),
+            ],
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-              color: context.cq.onVertMuted, fontSize: TypeScale.caption),
-        ),
       ],
+    );
+  }
+}
+
+// ─── Panneau « Arbre de détente » ───────────────────────────────────────────
+
+/// Panneau latéral (grand écran) : l'arbre compagnon, qui grandit avec la
+/// régularité, et des rappels métacognitifs.
+class _MindfulPanel extends StatelessWidget {
+  const _MindfulPanel({required this.habits});
+
+  final List<Habit> habits;
+
+  static const List<(IconData, String)> _reminders = [
+    (Icons.self_improvement_outlined,
+        'Avant de commencer, pose une intention claire pour la séance.'),
+    (Icons.psychology_alt_outlined,
+        "Qu'est-ce qui t'a aidé hier ? Refais-le aujourd'hui."),
+    (Icons.spa_outlined,
+        "Une pause de 5 minutes consolide ce que tu viens d'apprendre."),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    final growth = _averageConsistency(habits);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(0, Space.xl, Space.xl, Space.xl),
+      child: DecoratedBox(
+        decoration:
+            context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
+        child: Padding(
+          padding: const EdgeInsets.all(Space.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Arbre de détente',
+                  style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: Space.sm),
+              AspectRatio(
+                aspectRatio: 1,
+                child: MindfulTreeIllustration(growth: growth),
+              ),
+              Text(
+                'Il grandit avec ta régularité : '
+                '${(growth * 100).round()} % sur 30 jours.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: TypeScale.caption, color: cq.textMuted),
+              ),
+              const SizedBox(height: Space.lg),
+              for (final (icon, text) in _reminders)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Space.sm),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: cq.sauge,
+                      borderRadius: BorderRadius.circular(Radii.md),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(Space.md),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
+                          const SizedBox(width: Space.sm),
+                          Expanded(
+                            child: Text(
+                              text,
+                              style: TextStyle(
+                                  fontSize: TypeScale.caption,
+                                  color: cq.textPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -273,6 +529,9 @@ class _HabitTile extends StatelessWidget {
     required this.onToggleDay,
     required this.onEdit,
     required this.onDelete,
+    this.grid = false,
+    this.onMoveBefore,
+    this.onMoveAfter,
   });
 
   final Habit habit;
@@ -280,6 +539,13 @@ class _HabitTile extends StatelessWidget {
   final ValueChanged<DateTime> onToggleDay;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+
+  /// Carte d'une grille : pas de marge basse (la grille espace les cartes).
+  final bool grid;
+
+  /// Déplacement par le menu (grille, sans glisser-déposer).
+  final VoidCallback? onMoveBefore;
+  final VoidCallback? onMoveAfter;
 
   static const List<String> _dayInitials = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   static const List<String> _dayNames = [
@@ -314,6 +580,8 @@ class _HabitTile extends StatelessWidget {
               _PeriodCell(
                 label: _dayInitials[i],
                 semanticLabel: _dayNames[i],
+                index: i,
+                checkWhenDone: true,
                 done: habit.isCompletedOn(day),
                 isCurrent: day == today,
                 onTap: day.isAfter(today) ? null : () => onToggleDay(day),
@@ -331,6 +599,7 @@ class _HabitTile extends StatelessWidget {
           [
             for (var week = 1; week <= 4; week++)
               _PeriodCell(
+                index: week - 1,
                 label: 'Sem. $week',
                 semanticLabel: 'Semaine $week du mois',
                 done: done[week - 1],
@@ -352,6 +621,7 @@ class _HabitTile extends StatelessWidget {
           [
             for (var month = 1; month <= 12; month++)
               _PeriodCell(
+                index: month - 1,
                 label: _monthInitials[month - 1],
                 semanticLabel: _monthNames[month - 1],
                 done: done[month - 1],
@@ -371,8 +641,9 @@ class _HabitTile extends StatelessWidget {
     final isDone = habit.completedToday;
     final (cells, total) = _periodCells(DateTime.now());
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    // Carte crème au relief feutré : ombre portée douce sous la `Card`.
+    final card = Card(
+      margin: EdgeInsets.zero,
       shape: context.cardShape,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
@@ -401,10 +672,11 @@ class _HabitTile extends StatelessWidget {
                           color: isDone ? context.cq.vert : Colors.transparent,
                           border: Border.all(
                             color:
-                                isDone ? context.cq.vert : context.cq.beigeDark,
+                                isDone ? context.cq.vert : context.cq.textHint,
                             width: 2,
                           ),
-                          borderRadius: BorderRadius.circular(Radii.md),
+                          // Case ronde, comme la maquette.
+                          shape: BoxShape.circle,
                         ),
                         child: isDone
                             ? Icon(Icons.check,
@@ -440,28 +712,35 @@ class _HabitTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                // La série monte d'un cran. Toujours dans l'arbre (vide à
-                // zéro) pour que le passage de 0 à 1 soit animé aussi.
+                // Pastille de série, en haut à droite : sauge si l'habitude
+                // est à jour, écorce sinon. Le chiffre monte d'un cran.
                 RollingNumber(
                   value: habit.streak,
-                  builder: (context, streak) => streak == 0
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: CqStreakBadge(
-                            label: '🔥 $streak ${habit.frequency.shortUnit}',
-                          ),
-                        ),
+                  builder: (context, streak) => _ScoreBadge(
+                    value: streak,
+                    unit: habit.frequency.shortUnit,
+                    upToDate: isDone,
+                  ),
                 ),
                 PopupMenuButton<String>(
                   popUpAnimationStyle: Motion.style(context),
                   tooltip: 'Options',
                   icon: Icon(Icons.more_vert,
                       size: 18, color: context.cq.textMuted),
-                  onSelected: (value) =>
-                      value == 'edit' ? onEdit() : onDelete(),
+                  onSelected: (value) => switch (value) {
+                    'edit' => onEdit(),
+                    'before' => onMoveBefore?.call(),
+                    'after' => onMoveAfter?.call(),
+                    _ => onDelete(),
+                  },
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                    if (onMoveBefore != null)
+                      const PopupMenuItem(
+                          value: 'before', child: Text('Déplacer avant')),
+                    if (onMoveAfter != null)
+                      const PopupMenuItem(
+                          value: 'after', child: Text('Déplacer après')),
                     PopupMenuItem(
                       value: 'delete',
                       child: Text('Supprimer',
@@ -474,37 +753,88 @@ class _HabitTile extends StatelessWidget {
             const SizedBox(height: 10),
             // Tableau de progression — CdC : « cases cochées par jour » —
             // adapté à la fréquence (jours, semaines du mois ou mois).
+            // Cases sur toute la largeur, total dessous : les cases gardent
+            // leur taille sur un téléphone et dans une carte de grille.
             Padding(
-              padding: const EdgeInsets.only(left: 36, right: 8),
-              child: Row(
+              padding: EdgeInsets.only(left: grid ? Space.xs : 36, right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sur un écran étroit (≤ 390 px) ou à 200 % de texte, les
-                  // cases rétrécissent au lieu de déborder.
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Row(children: cells),
-                    ),
+                  // À 200 % de texte ou sur un écran très étroit, les cases
+                  // rétrécissent au lieu de déborder.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(children: cells),
                   ),
-                  const SizedBox(width: Space.xs),
-                  // Flexible : à 200 % de texte, le total passe à la ligne
-                  // au lieu de pousser les cases hors de l'écran.
-                  Flexible(
-                    child: Text(
+                  const SizedBox(height: Space.xs),
+                  Text(
                     total,
-                    textAlign: TextAlign.end,
                     style: TextStyle(
                       fontSize: TypeScale.caption,
                       color: context.cq.textMuted,
                       fontWeight: FontWeight.w600,
-                    ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: grid ? 0 : Space.md),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Radii.card),
+          boxShadow: [context.chrome.shadow],
+        ),
+        child: card,
+      ),
+    );
+  }
+}
+
+/// Pastille circulaire de la série en cours.
+class _ScoreBadge extends StatelessWidget {
+  const _ScoreBadge({
+    required this.value,
+    required this.unit,
+    required this.upToDate,
+  });
+
+  final int value;
+  final String unit;
+  final bool upToDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Semantics(
+      label: 'Série : $value $unit',
+      excludeSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(
+            minWidth: Sizes.iconXl + Space.xs, minHeight: Sizes.iconXl + Space.xs),
+        padding: const EdgeInsets.symmetric(horizontal: Space.xs),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: upToDate ? cq.vertSauge : cq.terre,
+          // Cercle pour un ou deux chiffres, pastille au-delà.
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(
+              color: cq.beige.withValues(alpha: 0.5), width: Borders.focus),
+        ),
+        child: Text(
+          '$value',
+          style: TextStyle(
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w700,
+            // Le fond de l'app tient ≥ 4,5:1 sur la sauge et l'écorce.
+            color: cq.beige,
+          ),
         ),
       ),
     );
@@ -520,12 +850,20 @@ class _PeriodCell extends StatelessWidget {
     required this.done,
     required this.isCurrent,
     required this.onTap,
+    required this.index,
+    this.checkWhenDone = false,
   });
 
   final String label;
   final String semanticLabel;
   final bool done;
   final bool isCurrent;
+
+  /// Rang dans la rangée : les cases faites alternent sauge et écorce.
+  final int index;
+
+  /// Case faite : une coche au lieu du libellé (jours).
+  final bool checkWhenDone;
 
   /// `null` pour une période à venir.
   final VoidCallback? onTap;
@@ -550,24 +888,34 @@ class _PeriodCell extends StatelessWidget {
             height: 26,
             padding: const EdgeInsets.symmetric(horizontal: 6),
             alignment: Alignment.center,
+            // Pastille (semaines, mois) ou cercle (jours) : fait en vert
+            // profond, à faire en sable, période en cours en kaki cerclé.
             decoration: BoxDecoration(
               color: done
-                  ? context.cq.vert
-                  : context.cq.beigeDark
-                      .withValues(alpha: upcoming ? 0.25 : 0.6),
-              borderRadius: BorderRadius.circular(Radii.md),
+                  ? (index.isOdd ? context.cq.terre : context.cq.vertSauge)
+                  : (isCurrent
+                      ? context.cq.textHint.withValues(alpha: 0.3)
+                      : context.cq.beigeDark
+                          .withValues(alpha: upcoming ? 0.5 : 1)),
+              borderRadius: BorderRadius.circular(Radii.card),
               border: isCurrent
-                  ? Border.all(color: context.cq.vertDark, width: 1.6)
+                  ? Border.all(color: context.cq.vertLip, width: Borders.focus)
                   : null,
             ),
-            child: Text(
+            child: done && checkWhenDone
+                ? Icon(Icons.check, size: Sizes.iconSm, color: context.cq.beige)
+                : Text(
               label,
               style: TextStyle(
                 fontSize: TypeScale.caption,
                 fontWeight: FontWeight.w600,
                 color: done
-                    ? context.onAccent
-                    : (upcoming ? context.cq.textHint : context.cq.textMuted),
+                    ? context.cq.beige
+                    : (isCurrent
+                        ? context.cq.textPrimary
+                        : (upcoming
+                            ? context.cq.textHint
+                            : context.cq.textMuted)),
               ),
             ),
           ),

@@ -2,47 +2,18 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import 'botanical_decorations.dart';
 
-/// Fond de l'application : le gris clair du thème et, dans les marges, des
-/// rameaux, de l'eucalyptus et quelques feuilles au trait, à peine visibles.
-///
-/// Un rappel du végétal pour apaiser l'œil, jamais un motif qui attire le
-/// regard : traits fins, opacité très basse, aucun mouvement. Peint une seule
-/// fois sous toutes les pages (les `Scaffold` sont transparents), et isolé
-/// dans sa propre couche de rendu pour ne pas être redessiné à chaque image.
+/// Fond de l'application : délègue aux filigranes botaniques
+/// ([BotanicalWatermarkBackground]). Gardé sous ce nom pour le Shell.
 class ZenBackground extends StatelessWidget {
   const ZenBackground({super.key, required this.child});
 
   final Widget child;
 
-  /// Opacité du trait : sous le seuil où il ferait concurrence au texte.
-  static const double inkOpacity = 0.035;
-
   @override
-  Widget build(BuildContext context) {
-    final cq = context.cq;
-    return ColoredBox(
-      color: cq.beige,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          RepaintBoundary(
-            child: IgnorePointer(
-              child: ExcludeSemantics(
-                child: CustomPaint(
-                  painter: LeafPainter(
-                    color: cq.textPrimary.withValues(alpha: inkOpacity),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      BotanicalWatermarkBackground(child: child);
 }
 
 /// Feuilles d'eucalyptus et de sauge au trait, en haut à droite et en bas à

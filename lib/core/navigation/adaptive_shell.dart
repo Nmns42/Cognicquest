@@ -333,7 +333,7 @@ class _SectionTab extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? context.cq.vert : Colors.transparent,
+        color: selected ? context.cq.olive : Colors.transparent,
         shape: const StadiumBorder(),
         child: InkWell(
           customBorder: const StadiumBorder(),
@@ -414,7 +414,7 @@ class _RailHeader extends StatelessWidget {
             width: Space.xxl,
             height: Space.xxl,
             decoration: BoxDecoration(
-              color: context.cq.vert,
+              color: context.cq.olive,
               borderRadius: BorderRadius.circular(Radii.sm),
             ),
             child: Icon(Icons.psychology_outlined,
