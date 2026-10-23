@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cognicquest/core/config/app_config.dart';
 import 'package:cognicquest/core/database/app_database.dart';
 import 'package:cognicquest/core/theme/app_theme.dart';
+import 'package:cognicquest/core/theme/tokens.dart';
 import 'package:cognicquest/features/auth/providers/auth_provider.dart';
 import 'package:cognicquest/features/dashboard/views/dashboard_page.dart';
 import 'package:cognicquest/features/dev/demo_seed.dart';
@@ -29,18 +30,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// Chaque écran est monté sur une base en mémoire remplie avec le jeu de
 /// démo, hors ligne, puis affiché à 4 tailles d'écran × 3 tailles de texte.
-/// Charge la vraie police Roboto depuis le SDK Flutter. La police par défaut
-/// des tests (« Ahem », un carré plein par caractère) est bien plus large et
-/// haute qu'un vrai texte : elle inventerait des débordements et en
-/// masquerait d'autres.
-Future<void> _loadRoboto() async {
-  final root = Platform.environment['FLUTTER_ROOT'];
-  if (root == null) return;
-  final dir = '$root/bin/cache/artifacts/material_fonts';
-  final loader = FontLoader('Roboto');
-  for (final weight in ['regular', 'medium', 'bold']) {
-    final file = File('$dir/roboto-$weight.ttf');
-    if (!file.existsSync()) return;
+/// Charge la police de l'application (Plus Jakarta Sans, versionnée dans
+/// `assets/`). La police par défaut des tests (« Ahem », un carré plein par
+/// caractère) est bien plus large et haute qu'un vrai texte : elle
+/// inventerait des débordements et en masquerait d'autres. Un fichier
+/// manquant fait donc échouer le test au lieu d'y retomber en silence.
+Future<void> _loadAppFont() async {
+  final loader = FontLoader(appFontFamily);
+  for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
+    final file = File('assets/fonts/plus_jakarta_sans/PlusJakartaSans-$weight.ttf');
+    if (!file.existsSync()) {
+      throw StateError('Police introuvable : ${file.path}');
+    }
     loader.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
   }
   await loader.load();
@@ -64,7 +65,7 @@ Future<void> _scrollToEnd(WidgetTester tester) async {
 }
 
 void main() {
-  setUpAll(_loadRoboto);
+  setUpAll(_loadAppFont);
 
   const sizes = [
     Size(320, 640),
@@ -134,7 +135,7 @@ void main() {
               child: MaterialApp.router(
                 theme: AppTheme.light.copyWith(
                   textTheme:
-                      AppTheme.light.textTheme.apply(fontFamily: 'Roboto'),
+                      AppTheme.light.textTheme.apply(fontFamily: appFontFamily),
                 ),
                 routerConfig: GoRouter(routes: [
                   GoRoute(path: '/', builder: (_, __) => screen()),
@@ -143,7 +144,7 @@ void main() {
                   data: MediaQuery.of(context)
                       .copyWith(textScaler: TextScaler.linear(scale)),
                   child: DefaultTextStyle.merge(
-                    style: const TextStyle(fontFamily: 'Roboto'),
+                    style: const TextStyle(fontFamily: appFontFamily),
                     child: child!,
                   ),
                 ),
