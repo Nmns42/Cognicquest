@@ -100,10 +100,9 @@ Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 
 ## 8. Dette connue / prochaines étapes
 
-1. **Recette e2e cassée** (`test/e2e/mvp_flow_test.dart`) depuis le nouvel
-   éditeur : le menu « / » n'a plus d'entrée « Titre », et une erreur
-   « Cannot use "ref" after the widget was disposed » survient. À réparer
-   puis réintégrer à la CI.
+1. **CI rouge sous Linux** : 7 tests échouent sur `ubuntu-latest` alors
+   qu'ils passent sous Windows (journaux à lire sur GitHub Actions). Ensuite,
+   réintégrer la recette e2e (réparée le 2026-10-23) à la CI.
 2. Découper les fichiers géants : `notes/widgets/folder_explorer.dart`
    (1 333 l.), `kanban/views/kanban_page.dart` (1 025 l.).
 3. Tests widget pour kanban, habits, planning, review (1 fichier chacun).

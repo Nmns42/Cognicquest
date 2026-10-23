@@ -156,7 +156,7 @@ void main() {
       final content = fields.at(1);
       await tester.enterText(content, '/');
       await settle(tester);
-      await tester.tap(find.text('Titre').last);
+      await tester.tap(find.text('Titre 1').last);
       await settle(tester);
       expect(tester.widget<TextField>(content).controller!.text, '# ');
 
@@ -172,10 +172,16 @@ void main() {
       expect(tester.widget<TextField>(content).controller!.text,
           '# Cardio [[Chapitre 2 – Dérivées]]');
 
+      // Sortie immédiate après une frappe (avant l'autosave de 600 ms) :
+      // l'écriture forcée à la fermeture ne doit ni planter ni la perdre.
+      await tester.enterText(content, '# Cardio [[Chapitre 2 – Dérivées]] fin');
       await tester.pageBack();
       await wait(tester, 500);
+      expect(tester.takeException(), isNull);
       final notes = await db.select(db.localNotes).get();
       final source = notes.firstWhere((n) => n.title == 'Fiche recette');
+      expect(source.content, endsWith(' fin'),
+          reason: 'la dernière frappe est enregistrée à la fermeture');
       final target = notes.firstWhere((n) => n.title == 'Chapitre 2 – Dérivées');
       final links = await db.select(db.localNoteLinks).get();
       expect(
@@ -194,7 +200,9 @@ void main() {
       final recetteCard = find.ancestor(
           of: find.text('Fiche recette'), matching: find.byType(Card));
       await tester.tap(find.descendant(
-          of: recetteCard, matching: find.byTooltip('Ranger dans un dossier')));
+          of: recetteCard, matching: find.byTooltip('Actions de la fiche')));
+      await settle(tester);
+      await tester.tap(find.text('Déplacer vers…'));
       await settle(tester);
       await tester.tap(find.text('Cardiologie').last);
       await wait(tester);

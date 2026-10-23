@@ -50,10 +50,16 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   Note? _draft;
 
   @override
-  void dispose() {
+  void deactivate() {
     // Un départ d'écran ne doit jamais perdre la frappe des dernières
-    // secondes : on force l'écriture avant de libérer les contrôleurs.
+    // secondes : on force l'écriture ici, car `ref` n'est plus utilisable
+    // dans `dispose`.
     if (_hasUnsavedEdits) _persist();
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
     _autosave?.cancel();
     _titleController.dispose();
     _contentController.dispose();
