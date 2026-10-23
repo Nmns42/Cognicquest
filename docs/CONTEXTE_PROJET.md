@@ -123,7 +123,8 @@ positions absolues).
 | 2026-10-23 | Direction « Botanique » : palette forêt / sauge / écorce / parchemin, motifs vectoriels, Habitudes (bannière bi-ton, grille ≥ 900 px, panneau « Arbre de détente »), fond du Shell | Fait |
 | 2026-10-23 | Tableau de bord botanique : bannière d'accueil bi-ton, pastilles rondes sauge / écorce, panneau « Arbre de détente » ≥ 900 px ; composants communs `lib/core/ui/botanical_hero.dart` | Remplacé |
 | 2026-10-23 | Pivot « SaaS pro / éditorial » : serif + chiffres tabulaires, palette minéral & papier, navigation à barre active, Tableau de bord « bento » (`dashboard_bento.dart`) | Fait |
-| 2026-10-23 | Fraunces, fond #FAF8F5, vert forêt réservé aux actions et à la barre active (sélections en aplat pierre, jauges / coches en sauge, échéances en écorce), carte Révisions blanche | Fait ; écrans de la maquette SVG à reprendre un par un |
+| 2026-10-23 | Fraunces, fond #FAF8F5, vert forêt réservé aux actions et à la barre active (sélections en aplat pierre, jauges / coches en sauge, échéances en écorce), carte Révisions blanche | Fait |
+| 2026-10-23 | Écrans de la maquette SVG : Pomodoro (minuteur Fraunces fin, anneau fin, tuiles compactes), Fiches (liste dense façon Notion, recherche blanche, badges sauge / écorce) | Fait ; Révisions, Graphe, Kanban, Planification, Journal, Réglages à reprendre |
 
 Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 `flutter analyze` sans problème.

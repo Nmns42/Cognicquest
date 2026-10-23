@@ -7,6 +7,7 @@ import 'package:cognicquest/features/auth/providers/auth_provider.dart';
 import 'package:cognicquest/features/dashboard/models/dashboard_module.dart';
 import 'package:cognicquest/features/dashboard/providers/dashboard_layout_provider.dart';
 import 'package:cognicquest/features/kanban/providers/task_provider.dart';
+import 'package:cognicquest/features/notes/widgets/folder_explorer.dart';
 import 'package:cognicquest/main.dart';
 import 'package:cognicquest/shared/models/task_model.dart';
 import 'package:drift/native.dart';
@@ -198,7 +199,8 @@ void main() {
       await tester.tap(find.text('Valider'));
       await wait(tester);
       final recetteCard = find.ancestor(
-          of: find.text('Fiche recette'), matching: find.byType(Card));
+          of: find.text('Fiche recette'),
+          matching: find.byType(ExplorerItemShell));
       await tester.tap(find.descendant(
           of: recetteCard, matching: find.byTooltip('Actions de la fiche')));
       await settle(tester);

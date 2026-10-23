@@ -93,6 +93,7 @@ class _NotesPageState extends ConsumerState<NotesPage> {
 
     return Scaffold(
       appBar: AppBar(
+        title: const Text("Fiches d'apprentissage"),
         actions: [
           if (pendingSync > 0)
             Padding(
@@ -186,7 +187,8 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                       // ni filtre (cf. canReorderNotesProvider).
                       child: canReorder
                           ? ReorderableListView.builder(
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                              padding: const EdgeInsets.fromLTRB(
+                                  Space.xl, Space.xs, Space.xl, Space.xxxl * 2),
                               physics: const AlwaysScrollableScrollPhysics(),
                               buildDefaultDragHandles: false,
                               header: folderRows,
@@ -205,13 +207,14 @@ class _NotesPageState extends ConsumerState<NotesPage> {
                               ),
                             )
                           : ListView(
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 96),
+                              padding: const EdgeInsets.fromLTRB(
+                                  Space.xl, Space.xs, Space.xl, Space.xxxl * 2),
                               physics: const AlwaysScrollableScrollPhysics(),
                               children: [
                                 folderRows,
                                 for (final note in notes) _NoteCard(note: note),
                                 if (cardsHere.isNotEmpty) ...[
-                                  const SizedBox(height: Space.lg),
+                                  const SizedBox(height: Space.xl),
                                   for (final card in cardsHere)
                                     _FolderCardRow(card: card),
                                 ],
@@ -252,11 +255,14 @@ class _NotesPageState extends ConsumerState<NotesPage> {
   }
 }
 
+/// Largeur de ligne sous laquelle la date passe sous le titre d'une fiche.
+const double _compactRowMax = 520;
+
 /// Largeur à partir de laquelle l'arborescence s'affiche à côté du contenu.
 const double _explorerWideMin = 840;
 const double _explorerPaneWidth = 264;
 
-/// Carte de révision rangée dans le dossier ouvert.
+/// Carte de révision rangée dans le dossier ouvert : ligne dense.
 class _FolderCardRow extends ConsumerWidget {
   const _FolderCardRow({required this.card});
 
@@ -264,25 +270,91 @@ class _FolderCardRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Space.sm),
-      child: CqCard(
-        padding: EdgeInsets.zero,
-        child: CqListRow(
-          title: card.front,
-          subtitle: card.back,
-          leadingIcon: Icons.style_outlined,
-          trailing: IconButton(
-            tooltip: 'Ranger dans un dossier',
-            icon: Icon(Icons.drive_file_move_outline,
-                size: Sizes.iconSm, color: context.cq.textMuted),
-            onPressed: () async {
-              final choice = await pickFolder(context, ref);
-              if (choice == null) return;
-              await ref
-                  .read(folderActionsProvider)
-                  .moveCard(card.id, choice.$2);
-            },
+    return _DenseRow(
+      icon: Icons.style_outlined,
+      title: card.front,
+      subtitle: card.back,
+      trailing: IconButton(
+        tooltip: 'Ranger dans un dossier',
+        visualDensity: VisualDensity.compact,
+        icon: Icon(Icons.drive_file_move_outline,
+            size: Sizes.iconSm, color: context.cq.textMuted),
+        onPressed: () async {
+          final choice = await pickFolder(context, ref);
+          if (choice == null) return;
+          await ref.read(folderActionsProvider).moveCard(card.id, choice.$2);
+        },
+      ),
+    );
+  }
+}
+
+/// Ligne de liste façon Notion : posée sur le fond, filet d'un pixel
+/// dessous, aplat discret au survol. Icône linéaire, titre, sous-titre en
+/// écorce.
+class _DenseRow extends StatelessWidget {
+  const _DenseRow({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: cq.beigeDark)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: cq.sauge,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Space.sm, vertical: Space.sm),
+            child: Row(
+              children: [
+                Icon(icon, size: Sizes.iconMd, color: cq.textMuted),
+                const SizedBox(width: Space.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: TypeScale.body,
+                          fontWeight: FontWeight.w600,
+                          color: cq.textPrimary,
+                        ),
+                      ),
+                      if (subtitle != null && subtitle!.isNotEmpty)
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: TypeScale.caption, color: cq.terre),
+                        ),
+                    ],
+                  ),
+                ),
+                if (trailing != null) trailing!,
+              ],
+            ),
           ),
         ),
       ),
@@ -303,15 +375,28 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cq = context.cq;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(Radii.sm),
+      borderSide: BorderSide(color: cq.beigeDark),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      padding: const EdgeInsets.fromLTRB(Space.xl, Space.xs, Space.xl, Space.md),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           hintText: 'Rechercher un titre, un tag, un mot…',
-          prefixIcon: const Icon(Icons.search, size: 20),
+          // Champ blanc et net, filet d'un pixel (pas d'aplat teinté).
+          filled: true,
+          fillColor: cq.cardColor,
+          isDense: true,
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border.copyWith(
+              borderSide: BorderSide(color: cq.vertSauge, width: Borders.focus)),
+          prefixIcon: Icon(Icons.search, size: Sizes.iconMd, color: cq.textHint),
           suffixIcon: ValueListenableBuilder(
             valueListenable: controller,
             builder: (context, value, _) => value.text.isEmpty
@@ -405,7 +490,7 @@ class _ActiveFilterChips extends ConsumerWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.symmetric(horizontal: Space.xl),
         children: [
           if (filter.subject != null)
             _Chip(
@@ -447,10 +532,14 @@ class _Chip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: InputChip(
-        label: Text(label, style: const TextStyle(fontSize: TypeScale.caption)),
+        label: Text(label,
+            style: TextStyle(
+                fontSize: TypeScale.caption,
+                fontWeight: FontWeight.w600,
+                color: context.cq.vertSauge)),
         onDeleted: onRemove,
-        deleteIcon: const Icon(Icons.close, size: 14),
-        backgroundColor: context.cq.vertSauge.withValues(alpha: 0.1),
+        deleteIcon: Icon(Icons.close, size: 14, color: context.cq.vertSauge),
+        backgroundColor: context.cq.sauge,
         side: BorderSide(color: context.cq.beigeDark),
         visualDensity: VisualDensity.compact,
       ),
@@ -512,127 +601,154 @@ class _NoteCard extends ConsumerWidget {
 
   Widget _card(
       BuildContext context, WidgetRef ref, NoteImportance importance) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+    final cq = context.cq;
+    return LayoutBuilder(builder: (context, box) {
+    // Écran étroit : date et état de synchronisation passent sous le titre,
+    // qui garde toute la largeur.
+    final compact = box.maxWidth < _compactRowMax;
+    final date = Text(
+      _dateLabel,
+      style: TextStyle(
+        fontSize: TypeScale.caption,
+        color: cq.textMuted,
+        fontFeatures: TypeScale.tabular,
+      ),
+    );
+    final unsynced =
+        Icon(Icons.cloud_queue, size: Sizes.iconSm, color: cq.textHint);
+    return DecoratedBox(
+      // Ligne façon Notion : filet d'un pixel, pas de carte.
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: cq.beigeDark)),
+      ),
       child: InkWell(
         onTap: () => context.push('${AppRoute.notes}/${note.id}'),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        hoverColor: cq.sauge,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-          child: Column(
+          padding: const EdgeInsets.fromLTRB(
+              Space.sm, Space.md, Space.xs, Space.md),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (importance == NoteImportance.essential)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3, right: 6),
-                      child: Icon(Icons.priority_high,
-                          size: 14, color: context.cq.errorColor),
-                    ),
-                  Expanded(
-                    child: Text(
+              Padding(
+                padding: const EdgeInsets.only(top: Space.xs / 2),
+                child: Icon(
+                  importance == NoteImportance.essential
+                      ? Icons.priority_high
+                      : Icons.description_outlined,
+                  size: Sizes.iconMd,
+                  color: importance == NoteImportance.essential
+                      ? cq.terre
+                      : cq.textMuted,
+                ),
+              ),
+              const SizedBox(width: Space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       note.displayTitle,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: TypeScale.bodyLarge,
+                        fontSize: TypeScale.body,
                         fontWeight: FontWeight.w600,
-                        color: context.cq.textPrimary,
-                        height: 1.25,
+                        color: cq.textPrimary,
                       ),
                     ),
-                  ),
-                  if (!note.isSynced)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 6, top: 2),
-                      child: Icon(Icons.cloud_queue,
-                          size: 14, color: context.cq.textHint),
-                    ),
-                  // Le même menu que le clic droit, accessible au clavier et
-                  // aux lecteurs d'écran.
-                  Builder(
-                    builder: (buttonContext) => IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Actions de la fiche',
-                      icon: Icon(Icons.more_horiz,
-                          size: Sizes.iconSm, color: context.cq.textMuted),
-                      onPressed: () {
-                        final box =
-                            buttonContext.findRenderObject() as RenderBox;
-                        showNoteMenu(context, ref, note,
-                            box.localToGlobal(box.size.bottomLeft(Offset.zero)));
-                      },
-                    ),
-                  ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints(minWidth: 32, minHeight: 32),
-                    tooltip: note.isFavorite
-                        ? 'Retirer des favorites'
-                        : 'Ajouter aux favorites',
-                    icon: Icon(
-                      note.isFavorite ? Icons.star : Icons.star_border,
-                      size: 18,
-                      color: note.isFavorite
-                          ? context.cq.warning
-                          : context.cq.textHint,
-                    ),
-                    onPressed: () =>
-                        ref.read(noteActionsProvider).toggleFavorite(note),
-                  ),
-                ],
-              ),
-              if (note.excerpt.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  note.excerpt,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: TypeScale.body,
-                      color: context.cq.textMuted,
-                      height: 1.35),
+                    if (note.excerpt.isNotEmpty)
+                      Text(
+                        note.excerpt,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: TypeScale.caption, color: cq.terre),
+                      ),
+                    if (compact ||
+                        note.subject != null ||
+                        note.tags.isNotEmpty ||
+                        note.checklistTotal > 0) ...[
+                      const SizedBox(height: Space.xs),
+                      Wrap(
+                        spacing: Space.xs,
+                        runSpacing: Space.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (note.subject != null)
+                            _MetaBadge(
+                                label: note.subject!, color: cq.vertSauge),
+                          for (final tag in note.tags.take(3))
+                            _MetaBadge(label: '#$tag', color: cq.terre),
+                          if (note.tags.length > 3)
+                            _MetaBadge(
+                              label: '+${note.tags.length - 3}',
+                              color: cq.textMuted,
+                            ),
+                          if (note.checklistTotal > 0)
+                            _MetaBadge(
+                              label:
+                                  '${note.checklistDone}/${note.checklistTotal}',
+                              icon: Icons.check_box_outlined,
+                              color: note.checklistDone == note.checklistTotal
+                                  ? cq.vertSauge
+                                  : cq.textMuted,
+                            ),
+                          if (compact) date,
+                          if (compact && !note.isSynced) unsynced,
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
+              ),
+              if (!compact) ...[
+                const SizedBox(width: Space.sm),
+                Padding(
+                  padding: const EdgeInsets.only(top: Space.xs / 2),
+                  child: date,
+                ),
+                if (!note.isSynced)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        left: Space.xs, top: Space.xs / 2),
+                    child: unsynced,
+                  ),
               ],
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (note.subject != null)
-                    _MetaBadge(
-                      label: note.subject!,
-                      icon: Icons.folder_outlined,
-                      color: context.cq.vertDark,
-                    ),
-                  for (final tag in note.tags.take(3))
-                    _MetaBadge(label: '#$tag', color: context.cq.textMuted),
-                  if (note.tags.length > 3)
-                    _MetaBadge(
-                      label: '+${note.tags.length - 3}',
-                      color: context.cq.textHint,
-                    ),
-                  if (note.checklistTotal > 0)
-                    _MetaBadge(
-                      label: '${note.checklistDone}/${note.checklistTotal}',
-                      icon: Icons.check_box_outlined,
-                      color: note.checklistDone == note.checklistTotal
-                          ? context.cq.vertDark
-                          : context.cq.textMuted,
-                    ),
-                  _MetaBadge(label: _dateLabel, color: context.cq.textHint),
-                ],
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: note.isFavorite
+                    ? 'Retirer des favorites'
+                    : 'Ajouter aux favorites',
+                icon: Icon(
+                  note.isFavorite ? Icons.star : Icons.star_border,
+                  size: Sizes.iconSm,
+                  color: note.isFavorite ? cq.warning : cq.textHint,
+                ),
+                onPressed: () =>
+                    ref.read(noteActionsProvider).toggleFavorite(note),
+              ),
+              // Le même menu que le clic droit, accessible au clavier et
+              // aux lecteurs d'écran.
+              Builder(
+                builder: (buttonContext) => IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Actions de la fiche',
+                  icon: Icon(Icons.more_horiz,
+                      size: Sizes.iconSm, color: cq.textMuted),
+                  onPressed: () {
+                    final box = buttonContext.findRenderObject() as RenderBox;
+                    showNoteMenu(context, ref, note,
+                        box.localToGlobal(box.size.bottomLeft(Offset.zero)));
+                  },
+                ),
               ),
             ],
           ),
         ),
       ),
     );
+    });
   }
 }
 
@@ -659,11 +775,7 @@ class _FolderRows extends ConsumerWidget {
       required String title,
       required VoidCallback onTap,
     }) =>
-        CqCard(
-          padding: EdgeInsets.zero,
-          onTap: onTap,
-          child: CqListRow(title: title, leadingIcon: icon),
-        );
+        _DenseRow(icon: icon, title: title, onTap: onTap);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: Space.md),
@@ -671,7 +783,7 @@ class _FolderRows extends ConsumerWidget {
         children: [
           if (current != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: Space.sm),
+              padding: EdgeInsets.zero,
               child: FolderDropTarget(
                 folderId: current.parentId,
                 child: row(
@@ -685,7 +797,7 @@ class _FolderRows extends ConsumerWidget {
             ),
           for (final folder in folders)
             Padding(
-              padding: const EdgeInsets.only(bottom: Space.sm),
+              padding: EdgeInsets.zero,
               child: FolderDropTarget(
                 folderId: folder.id,
                 child: ExplorerItemShell(
@@ -718,10 +830,11 @@ class _MetaBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+          horizontal: Space.sm, vertical: Space.xs / 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(Radii.md),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(Radii.xs),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -730,12 +843,17 @@ class _MetaBadge extends StatelessWidget {
             Icon(icon, size: 11, color: color),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: TypeScale.caption,
-                color: color,
-                fontWeight: FontWeight.w500),
+          // Un tag long, à 200 % de texte, se tronque au lieu de déborder.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: TypeScale.caption,
+                  color: color,
+                  fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
