@@ -15,5 +15,6 @@ export 'cq_list_row.dart';
 export 'cq_pressable_button.dart';
 export 'cq_section.dart';
 export 'cq_sheet.dart';
+export 'cq_streak_badge.dart';
 export 'cq_text_field.dart';
 export 'zen_background.dart';

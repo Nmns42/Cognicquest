@@ -10,6 +10,10 @@ enum CqCardTone {
 
   /// Zone en retrait (aperçu, encart) : teinte du fond, sans filet.
   muted,
+
+  /// Carte légère : surface sauge, sans filet ni ombre. Réservée aux tuiles
+  /// et encarts secondaires ; [raised] reste pour les cartes surélevées.
+  soft,
 }
 
 /// Carte de l'application, au « chrome » de la maquette de référence : filet
@@ -25,6 +29,7 @@ class CqCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(Space.lg),
     this.tone = CqCardTone.raised,
     this.semanticLabel,
+    this.radius = Radii.md,
   });
 
   final Widget child;
@@ -35,10 +40,14 @@ class CqCard extends StatelessWidget {
   /// Libellé lu par les lecteurs d'écran quand la carte est cliquable.
   final String? semanticLabel;
 
+  /// Rayon d'angle ; [Radii.card] sur les écrans de la direction
+  /// « Duolingo & végétal ».
+  final double radius;
+
   @override
   Widget build(BuildContext context) {
     final cq = context.cq;
-    final radius = BorderRadius.circular(Radii.md);
+    final borderRadius = BorderRadius.circular(radius);
 
     final content = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
@@ -47,9 +56,14 @@ class CqCard extends StatelessWidget {
 
     // Carte principale : « chrome » de la maquette (filet intérieur clair,
     // ombre très diffuse). Zone en retrait : teinte du fond, sans relief.
-    final decoration = tone == CqCardTone.raised
-        ? context.chrome.decoration(color: cq.cardColor)
-        : BoxDecoration(color: cq.beigeDark, borderRadius: radius);
+    final decoration = switch (tone) {
+      CqCardTone.raised =>
+        context.chrome.decoration(color: cq.cardColor, radius: radius),
+      CqCardTone.muted =>
+        BoxDecoration(color: cq.beigeDark, borderRadius: borderRadius),
+      CqCardTone.soft =>
+        BoxDecoration(color: cq.sauge, borderRadius: borderRadius),
+    };
 
     return Semantics(
       button: onTap != null,
@@ -58,7 +72,7 @@ class CqCard extends StatelessWidget {
         decoration: decoration,
         child: Material(
           type: MaterialType.transparency,
-          borderRadius: radius,
+          borderRadius: borderRadius,
           clipBehavior: Clip.antiAlias,
           child:
               onTap == null ? content : InkWell(onTap: onTap, child: content),

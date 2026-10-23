@@ -186,7 +186,7 @@ class _SummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: context.cq.vert,
-        borderRadius: BorderRadius.circular(Radii.md),
+        borderRadius: BorderRadius.circular(Radii.card),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,6 +373,7 @@ class _HabitTile extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      shape: context.cardShape,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
         child: Column(
@@ -431,9 +432,10 @@ class _HabitTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         habit.frequency.label,
+                        // Métadonnée chaleureuse : la terre répond au vert.
                         style: TextStyle(
                             fontSize: TypeScale.caption,
-                            color: context.cq.textMuted),
+                            color: context.cq.terre),
                       ),
                     ],
                   ),
@@ -446,13 +448,8 @@ class _HabitTile extends StatelessWidget {
                       ? const SizedBox.shrink()
                       : Padding(
                           padding: const EdgeInsets.only(right: 4),
-                          child: Text(
-                            '🔥 $streak ${habit.frequency.shortUnit}',
-                            style: TextStyle(
-                              fontSize: TypeScale.body,
-                              color: context.cq.errorColor,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: CqStreakBadge(
+                            label: '🔥 $streak ${habit.frequency.shortUnit}',
                           ),
                         ),
                 ),

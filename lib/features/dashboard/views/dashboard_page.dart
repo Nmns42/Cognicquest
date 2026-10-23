@@ -133,7 +133,9 @@ class DashboardPage extends ConsumerWidget {
                 semanticLabel: 'Déplacer le module ${module.label}',
                 child: PanelSettle(
                   delay: Entrance.delayFor(index + 1),
-                  child: CqCard(child: _ModuleSection(module: module)),
+                  child: CqCard(
+                      radius: Radii.card,
+                      child: _ModuleSection(module: module)),
                 ),
               ),
             );
@@ -219,7 +221,9 @@ class _StatsModule extends ConsumerWidget {
                 icon: Icons.local_fire_department_outlined,
                 label: 'Habitudes',
                 value: habits.isEmpty ? '—' : '$doneHabits/${habits.length}',
-                color: context.cq.errorColor,
+                // Série : la terre, lisible sur la sauge (l'ambre ne l'est
+                // pas en icône seule).
+                color: context.cq.terre,
                 onTap: () => context.go(AppRoute.habits),
               ),
             ),
@@ -473,7 +477,7 @@ class _NotesModule extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 onTap: () => context.go('${AppRoute.notes}/${note.id}'),
-                borderRadius: BorderRadius.circular(AppTheme.radius),
+                borderRadius: BorderRadius.circular(Radii.card),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -557,7 +561,7 @@ class _MetacognitionModule extends ConsumerWidget {
             onTap: () => context.go(
               hasEntryToday ? AppRoute.journal : AppRoute.journalEntry,
             ),
-            borderRadius: BorderRadius.circular(AppTheme.radius),
+            borderRadius: BorderRadius.circular(Radii.card),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
@@ -598,9 +602,10 @@ class _MetacognitionModule extends ConsumerWidget {
                                   '${insights.currentStreak} j de suivi',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
+                          // Métadonnée chaleureuse : la terre répond au vert.
                           style: TextStyle(
                               fontSize: TypeScale.caption,
-                              color: context.cq.textMuted),
+                              color: context.cq.terre),
                         ),
                       ],
                     ),
@@ -665,7 +670,7 @@ class _PlanningModule extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 onTap: () => context.go(AppRoute.goals),
-                borderRadius: BorderRadius.circular(AppTheme.radius),
+                borderRadius: BorderRadius.circular(Radii.card),
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -712,7 +717,7 @@ class _DeadlineRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () => context.go(AppRoute.gantt),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        borderRadius: BorderRadius.circular(Radii.card),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
@@ -766,8 +771,8 @@ class _InsetRow extends StatelessWidget {
     return Padding(
       padding: margin,
       child: Material(
-        color: context.cq.beige,
-        borderRadius: BorderRadius.circular(Radii.md),
+        color: context.cq.sauge,
+        borderRadius: BorderRadius.circular(Radii.card),
         clipBehavior: Clip.antiAlias,
         child: child,
       ),

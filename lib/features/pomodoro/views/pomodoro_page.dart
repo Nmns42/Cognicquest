@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/pomodoro_provider.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 class PomodoroPage extends ConsumerWidget {
   const PomodoroPage({super.key});
@@ -389,6 +390,7 @@ class _StatsRow extends StatelessWidget {
             icon: Icons.local_fire_department_outlined,
             value: '${stats.sessionsToday}',
             label: "Sessions aujourd'hui",
+            highlight: true,
           ),
         ),
         const SizedBox(width: 10),
@@ -409,21 +411,36 @@ class _StatTile extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.label,
+    this.highlight = false,
   });
 
   final IconData icon;
   final String value;
   final String label;
 
+  /// Indicateur de série : icône sur une pastille ambre.
+  final bool highlight;
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-        child: Column(
+    // Tuile légère (sauge) : pas une carte surélevée.
+    return CqCard(
+      tone: CqCardTone.soft,
+      radius: Radii.card,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 18, color: context.cq.textMuted),
+            highlight
+                ? Container(
+                    padding: const EdgeInsets.all(Space.xs),
+                    decoration: BoxDecoration(
+                      color: context.cq.ambre,
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                    ),
+                    child: Icon(icon, size: 18, color: context.cq.onAmbre),
+                  )
+                : Icon(icon, size: 18, color: context.cq.textMuted),
             const SizedBox(height: 8),
             Text(
               value,
@@ -441,7 +458,6 @@ class _StatTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

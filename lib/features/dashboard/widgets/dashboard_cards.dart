@@ -8,6 +8,7 @@ import '../../../shared/models/habit_model.dart';
 import '../../../shared/models/task_model.dart';
 import '../../kanban/widgets/task_card.dart';
 import '../../../core/theme/tokens.dart';
+import '../../../core/ui/ui.dart';
 
 /// Bandeau d'accueil.
 class GreetingCard extends StatelessWidget {
@@ -30,7 +31,7 @@ class GreetingCard extends StatelessWidget {
           const EdgeInsets.symmetric(horizontal: Space.xl, vertical: Space.xl),
       // Dégradé sauge de la maquette, sous le chrome des cartes.
       decoration: context.chrome
-          .decoration(color: context.cq.cardColor)
+          .decoration(color: context.cq.cardColor, radius: Radii.card)
           .copyWith(gradient: context.accentGradient),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,6 +80,7 @@ class HeroFocusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      shape: context.cardShape,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Row(
@@ -134,11 +136,13 @@ class StatTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        child: Padding(
+    // Tuile légère (sauge) : pas une carte surélevée.
+    return CqCard(
+      tone: CqCardTone.soft,
+      radius: Radii.card,
+      onTap: onTap,
+      padding: EdgeInsets.zero,
+      child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +170,6 @@ class StatTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }
@@ -182,13 +185,12 @@ class QuickStartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.radius),
+      borderRadius: BorderRadius.circular(Radii.card),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          color: context.cq.vert.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppTheme.radius),
-          border: Border.all(color: context.cq.vert.withValues(alpha: 0.25)),
+          color: context.cq.sauge,
+          borderRadius: BorderRadius.circular(Radii.card),
         ),
         child: Row(
           children: [
@@ -280,9 +282,12 @@ class TaskPreviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: context.cq.sauge,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.card)),
       child: InkWell(
         onTap: onOpen,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        borderRadius: BorderRadius.circular(Radii.card),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
@@ -351,9 +356,12 @@ class HabitPreviewRow extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      color: context.cq.sauge,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.card)),
       child: InkWell(
         onTap: onToggle,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        borderRadius: BorderRadius.circular(Radii.card),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
@@ -399,12 +407,7 @@ class HabitPreviewRow extends StatelessWidget {
                 value: habit.streak,
                 builder: (context, streak) => streak == 0
                     ? const SizedBox.shrink()
-                    : Text(
-                        '🔥 $streak',
-                        style: TextStyle(
-                            fontSize: TypeScale.caption,
-                            color: context.cq.errorColor),
-                      ),
+                    : CqStreakBadge(label: '🔥 $streak'),
               ),
             ],
           ),
@@ -433,8 +436,8 @@ class EmptySection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: context.cq.beigeDark.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(Radii.md),
+        color: context.cq.sauge,
+        borderRadius: BorderRadius.circular(Radii.card),
       ),
       child: Row(
         children: [

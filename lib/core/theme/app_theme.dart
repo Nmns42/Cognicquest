@@ -681,6 +681,13 @@ extension CardChromeX on BuildContext {
   CardChrome get chrome =>
       CardChrome.of(_isDark ? AppThemeVariant.dark : AppThemeVariant.light);
 
+  /// Forme d'une `Card` Material surélevée, au rayon généreux de la
+  /// direction « Duolingo & végétal » ([Radii.card]).
+  ShapeBorder get cardShape => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.card),
+        side: chrome.border,
+      );
+
   LinearGradient get accentGradient => AppTheme.accentGradientFor(
       _isDark ? AppThemeVariant.dark : AppThemeVariant.light);
 }
