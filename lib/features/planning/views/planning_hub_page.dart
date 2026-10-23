@@ -35,22 +35,24 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
     final plan = ref.watch(adaptivePlanProvider);
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Planification & échéances')),
       body: RefreshIndicator(
         color: context.cq.vertDark,
         onRefresh: () => ref.read(planningActionsProvider).sync(),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+          padding: const EdgeInsets.fromLTRB(
+              Space.xl, Space.xs, Space.xl, Space.xxxl * 2),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             _NextDeadlineCard(upcoming: upcoming),
-            const SizedBox(height: 20),
+            const SizedBox(height: Space.xl),
 
             _ToolTile(
               icon: Icons.view_timeline_outlined,
               title: 'Diagramme de Gantt',
               onTap: () => context.push(AppRoute.gantt),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Space.md),
             _ToolTile(
               icon: Icons.trending_up,
               title: 'Ordre de révision',
@@ -60,13 +62,13 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
                       'classé${ranked.length > 1 ? 's' : ''}',
               onTap: () => context.push(AppRoute.revisionOrder),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Space.md),
             _ToolTile(
               icon: Icons.speed_outlined,
               title: 'Vitesse de travail',
               onTap: () => context.push(AppRoute.studySpeed),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: Space.md),
             _ToolTile(
               icon: Icons.flag_outlined,
               title: 'Objectifs SMART',
@@ -75,12 +77,15 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
             ),
 
             if (!plan.isEmpty) ...[
-              const SizedBox(height: 22),
+              const SizedBox(height: Space.xl),
               _PlanSummaryCard(plan: plan),
             ],
 
             if (goals.isNotEmpty) ...[
-              const SizedBox(height: 24),
+              const SizedBox(height: Space.xl),
+              Text('Objectifs en cours',
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: Space.md),
               for (final goal in goals.take(4)) _GoalRow(goal: goal),
             ],
           ],
@@ -102,19 +107,33 @@ class _NextDeadlineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cq = context.cq;
+    BoxDecoration banner() => BoxDecoration(
+          color: cq.parchemin,
+          borderRadius: BorderRadius.circular(Radii.card),
+          border: Border.all(color: cq.beigeDark),
+        );
+
     if (upcoming.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: context.cq.beigeDark.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child:  Text(
-          'Aucune échéance planifiée.\n'
-          'Ajoute tes examens et rendus pour voir venir.',
-          style: TextStyle(
-              color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
+        padding: const EdgeInsets.all(Space.lg),
+        decoration: banner(),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.event_note_outlined,
+                size: Sizes.iconMd, color: cq.vertSauge),
+            const SizedBox(width: Space.md),
+            Expanded(
+              child: Text(
+                'Aucune échéance planifiée. '
+                'Ajoute tes examens et rendus pour voir venir.',
+                style: TextStyle(
+                    color: cq.textMuted, fontSize: TypeScale.body, height: 1.45),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -124,52 +143,67 @@ class _NextDeadlineCard extends StatelessWidget {
     final days = DateTime(next.endDate.year, next.endDate.month, next.endDate.day)
         .difference(DateTime(today.year, today.month, today.day))
         .inDays;
+    // Proche (3 jours ou moins) : le rouge d'alerte ; sinon l'écorce.
+    final accent = days <= 3 ? cq.errorColor : cq.terre;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: days <= 3 ? context.cq.errorColor : context.cq.terre,
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
-      child: Column(
+      padding: const EdgeInsets.all(Space.lg),
+      decoration: banner(),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            days == 0
-                ? "Aujourd'hui"
-                : (days == 1 ? 'Demain' : 'Dans $days jours'),
-            style: TextStyle(
-              color: context.cq.beige,
-              fontSize: TypeScale.headline,
-              fontWeight: FontWeight.w700,
+          Icon(Icons.event_outlined, size: Sizes.iconMd, color: accent),
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Prochaine échéance · '
+                  '${days == 0 ? "aujourd'hui" : (days == 1 ? 'demain' : 'dans $days jours')}',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: TypeScale.caption,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: TypeScale.tabular,
+                  ),
+                ),
+                const SizedBox(height: Space.xs),
+                Text(
+                  next.title,
+                  style: TextStyle(
+                    color: cq.textPrimary,
+                    fontSize: TypeScale.bodyLarge,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: Space.xs / 2),
+                Text(
+                  '${next.endDate.day} ${_months[next.endDate.month - 1]}'
+                  '${upcoming.length > 1 ? ' · + ${upcoming.length - 1} autre'
+                      '${upcoming.length > 2 ? 's' : ''} à venir' : ''}',
+                  style: TextStyle(
+                    color: cq.textMuted,
+                    fontSize: TypeScale.caption,
+                    fontFeatures: TypeScale.tabular,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            next.title,
-            style: TextStyle(
-                color: context.cq.beige, fontSize: TypeScale.bodyLarge, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${next.endDate.day} ${_months[next.endDate.month - 1]}',
-            style:  TextStyle(color: context.cq.beige, fontSize: TypeScale.caption),
-          ),
-          if (upcoming.length > 1) ...[
-            const SizedBox(height: 12),
-            Text(
-              '+ ${upcoming.length - 1} autre'
-              '${upcoming.length > 2 ? 's' : ''} échéance'
-              '${upcoming.length > 2 ? 's' : ''} à venir',
-              style:  TextStyle(color: context.cq.beige, fontSize: TypeScale.caption),
-            ),
-          ],
         ],
       ),
     );
   }
 }
+
+/// Carte blanche sobre : filet fin, coins `Radii.card`, sans ombre.
+BoxDecoration _plainCard(BuildContext context) => BoxDecoration(
+      color: context.cq.cardColor,
+      borderRadius: BorderRadius.circular(Radii.card),
+      border: Border.all(color: context.cq.beigeDark),
+    );
 
 class _PlanSummaryCard extends ConsumerWidget {
   const _PlanSummaryCard({required this.plan});
@@ -180,9 +214,10 @@ class _PlanSummaryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feasible = plan.isFeasible;
 
-    return Card(
+    return DecoratedBox(
+      decoration: _plainCard(context),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(Space.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -190,8 +225,8 @@ class _PlanSummaryCard extends ConsumerWidget {
               children: [
                 Icon(
                   feasible ? Icons.event_available : Icons.warning_amber_rounded,
-                  size: 18,
-                  color: feasible ? context.cq.vertDark : context.cq.warning,
+                  size: Sizes.iconMd,
+                  color: feasible ? context.cq.vertSauge : context.cq.warning,
                 ),
                 const SizedBox(width: 9),
                 Expanded(
@@ -241,13 +276,21 @@ class _GoalRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pace = goal.requiredPacePerDay;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.card),
+      side: BorderSide(color: context.cq.beigeDark),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.sm),
+      child: Material(
+      color: context.cq.cardColor,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push(AppRoute.goals),
-        borderRadius: BorderRadius.circular(AppTheme.radius),
+        customBorder: shape,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(Space.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -283,9 +326,9 @@ class _GoalRow extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(Radii.md),
                   child: LinearProgressIndicator(
                     value: goal.progress,
-                    minHeight: 6,
-                    backgroundColor: context.cq.beigeDark,
-                    color: context.cq.vertDark,
+                    minHeight: Space.xs,
+                    backgroundColor: context.cq.sauge,
+                    color: context.cq.vertSauge,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -293,13 +336,17 @@ class _GoalRow extends ConsumerWidget {
                   '${goal.currentValue.toStringAsFixed(0)} / '
                   '${goal.targetValue.toStringAsFixed(0)} ${goal.metricLabel}'
                   '${pace != null && pace > 0 ? ' · ${pace.toStringAsFixed(1)} / jour pour tenir' : ''}',
-                  style:  TextStyle(
-                      fontSize: TypeScale.caption, color: context.cq.textMuted),
+                  style: TextStyle(
+                    fontSize: TypeScale.caption,
+                    color: context.cq.textMuted,
+                    fontFeatures: TypeScale.tabular,
+                  ),
                 ),
               ],
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -323,51 +370,58 @@ class _ToolTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final cq = context.cq;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(Radii.card),
+      side: BorderSide(color: cq.beigeDark),
+    );
+    return Material(
+      color: cq.cardColor,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radius),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: context.cq.vertSauge.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(Radii.md),
-                ),
-                child: Icon(icon, size: 19, color: context.cq.vertDark),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style:  TextStyle(
-                            fontSize: TypeScale.body,
-                            fontWeight: FontWeight.w600,
-                            color: context.cq.textPrimary)),
-                    if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(subtitle!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:  TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.textMuted)),
+        customBorder: shape,
+        hoverColor: cq.sauge,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: Sizes.control),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Space.lg, vertical: Space.md),
+            child: Row(
+              children: [
+                // Icône linéaire délicate, sans pastille.
+                Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
+                const SizedBox(width: Space.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              fontSize: TypeScale.body,
+                              fontWeight: FontWeight.w600,
+                              color: cq.textPrimary)),
+                      if (subtitle != null)
+                        Text(subtitle!,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: TypeScale.caption,
+                              color: cq.terre,
+                              fontFeatures: TypeScale.tabular,
+                            )),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-               Icon(Icons.arrow_forward_ios_rounded,
-                  size: 13, color: context.cq.textMuted),
-            ],
+                const SizedBox(width: Space.sm),
+                Icon(Icons.arrow_forward, size: Sizes.iconMd, color: cq.vertSauge),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
