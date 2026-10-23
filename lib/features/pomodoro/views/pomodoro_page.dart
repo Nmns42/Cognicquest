@@ -7,7 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
 import '../providers/pomodoro_provider.dart';
 import '../../../core/theme/tokens.dart';
-import '../../../core/ui/ui.dart';
 
 class PomodoroPage extends ConsumerWidget {
   const PomodoroPage({super.key});
@@ -49,9 +48,10 @@ class PomodoroPage extends ConsumerWidget {
             // téléphone, aérés sur grand écran) et le cadran prend tout
             // l'espace restant.
             final gap = (box.maxHeight * 0.02).clamp(Space.sm, Space.xxl);
-            // Bouton principal : 64 sur un petit téléphone, 96 au plus.
-            final button =
-                (box.maxHeight * 0.1).clamp(Space.xxxl + Space.lg, Space.xxxl * 2);
+            // Bouton principal, rond et compact : 56 sur un petit téléphone,
+            // 80 au plus.
+            final button = (box.maxHeight * 0.085)
+                .clamp(Space.xxxl + Space.sm, Space.xxxl + Space.xxl);
             final side = (box.maxWidth * 0.05).clamp(Space.lg, Space.xxxl);
             final controls = [
               _Controls(
@@ -170,22 +170,15 @@ class _PhaseHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(Radii.md),
-          ),
+        Semantics(
+          header: true,
           child: Text(
             state.phase.label,
-            style: TextStyle(
-              color: color,
-              fontSize: TypeScale.body,
-              fontWeight: FontWeight.w600,
-            ),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: Space.sm),
         Text(
           switch (state.phase) {
             PomodoroPhase.work => 'Une seule tâche, rien d\'autre.',
@@ -228,9 +221,10 @@ class _TimerDial extends StatelessWidget {
             builder: (context, value, _) => SizedBox.expand(
               child: CircularProgressIndicator(
                 value: value,
-                strokeWidth: 10,
+                // Anneau fin, proportionné au cadran.
+                strokeWidth: (size * 0.018).clamp(Space.xs, Space.sm),
                 strokeCap: StrokeCap.round,
-                backgroundColor: context.cq.beigeDark,
+                backgroundColor: context.cq.sauge,
                 color: color,
               ),
             ),
@@ -244,16 +238,19 @@ class _TimerDial extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Minuteur en serif éditoriale, fin : présent sans crier.
                   Text(
                     state.timeDisplay,
                     style: TextStyle(
-                      fontSize: size * 0.24,
-                      fontWeight: FontWeight.bold,
+                      fontFamily: appSerifFamily,
+                      fontSize: size * 0.22,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: TypeScale.displayTracking,
                       color: context.cq.textPrimary,
-                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontFeatures: TypeScale.tabular,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: Space.xs),
                   Text(
                     switch (state.status) {
                       PomodoroStatus.running => 'En cours',
@@ -261,7 +258,7 @@ class _TimerDial extends StatelessWidget {
                       PomodoroStatus.idle => 'Prêt',
                     },
                     style: TextStyle(
-                        color: context.cq.textMuted, fontSize: TypeScale.body),
+                        color: context.cq.terre, fontSize: TypeScale.body),
                   ),
                 ],
               ),
@@ -300,9 +297,10 @@ class _Controls extends StatelessWidget {
         IconButton(
           onPressed: onReset,
           tooltip: 'Réinitialiser',
-          icon: Icon(Icons.refresh, size: 30, color: context.cq.textMuted),
+          icon: Icon(Icons.refresh,
+              size: Sizes.iconLg, color: context.cq.textMuted),
         ),
-        const SizedBox(width: 24),
+        const SizedBox(width: Space.xl),
         SizedBox(
           width: size,
           height: size,
@@ -312,6 +310,7 @@ class _Controls extends StatelessWidget {
             backgroundColor:
                 state.phase.isWork ? context.cq.vert : color,
             elevation: 0,
+            shape: const CircleBorder(),
             heroTag: 'pomodoro-toggle',
             tooltip: state.isRunning ? 'Mettre en pause' : 'Démarrer',
             child: Icon(
@@ -321,13 +320,14 @@ class _Controls extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 24),
+        const SizedBox(width: Space.xl),
         IconButton(
           // Ce bouton était inerte (`onPressed: () {}`) : il passe désormais
           // réellement à la phase suivante, sans valider la session en cours.
           onPressed: onSkip,
           tooltip: 'Phase suivante',
-          icon: Icon(Icons.skip_next, size: 30, color: context.cq.textMuted),
+          icon: Icon(Icons.skip_next,
+              size: Sizes.iconLg, color: context.cq.textMuted),
         ),
       ],
     );
@@ -353,9 +353,9 @@ class _CycleIndicator extends StatelessWidget {
           children: [
             for (var i = 0; i < cycle; i++)
               Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: Space.sm,
+                height: Space.sm,
+                margin: const EdgeInsets.symmetric(horizontal: Space.xs),
                 decoration: BoxDecoration(
                   color: i < done ? color : context.cq.beigeDark,
                   shape: BoxShape.circle,
@@ -385,81 +385,82 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _StatTile(
-            icon: Icons.local_fire_department_outlined,
-            value: '${stats.sessionsToday}',
-            label: "Sessions aujourd'hui",
-            highlight: true,
+    final sessions = stats.sessionsToday;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _StatTile(
+              label: "Aujourd'hui",
+              value: '$sessions session${sessions > 1 ? 's' : ''}',
+              raised: true,
+            ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatTile(
-            icon: Icons.schedule_outlined,
-            value: formatFocusDuration(stats.focusThisWeek),
-            label: 'Focus cette semaine',
+          const SizedBox(width: Space.md),
+          Expanded(
+            child: _StatTile(
+              label: 'Cette semaine',
+              value: '${formatFocusDuration(stats.focusThisWeek)} de focus',
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
+/// Tuile compacte : libellé coloré (écorce sur la carte blanche, sauge sur
+/// la tuile pierre), puis la valeur en gras.
 class _StatTile extends StatelessWidget {
   const _StatTile({
-    required this.icon,
-    required this.value,
     required this.label,
-    this.highlight = false,
+    required this.value,
+    this.raised = false,
   });
 
-  final IconData icon;
-  final String value;
   final String label;
+  final String value;
 
-  /// Indicateur de série : icône sur une pastille ambre.
-  final bool highlight;
+  /// Carte blanche à filet plutôt que tuile pierre.
+  final bool raised;
 
   @override
   Widget build(BuildContext context) {
-    // Tuile légère (sauge) : pas une carte surélevée.
-    return CqCard(
-      tone: CqCardTone.soft,
-      radius: Radii.card,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      child: Column(
+    final cq = context.cq;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: raised ? cq.cardColor : cq.sauge,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: Space.lg, vertical: Space.md),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            highlight
-                ? Container(
-                    padding: const EdgeInsets.all(Space.xs),
-                    decoration: BoxDecoration(
-                      color: context.cq.ambre,
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                    ),
-                    child: Icon(icon, size: 18, color: context.cq.onAmbre),
-                  )
-                : Icon(icon, size: 18, color: context.cq.textMuted),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: TypeScale.title,
-                fontWeight: FontWeight.w700,
-                color: context.cq.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                  fontSize: TypeScale.caption, color: context.cq.textMuted),
+                fontSize: TypeScale.caption,
+                color: raised ? cq.terre : cq.vertSauge,
+              ),
+            ),
+            const SizedBox(height: Space.xs),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: TypeScale.bodyLarge,
+                fontWeight: FontWeight.w700,
+                color: cq.textPrimary,
+                fontFeatures: TypeScale.tabular,
+              ),
             ),
           ],
         ),
+      ),
     );
   }
 }

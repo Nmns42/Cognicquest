@@ -36,7 +36,7 @@ void main() {
     expect(find.byType(Scrollable), findsNothing);
     expect(tester.takeException(), isNull);
     // Le dernier élément (statistiques) reste dans la fenêtre.
-    final bottom = tester.getBottomRight(find.text('Focus cette semaine')).dy;
+    final bottom = tester.getBottomRight(find.text('Cette semaine')).dy;
     expect(bottom, lessThanOrEqualTo(size.height));
   }
 
