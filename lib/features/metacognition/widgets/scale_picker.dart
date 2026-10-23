@@ -30,7 +30,7 @@ class ScalePicker extends StatelessWidget {
   Color _colorFor(BuildContext context, int level) {
     if (max == 10 && level >= 8) return context.cq.errorColor;
     if (max == 10 && level >= 6) return context.cq.warning;
-    return context.cq.vert;
+    return context.cq.vertSauge;
   }
 
   @override
@@ -94,7 +94,7 @@ class ScalePicker extends StatelessWidget {
                               fontSize: TypeScale.caption,
                               fontWeight: FontWeight.w600,
                               color: level <= value
-                                  ? context.onAccent
+                                  ? context.cq.beige
                                   : context.cq.textMuted,
                             ),
                           ),

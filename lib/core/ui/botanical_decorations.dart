@@ -92,8 +92,9 @@ class BotanicalWatermarkBackground extends StatelessWidget {
 
   final Widget child;
 
-  /// Opacité des filigranes : présents, jamais en concurrence avec le texte.
-  static const double opacity = 0.55;
+  /// Opacité des filigranes : quasi invisibles, pour un fond net et
+  /// professionnel.
+  static const double opacity = 0.02;
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +365,7 @@ class MindfulTreeIllustration extends StatelessWidget {
           child: CustomPaint(
             painter: _TreePainter(
               palette: BotanicalPalette.of(context),
-              forest: context.cq.vert,
+              forest: BotanicalPalette.of(context).leafDark,
               growth: g,
             ),
           ),
@@ -430,28 +431,34 @@ class _TreePainter extends CustomPainter {
           branch);
     }
 
-    // Houppier : grappes de disques, de l'ombre (forêt) à la lumière.
+    // Houppier : des feuilles distinctes, disposées en spirale (angle
+    // d'or) autour du centre, de l'ombre (forêt) à la lumière (en haut à
+    // gauche). Une jeune pousse en a moins.
     final crown = top.translate(0, -h * 0.2 * scale);
-    final r = unit * 0.17 * scale;
-    final clusters = <(double, double, double)>[
-      (-1.2, 0.3, 1.0), (1.2, 0.3, 1.0), (0, 0.45, 1.05),
-      (-0.7, -0.5, 1.1), (0.7, -0.5, 1.1), (0, -0.9, 1.0),
-      (-1.6, -0.3, 0.8), (1.6, -0.3, 0.8),
-    ];
-    // Moins de grappes pour une jeune pousse.
-    final shown = 3 + (growth * (clusters.length - 3)).round();
-    for (final (layer, color) in [
-      (1.12, forest),
-      (1.0, p.leafMid),
-      (0.62, p.leafLight),
-    ]) {
-      final paint = Paint()..color = color;
-      for (final (dx, dy, k) in clusters.take(shown)) {
-        final c = crown + Offset(dx * r, dy * r);
-        // La lumière vient d'en haut à gauche.
-        final shift = layer < 1 ? Offset(-r * 0.22, -r * 0.25) : Offset.zero;
-        canvas.drawCircle(c + shift, r * k * layer * 0.95, paint);
-      }
+    final r = unit * 0.21 * scale;
+    final twig = Paint()
+      ..color = p.bark
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = base * 0.3
+      ..strokeCap = StrokeCap.round;
+    for (final (dx, dy) in const [(-0.9, -0.2), (0.9, -0.3), (0.1, -1.0)]) {
+      canvas.drawLine(top, crown + Offset(dx * r, dy * r), twig);
+    }
+    final leaves = 26 + (growth * 30).round();
+    const golden = 2.39996;
+    final tones = [forest, p.leafMid, p.leafDark, p.leafLight];
+    for (var i = leaves - 1; i >= 0; i--) {
+      final a = i * golden;
+      final dist = r * 1.5 * math.sqrt((i + 0.5) / leaves);
+      final dir = Offset(math.cos(a), math.sin(a) * 0.82);
+      final at = crown + dir * dist;
+      final length = r * (1.05 - 0.25 * (i % 3) / 2);
+      // Lumière en haut à gauche : feuilles claires de ce côté.
+      final lit = at.dx < crown.dx && at.dy < crown.dy;
+      final color = lit && i.isEven ? p.leafLight : tones[i % tones.length];
+      _drawLeaf(canvas, at - dir * length * 0.35, a + 0.35, length,
+          length * 0.4, color,
+          vein: color == p.leafDark ? forest : p.leafDark);
     }
 
     // Petites fleurs crème au cœur jaune-brun, plus nombreuses avec la

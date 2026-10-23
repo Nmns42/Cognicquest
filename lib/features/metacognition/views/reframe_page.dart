@@ -320,10 +320,10 @@ class _TrapOption extends StatelessWidget {
         selected: selected,
         button: true,
         child: Material(
-          color: selected ? cq.vert.withValues(alpha: 0.1) : cq.cardColor,
+          color: selected ? cq.vertSauge.withValues(alpha: 0.1) : cq.cardColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(Radii.md),
-            side: BorderSide(color: selected ? cq.vert : cq.beigeDark),
+            side: BorderSide(color: selected ? cq.vertSauge : cq.beigeDark),
           ),
           child: InkWell(
             onTap: onTap,
@@ -377,13 +377,13 @@ class _Step extends StatelessWidget {
           height: 22,
           alignment: Alignment.center,
           decoration:  BoxDecoration(
-            color: context.cq.vert,
+            color: context.cq.vertSauge,
             shape: BoxShape.circle,
           ),
           child: Text(
             '$number',
             style: TextStyle(
-                color: context.onAccent, fontSize: TypeScale.caption, fontWeight: FontWeight.w700),
+                color: context.cq.beige, fontSize: TypeScale.caption, fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: 10),

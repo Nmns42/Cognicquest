@@ -167,21 +167,18 @@ class _DueCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: context.cq.vert,
-        borderRadius: BorderRadius.circular(Radii.md),
-      ),
+      // Carte blanche éditoriale : le vert reste au bouton d'action.
+      decoration: context.chrome
+          .decoration(color: context.cq.cardColor, radius: Radii.card),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             stats.hasWork ? '${stats.dueCount}' : '✓',
-            style: TextStyle(
-              color: context.onAccent,
-              fontSize: TypeScale.display,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
+            style: Theme.of(context)
+                .textTheme
+                .displaySmall
+                ?.copyWith(fontFeatures: TypeScale.tabular),
           ),
           const SizedBox(height: 2),
           Text(
@@ -191,14 +188,14 @@ class _DueCard extends StatelessWidget {
                 : stats.totalCards == 0
                     ? 'Aucune carte pour le moment'
                     : 'Tout est à jour. Reviens demain.',
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.body),
+            style:  TextStyle(color: context.cq.textMuted, fontSize: TypeScale.body),
           ),
           if (stats.reviewedToday > 0) ...[
             const SizedBox(height: 6),
             Text(
               '${stats.reviewedToday} déjà travaillée'
               '${stats.reviewedToday > 1 ? 's' : ''} aujourd\'hui',
-              style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
+              style:  TextStyle(color: context.cq.terre, fontSize: TypeScale.caption),
             ),
           ],
           if (stats.hasWork) ...[
@@ -206,10 +203,6 @@ class _DueCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: context.cq.cardColor,
-                  foregroundColor: context.cq.vertDark,
-                ),
                 onPressed: () => context.push(AppRoute.reviewSession),
                 icon: const Icon(Icons.play_arrow_rounded, size: 20),
                 label: const Text('Commencer la session'),
@@ -393,7 +386,7 @@ class _ToolCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: context.cq.vert.withValues(alpha: 0.12),
+                  color: context.cq.vertSauge.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 20, color: context.cq.vertDark),

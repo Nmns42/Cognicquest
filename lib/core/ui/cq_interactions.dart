@@ -289,8 +289,9 @@ class CqSegmentedControl<T> extends StatelessWidget {
                       const BoxConstraints(minHeight: Sizes.touchTarget),
                   padding: const EdgeInsets.symmetric(horizontal: Space.lg),
                   alignment: Alignment.center,
+                  // Sélection : aplat pierre (le vert reste aux actions).
                   color: value == selected
-                      ? cq.vert
+                      ? cq.beigeDark
                       : Colors.transparent,
                   child: Text(
                     label,
@@ -302,7 +303,7 @@ class CqSegmentedControl<T> extends StatelessWidget {
                       fontWeight: value == selected
                           ? FontWeight.w600
                           : FontWeight.w500,
-                      color: value == selected ? context.onAccent : cq.textMuted,
+                      color: value == selected ? cq.textPrimary : cq.textMuted,
                     ),
                   ),
                 ),

@@ -129,7 +129,7 @@ class _NextDeadlineCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: days <= 3 ? context.cq.errorColor : context.cq.vert,
+        color: days <= 3 ? context.cq.errorColor : context.cq.terre,
         borderRadius: BorderRadius.circular(Radii.md),
       ),
       child: Column(
@@ -140,7 +140,7 @@ class _NextDeadlineCard extends StatelessWidget {
                 ? "Aujourd'hui"
                 : (days == 1 ? 'Demain' : 'Dans $days jours'),
             style: TextStyle(
-              color: context.onAccent,
+              color: context.cq.beige,
               fontSize: TypeScale.headline,
               fontWeight: FontWeight.w700,
             ),
@@ -149,12 +149,12 @@ class _NextDeadlineCard extends StatelessWidget {
           Text(
             next.title,
             style: TextStyle(
-                color: context.onAccent, fontSize: TypeScale.bodyLarge, fontWeight: FontWeight.w500),
+                color: context.cq.beige, fontSize: TypeScale.bodyLarge, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 2),
           Text(
             '${next.endDate.day} ${_months[next.endDate.month - 1]}',
-            style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
+            style:  TextStyle(color: context.cq.beige, fontSize: TypeScale.caption),
           ),
           if (upcoming.length > 1) ...[
             const SizedBox(height: 12),
@@ -162,7 +162,7 @@ class _NextDeadlineCard extends StatelessWidget {
               '+ ${upcoming.length - 1} autre'
               '${upcoming.length > 2 ? 's' : ''} échéance'
               '${upcoming.length > 2 ? 's' : ''} à venir',
-              style:  TextStyle(color: context.cq.onVertMuted, fontSize: TypeScale.caption),
+              style:  TextStyle(color: context.cq.beige, fontSize: TypeScale.caption),
             ),
           ],
         ],
@@ -335,7 +335,7 @@ class _ToolTile extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: context.cq.vert.withValues(alpha: 0.12),
+                  color: context.cq.vertSauge.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 19, color: context.cq.vertDark),

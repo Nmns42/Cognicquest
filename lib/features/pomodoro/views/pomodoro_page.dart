@@ -15,7 +15,7 @@ class PomodoroPage extends ConsumerWidget {
   static const Color _breakColor = Color(0xFF6B8FA8);
 
   Color _phaseColor(BuildContext context, PomodoroPhase phase) =>
-      phase.isWork ? context.cq.vert : _breakColor;
+      phase.isWork ? context.cq.vertSauge : _breakColor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -308,7 +308,9 @@ class _Controls extends StatelessWidget {
           height: size,
           child: FloatingActionButton(
             onPressed: onToggle,
-            backgroundColor: color,
+            // Action principale : vert forêt en travail.
+            backgroundColor:
+                state.phase.isWork ? context.cq.vert : color,
             elevation: 0,
             heroTag: 'pomodoro-toggle',
             tooltip: state.isRunning ? 'Mettre en pause' : 'Démarrer',

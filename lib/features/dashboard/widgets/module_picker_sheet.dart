@@ -74,7 +74,7 @@ class ModulePickerSheet extends ConsumerWidget {
                   secondary: Icon(module.icon,
                       size: 20,
                       color: layout.isVisible(module)
-                          ? context.cq.vert
+                          ? context.cq.vertSauge
                           : context.cq.textHint),
                   title: Text(module.label,
                       style: const TextStyle(fontSize: TypeScale.body)),

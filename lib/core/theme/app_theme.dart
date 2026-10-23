@@ -255,10 +255,11 @@ class AppTheme {
 
   // ── Palettes ───────────────────────────────────────────────────────────
   //
-  // Direction « Botanique sophistiqué & pleine conscience » : vert forêt
-  // profond (bannières, bouton d'ajout) et sa bande plus sombre, sauge et
-  // écorce pour les réussites, sur parchemin chaud et cartes crème au relief
-  // feutré. Motifs végétaux : `lib/core/ui/botanical_decorations.dart`. Les noms des champs (`vert`, `beige`) sont historiques : ce sont
+  // Direction « SaaS pro / EdTech éditorial » (Notion, Craft, Linear) :
+  // fond lin, cartes blanches à filet fin, tuiles pierre. Accents rares et
+  // contrôlés : vert forêt pour les actions principales et l'indicateur
+  // actif, sauge pour les badges et les coches, écorce pour la date et les
+  // échéances. Titres en serif éditoriale (Fraunces). Les noms des champs (`vert`, `beige`) sont historiques : ce sont
   // des rôles, plus des teintes.
   // Texte crème sur l'accent (12,3:1), sur l'olive (4,8:1). Contrastes mesurés (WCAG, cf.
   // contrast_test) : texte 14:1, secondaire 6:1, accent en texte ≥ 5,5:1.
@@ -266,17 +267,17 @@ class AppTheme {
   static const CognicColors _lightColors = CognicColors(
     vert: Color(0xFF083B32),
     vertDark: Color(0xFF2D6A4F),
-    beige: Color(0xFFFAF3E6),
-    beigeDark: Color(0xFFEFE7D6),
+    beige: Color(0xFFFAF8F5),
+    beigeDark: Color(0xFFE6E2D8),
     textPrimary: Color(0xFF1E2A1A),
     textMuted: Color(0xFF56614F),
     textHint: Color(0xFF646E5E),
     errorColor: Color(0xFFB42D23),
     onVertMuted: Color(0xFFA9D3BF),
     warning: Color(0xFF8A5A12),
-    cardColor: Color(0xFFFDF9F1),
+    cardColor: Color(0xFFFFFFFF),
     vertLip: Color(0xFF052822),
-    sauge: Color(0xFFEEF1E6),
+    sauge: Color(0xFFEFECE4),
     ambre: Color(0xFFFFC233),
     onAmbre: Color(0xFF3A2600),
     ambreLip: Color(0xFFD69E00),
@@ -391,9 +392,7 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         iconTheme: IconThemeData(color: cq.textPrimary),
-        titleTextStyle: _style(
-            TypeScale.title, FontWeight.w700, TypeScale.titleEm, cq.textPrimary,
-            height: TypeScale.titleHeight),
+        titleTextStyle: _serif(TypeScale.title, cq.textPrimary),
       ),
 
       // Cartes : contour d'un pixel, sans élévation Material (cf. [Chrome]).
@@ -527,6 +526,28 @@ class AppTheme {
         ),
       ),
 
+      // Jauges et chargements : sauge (indicateurs de progression).
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: cq.vertSauge,
+        linearTrackColor: cq.beigeDark,
+        circularTrackColor: cq.beigeDark,
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: cq.vertSauge,
+          WidgetState.any: Colors.transparent,
+        }),
+        checkColor: WidgetStatePropertyAll(cq.beige),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.xs)),
+      ),
+      radioTheme: RadioThemeData(
+        fillColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: cq.vertSauge,
+          WidgetState.any: cq.textHint,
+        }),
+      ),
+
       dividerTheme: DividerThemeData(
         color: cq.beigeDark,
         thickness: Borders.thin,
@@ -537,7 +558,7 @@ class AppTheme {
       // la couleur dédiée, le libellé reste en couleur de texte.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: cq.beige,
-        indicatorColor: cq.olive,
+        indicatorColor: cq.beigeDark,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         // `fromMap` plutôt que `resolveWith` : mêmes styles, mais comparables
@@ -551,16 +572,20 @@ class AppTheme {
         }),
         iconTheme: WidgetStateProperty.fromMap({
           WidgetState.selected:
-              IconThemeData(size: Sizes.iconLg, color: onAccent),
+              IconThemeData(size: Sizes.iconLg, color: cq.textPrimary),
           WidgetState.any:
               IconThemeData(size: Sizes.iconLg, color: cq.textMuted),
         }),
       ),
 
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: cq.beige,
-        indicatorColor: cq.olive,
-        selectedIconTheme: IconThemeData(size: Sizes.iconLg, color: onAccent),
+        backgroundColor: cq.sauge,
+        indicatorColor: cq.beigeDark,
+        // Élément actif : aplat pierre et barre verticale vert forêt de
+        // 4 px sur le bord gauche (plus de pastille verte).
+        indicatorShape: ActiveBarIndicatorBorder(barColor: cq.vert),
+        selectedIconTheme:
+            IconThemeData(size: Sizes.iconLg, color: cq.textPrimary),
         unselectedIconTheme:
             IconThemeData(size: Sizes.iconLg, color: cq.textMuted),
         selectedLabelTextStyle: _style(TypeScale.caption, FontWeight.w700,
@@ -573,22 +598,23 @@ class AppTheme {
       // contour au gris des séparateurs) : contour et pastille plus marqués.
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.fromMap({
-          WidgetState.selected: onAccent,
+          WidgetState.selected: cq.beige,
           WidgetState.any: cq.textMuted,
         }),
         trackColor: WidgetStateProperty.fromMap({
-          WidgetState.selected: cq.vert,
+          WidgetState.selected: cq.vertSauge,
           WidgetState.any: cq.beigeDark,
         }),
         trackOutlineColor: WidgetStateProperty.fromMap({
-          WidgetState.selected: cq.vert,
+          WidgetState.selected: cq.vertSauge,
           WidgetState.any: cq.textHint,
         }),
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: cq.cardColor,
-        selectedColor: cq.vert,
+        // Puce sélectionnée : aplat pierre, texte plein.
+        selectedColor: cq.beigeDark,
         side: BorderSide(color: cq.beigeDark),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(Radii.sm),
@@ -597,16 +623,16 @@ class AppTheme {
             TypeScale.captionEm, cq.textPrimary),
         // Texte d'une puce sélectionnée : posé sur l'accent.
         secondaryLabelStyle: _style(TypeScale.caption, FontWeight.w600,
-            TypeScale.captionEm, onAccent),
+            TypeScale.captionEm, cq.textPrimary),
       ),
 
       // Six tailles (cf. [TypeScale]) réparties sur les rôles Material,
       // graisses franches sur les titres, interlettrage négatif.
       textTheme: TextTheme(
-        displaySmall: _title(TypeScale.display, FontWeight.w700, cq.textPrimary),
-        headlineSmall:
-            _title(TypeScale.headline, FontWeight.w700, cq.textPrimary),
-        titleLarge: _title(TypeScale.title, FontWeight.w700, cq.textPrimary),
+        // Titres : serif éditoriale, fine, crénage resserré.
+        displaySmall: _serif(TypeScale.display, cq.textPrimary),
+        headlineSmall: _serif(TypeScale.headline, cq.textPrimary),
+        titleLarge: _serif(TypeScale.title, cq.textPrimary),
         titleMedium:
             _title(TypeScale.bodyLarge, FontWeight.w600, cq.textPrimary),
         titleSmall: _title(TypeScale.body, FontWeight.w600, cq.textPrimary),
@@ -642,6 +668,16 @@ class AppTheme {
         color: color,
       );
 
+  /// Titre en serif éditoriale (Fraunces), graisse 500.
+  static TextStyle _serif(double size, Color color) => TextStyle(
+        fontFamily: appSerifFamily,
+        fontSize: size,
+        fontWeight: FontWeight.w500,
+        letterSpacing: TypeScale.displayTracking,
+        height: TypeScale.titleHeight,
+        color: color,
+      );
+
   static TextStyle _title(double size, FontWeight weight, Color color) =>
       _style(size, weight, TypeScale.titleEm, color,
           height: TypeScale.titleHeight);
@@ -652,6 +688,61 @@ class AppTheme {
       size <= TypeScale.caption ? TypeScale.captionEm : TypeScale.bodyEm,
       color,
       height: TypeScale.bodyHeight);
+}
+
+/// Forme de l'indicateur actif de la navigation latérale : rectangle aux
+/// angles doux (rempli par la couleur d'indicateur) et barre verticale de
+/// [barWidth] sur le bord gauche.
+@immutable
+class ActiveBarIndicatorBorder extends ShapeBorder {
+  const ActiveBarIndicatorBorder({
+    required this.barColor,
+    this.barWidth = Radii.xs,
+    this.radius = Radii.sm,
+  });
+
+  final Color barColor;
+  final double barWidth;
+  final double radius;
+
+  RRect _shape(Rect rect) =>
+      RRect.fromRectAndRadius(rect, Radius.circular(radius));
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      Path()..addRRect(_shape(rect));
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) =>
+      Path()..addRRect(_shape(rect));
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    canvas.save();
+    canvas.clipRRect(_shape(rect));
+    canvas.drawRect(
+      Rect.fromLTWH(rect.left, rect.top, barWidth, rect.height),
+      Paint()..color = barColor,
+    );
+    canvas.restore();
+  }
+
+  @override
+  ShapeBorder scale(double t) => ActiveBarIndicatorBorder(
+      barColor: barColor, barWidth: barWidth * t, radius: radius * t);
+
+  @override
+  bool operator ==(Object other) =>
+      other is ActiveBarIndicatorBorder &&
+      other.barColor == barColor &&
+      other.barWidth == barWidth &&
+      other.radius == radius;
+
+  @override
+  int get hashCode => Object.hash(barColor, barWidth, radius);
 }
 
 /// Bordure et ombre des cartes principales, selon le thème.
@@ -676,7 +767,7 @@ class CardChrome {
         )
       : CardChrome(
           border: const BorderSide(
-              color: Color(0xFFE5DEC9), width: Chrome.borderWidth),
+              color: Color(0xFFE6E2D8), width: Chrome.borderWidth),
           shadow: BoxShadow(
             color: const Color(0xFF1E2A1A)
                 .withValues(alpha: Chrome.shadowOpacity),

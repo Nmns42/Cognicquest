@@ -325,12 +325,12 @@ class _ThemePicker extends StatelessWidget {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: variant == selected
-                      ? context.cq.vert.withValues(alpha: 0.1)
+                      ? context.cq.vertSauge.withValues(alpha: 0.1)
                       : context.cq.cardColor,
                   borderRadius: BorderRadius.circular(Radii.md),
                   border: Border.all(
                     color: variant == selected
-                        ? context.cq.vert
+                        ? context.cq.vertSauge
                         : context.cq.beigeDark,
                     width: variant == selected ? 1.8 : 1,
                   ),
@@ -362,7 +362,7 @@ class _ThemePicker extends StatelessWidget {
                           : Icons.radio_button_unchecked,
                       size: 19,
                       color: variant == selected
-                          ? context.cq.vert
+                          ? context.cq.vertSauge
                           : context.cq.textHint,
                     ),
                   ],

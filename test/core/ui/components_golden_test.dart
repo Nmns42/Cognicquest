@@ -39,6 +39,10 @@ void main() {
       for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold'])
         '$dir/PlusJakartaSans-$weight.ttf',
     ]);
+    await load(appSerifFamily, [
+      for (final weight in ['Regular', 'Medium', 'SemiBold'])
+        'assets/fonts/fraunces/Fraunces-$weight.ttf',
+    ]);
     final flutterRoot = Platform.environment['FLUTTER_ROOT'];
     if (flutterRoot != null) {
       await load('MaterialIcons', [

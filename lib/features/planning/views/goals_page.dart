@@ -108,7 +108,7 @@ class _GoalCard extends ConsumerWidget {
                           : Icons.check_circle_outline,
                       size: 21,
                       color: goal.isCompleted
-                          ? context.cq.vert
+                          ? context.cq.vertSauge
                           : context.cq.textHint,
                     ),
                     onPressed: () => ref
@@ -522,7 +522,7 @@ class _CriterionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         decoration: BoxDecoration(
           color: satisfied
-              ? context.cq.vert.withValues(alpha: 0.13)
+              ? context.cq.vertSauge.withValues(alpha: 0.13)
               : context.cq.beigeDark.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(Radii.md),
         ),

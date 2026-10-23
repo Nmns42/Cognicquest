@@ -43,7 +43,7 @@ class ConfidencePicker extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: level <= value
-                        ? context.cq.vert
+                        ? context.cq.vertSauge
                         : context.cq.beigeDark.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(Radii.md),
                   ),
@@ -53,7 +53,7 @@ class ConfidencePicker extends StatelessWidget {
                     style: TextStyle(
                       fontSize: TypeScale.body,
                       fontWeight: FontWeight.w600,
-                      color: level <= value ? context.onAccent : context.cq.textMuted,
+                      color: level <= value ? context.cq.beige : context.cq.textMuted,
                     ),
                   ),
                 ),

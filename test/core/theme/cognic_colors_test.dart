@@ -86,9 +86,8 @@ void main() {
       {WidgetState.pressed, WidgetState.focused},
     ]) {
       final selected = {...states, WidgetState.selected};
-      // Sélectionné : texte en couleur de texte (l'accent n'est plus foncé),
-      // icône posée sur l'indicateur sauge, dans sa couleur dédiée.
-      final onAccent = AppTheme.onAccentFor(AppThemeVariant.light);
+      // Sélectionné : texte et icône en couleur de texte, sur l'indicateur
+      // pierre (plus de pastille d'accent).
       expect(nav.labelTextStyle!.resolve(selected),
           TextStyle(
               fontFamily: appFontFamily,
@@ -104,7 +103,7 @@ void main() {
               letterSpacing: 0,
               color: cq.textMuted));
       expect(nav.iconTheme!.resolve(selected),
-          IconThemeData(size: Sizes.iconLg, color: onAccent));
+          IconThemeData(size: Sizes.iconLg, color: cq.textPrimary));
       expect(nav.iconTheme!.resolve(states),
           IconThemeData(size: Sizes.iconLg, color: cq.textMuted));
     }

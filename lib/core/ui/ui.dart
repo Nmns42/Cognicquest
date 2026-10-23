@@ -6,6 +6,7 @@
 library;
 
 export 'botanical_decorations.dart';
+export 'botanical_hero.dart';
 export 'cq_button.dart';
 export 'cq_card.dart';
 export 'cq_chip.dart';

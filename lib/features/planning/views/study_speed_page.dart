@@ -139,7 +139,7 @@ class _EstimateCard extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: estimate.isReliable
-                        ? context.cq.vert.withValues(alpha: 0.12)
+                        ? context.cq.vertSauge.withValues(alpha: 0.12)
                         : context.cq.warning.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(Radii.md),
                   ),

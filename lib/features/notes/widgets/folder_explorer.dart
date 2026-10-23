@@ -283,7 +283,7 @@ class _FolderRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ink = selected ? context.onAccent : context.cq.textMuted;
+    final ink = selected ? context.cq.textPrimary : context.cq.textMuted;
     final row = _RowShell(
       selected: selected,
       onTap: onTap,
@@ -364,12 +364,13 @@ class _RowShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cq = context.cq;
-    final color = selected ? context.onAccent : cq.textPrimary;
+    final color = cq.textPrimary;
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? cq.vert : Colors.transparent,
+        // Sélection : aplat pierre (le vert reste aux actions).
+        color: selected ? cq.beigeDark : Colors.transparent,
         borderRadius: BorderRadius.circular(Radii.sm),
         child: InkWell(
           borderRadius: BorderRadius.circular(Radii.sm),
@@ -384,7 +385,7 @@ class _RowShell extends StatelessWidget {
                 children: [
                   IconTheme.merge(
                     data: IconThemeData(
-                        color: selected ? context.onAccent : cq.textMuted),
+                        color: selected ? cq.textPrimary : cq.textMuted),
                     child: leading,
                   ),
                   const SizedBox(width: Space.sm),
@@ -406,7 +407,7 @@ class _RowShell extends StatelessWidget {
                       child: Text(
                         '$count',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: selected ? context.onAccent : null),
+                            color: selected ? cq.textPrimary : null),
                       ),
                     ),
                   if (trailing != null) trailing!,
@@ -956,7 +957,7 @@ class _FolderDropTargetState extends ConsumerState<FolderDropTarget> {
         return DecoratedBox(
           decoration: BoxDecoration(
             color: zone == _DropZone.inside
-                ? cq.vert.withValues(alpha: 0.12)
+                ? cq.vertSauge.withValues(alpha: 0.12)
                 : null,
             borderRadius: BorderRadius.circular(Radii.sm),
             border: switch (zone) {

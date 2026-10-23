@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -154,7 +152,10 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
             ],
           ),
         ),
-        SizedBox(width: _panelWidth, child: _MindfulPanel(habits: habits)),
+        SizedBox(
+          width: _panelWidth,
+          child: MindfulTreePanel(growth: habits.averageConsistency),
+        ),
       ],
     );
   }
@@ -232,290 +233,42 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
 
 // ─── Bannière ───────────────────────────────────────────────────────────────
 
-/// Bannière bi-ton : le bilan sur le vert forêt, un bouquet de feuillage à
-/// droite, et une bande plus sombre de trois chiffres séparés par des
-/// filets.
+/// Bilan du jour sur la bannière bi-ton : à jour, régularité, suivi.
 class _HeroBanner extends StatelessWidget {
   const _HeroBanner({required this.habits});
 
   final List<Habit> habits;
 
-  /// En dessous, le feuillage gênerait la lecture du titre : il disparaît.
-  static const double _foliageMin = 520;
-
   @override
   Widget build(BuildContext context) {
-    final cq = context.cq;
     final doneToday = habits.where((h) => h.completedToday).length;
     final allDone = doneToday == habits.length;
     final bestStreak =
         habits.fold<int>(0, (best, h) => h.streak > best ? h.streak : best);
-    final averageConsistency = _averageConsistency(habits);
-    final radius = BorderRadius.circular(Radii.card);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        boxShadow: [context.chrome.shadow],
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: ColoredBox(
-          color: cq.vert,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LayoutBuilder(builder: (context, constraints) {
-                final foliage = constraints.maxWidth >= _foliageMin;
-                final foliageWidth = math.min(constraints.maxWidth * 0.4, 300.0);
-                return ConstrainedBox(
-                  constraints: BoxConstraints(
-                      minHeight: foliage ? Space.xxxl * 3.5 : 0),
-                  child: Stack(
-                    children: [
-                      if (foliage)
-                        Positioned(
-                          right: Space.lg,
-                          top: Space.md,
-                          bottom: 0,
-                          width: foliageWidth,
-                          child: const HeroFoliageOverlay(),
-                        ),
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(Space.xl, Space.xl,
-                            foliage ? foliageWidth + Space.xl : Space.xl,
-                            Space.xl),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '$doneToday / ${habits.length} à jour —\n'
-                              '${allDone ? 'Belle constance !' : 'Continue sur ta lancée !'}',
-                              style: TextStyle(
-                                color: context.onAccent,
-                                fontSize: TypeScale.headline,
-                                fontWeight: FontWeight.w700,
-                                height: TypeScale.titleHeight,
-                                letterSpacing: TypeScale.tracking(
-                                    TypeScale.headline, TypeScale.titleEm),
-                              ),
-                            ),
-                            const SizedBox(height: Space.sm),
-                            Text(
-                              allDone
-                                  ? 'Tout est validé pour la période en cours.'
-                                  : 'Encore ${habits.length - doneToday} à '
-                                      "valider (jour, semaine ou mois selon "
-                                      "l'habitude).",
-                              style: TextStyle(
-                                  color: cq.onVertMuted,
-                                  fontSize: TypeScale.body),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-              ColoredBox(
-                color: cq.vertLip,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: Space.xl, vertical: Space.lg),
-                  child: _HeroStats(
-                    stats: [
-                      _HeroStat(
-                        leading: const LaurelStreakBadge(),
-                        // Séries en jours, semaines ou mois : pas d'unité
-                        // commune.
-                        value: '$bestStreak',
-                        label: 'Meilleure série en cours',
-                      ),
-                      _HeroStat(
-                        value: '${(averageConsistency * 100).round()} %',
-                        label: 'Régularité récente',
-                      ),
-                      _HeroStat(
-                        value: '${habits.length}',
-                        label: 'Habitudes suivies',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+    return BotanicalHeroBanner(
+      title: '$doneToday / ${habits.length} à jour —\n'
+          '${allDone ? 'Belle constance !' : 'Continue sur ta lancée !'}',
+      subtitle: allDone
+          ? 'Tout est validé pour la période en cours.'
+          : "Encore ${habits.length - doneToday} à valider (jour, semaine ou "
+              "mois selon l'habitude).",
+      stats: [
+        BotanicalHeroStat(
+          leading: const LaurelStreakBadge(),
+          // Séries en jours, semaines ou mois : pas d'unité commune.
+          value: '$bestStreak',
+          label: 'Meilleure série en cours',
         ),
-      ),
-    );
-  }
-}
-
-double _averageConsistency(List<Habit> habits) => habits.isEmpty
-    ? 0.0
-    : habits.map((h) => h.successRateLast30Days).reduce((a, b) => a + b) /
-        habits.length;
-
-/// Chiffres de la bande sombre : en colonnes séparées de filets verticaux,
-/// ou empilés sur un écran étroit (et à 200 % de texte).
-class _HeroStats extends StatelessWidget {
-  const _HeroStats({required this.stats});
-
-  final List<_HeroStat> stats;
-
-  static const double _columnsMin = 560;
-
-  @override
-  Widget build(BuildContext context) {
-    final rule = context.cq.onVertMuted.withValues(alpha: 0.3);
-    return LayoutBuilder(builder: (context, constraints) {
-      if (constraints.maxWidth < _columnsMin) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final (i, stat) in stats.indexed) ...[
-              if (i > 0)
-                Divider(
-                    height: Space.lg, thickness: Borders.thin, color: rule),
-              stat,
-            ],
-          ],
-        );
-      }
-      return IntrinsicHeight(
-        child: Row(
-          children: [
-            for (final (i, stat) in stats.indexed) ...[
-              if (i > 0)
-                VerticalDivider(
-                    width: Space.xl, thickness: Borders.thin, color: rule),
-              Expanded(child: stat),
-            ],
-          ],
+        BotanicalHeroStat(
+          value: '${(habits.averageConsistency * 100).round()} %',
+          label: 'Régularité récente',
         ),
-      );
-    });
-  }
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.value, required this.label, this.leading});
-
-  final String value;
-  final String label;
-  final Widget? leading;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        if (leading != null) ...[leading!, const SizedBox(width: Space.md)],
-        Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: context.onAccent,
-                  fontSize: TypeScale.title,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                label,
-                style: TextStyle(
-                    color: context.cq.onVertMuted,
-                    fontSize: TypeScale.caption),
-              ),
-            ],
-          ),
+        BotanicalHeroStat(
+          value: '${habits.length}',
+          label: 'Habitudes suivies',
         ),
       ],
-    );
-  }
-}
-
-// ─── Panneau « Arbre de détente » ───────────────────────────────────────────
-
-/// Panneau latéral (grand écran) : l'arbre compagnon, qui grandit avec la
-/// régularité, et des rappels métacognitifs.
-class _MindfulPanel extends StatelessWidget {
-  const _MindfulPanel({required this.habits});
-
-  final List<Habit> habits;
-
-  static const List<(IconData, String)> _reminders = [
-    (Icons.self_improvement_outlined,
-        'Avant de commencer, pose une intention claire pour la séance.'),
-    (Icons.psychology_alt_outlined,
-        "Qu'est-ce qui t'a aidé hier ? Refais-le aujourd'hui."),
-    (Icons.spa_outlined,
-        "Une pause de 5 minutes consolide ce que tu viens d'apprendre."),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final cq = context.cq;
-    final growth = _averageConsistency(habits);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(0, Space.xl, Space.xl, Space.xl),
-      child: DecoratedBox(
-        decoration:
-            context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
-        child: Padding(
-          padding: const EdgeInsets.all(Space.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Arbre de détente',
-                  style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(height: Space.sm),
-              AspectRatio(
-                aspectRatio: 1,
-                child: MindfulTreeIllustration(growth: growth),
-              ),
-              Text(
-                'Il grandit avec ta régularité : '
-                '${(growth * 100).round()} % sur 30 jours.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: TypeScale.caption, color: cq.textMuted),
-              ),
-              const SizedBox(height: Space.lg),
-              for (final (icon, text) in _reminders)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: Space.sm),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: cq.sauge,
-                      borderRadius: BorderRadius.circular(Radii.md),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(Space.md),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
-                          const SizedBox(width: Space.sm),
-                          Expanded(
-                            child: Text(
-                              text,
-                              style: TextStyle(
-                                  fontSize: TypeScale.caption,
-                                  color: cq.textPrimary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -669,18 +422,21 @@ class _HabitTile extends StatelessWidget {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: isDone ? context.cq.vert : Colors.transparent,
+                          color: isDone
+                              ? context.cq.vertSauge
+                              : Colors.transparent,
                           border: Border.all(
-                            color:
-                                isDone ? context.cq.vert : context.cq.textHint,
+                            color: isDone
+                                ? context.cq.vertSauge
+                                : context.cq.textHint,
                             width: 2,
                           ),
-                          // Case ronde, comme la maquette.
-                          shape: BoxShape.circle,
+                          // Case carrée aux angles doux.
+                          borderRadius: BorderRadius.circular(Radii.xs),
                         ),
                         child: isDone
                             ? Icon(Icons.check,
-                                size: 16, color: context.onAccent)
+                                size: 16, color: context.cq.beige)
                             : null,
                       ),
                     ),
@@ -716,10 +472,11 @@ class _HabitTile extends StatelessWidget {
                 // est à jour, écorce sinon. Le chiffre monte d'un cran.
                 RollingNumber(
                   value: habit.streak,
-                  builder: (context, streak) => _ScoreBadge(
-                    value: streak,
-                    unit: habit.frequency.shortUnit,
-                    upToDate: isDone,
+                  builder: (context, streak) => CqScoreBadge(
+                    value: '$streak',
+                    semanticLabel:
+                        'Série : $streak ${habit.frequency.shortUnit}',
+                    warm: !isDone,
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -792,50 +549,6 @@ class _HabitTile extends StatelessWidget {
           boxShadow: [context.chrome.shadow],
         ),
         child: card,
-      ),
-    );
-  }
-}
-
-/// Pastille circulaire de la série en cours.
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({
-    required this.value,
-    required this.unit,
-    required this.upToDate,
-  });
-
-  final int value;
-  final String unit;
-  final bool upToDate;
-
-  @override
-  Widget build(BuildContext context) {
-    final cq = context.cq;
-    return Semantics(
-      label: 'Série : $value $unit',
-      excludeSemantics: true,
-      child: Container(
-        constraints: const BoxConstraints(
-            minWidth: Sizes.iconXl + Space.xs, minHeight: Sizes.iconXl + Space.xs),
-        padding: const EdgeInsets.symmetric(horizontal: Space.xs),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: upToDate ? cq.vertSauge : cq.terre,
-          // Cercle pour un ou deux chiffres, pastille au-delà.
-          borderRadius: BorderRadius.circular(Radii.card),
-          border: Border.all(
-              color: cq.beige.withValues(alpha: 0.5), width: Borders.focus),
-        ),
-        child: Text(
-          '$value',
-          style: TextStyle(
-            fontSize: TypeScale.body,
-            fontWeight: FontWeight.w700,
-            // Le fond de l'app tient ≥ 4,5:1 sur la sauge et l'écorce.
-            color: cq.beige,
-          ),
-        ),
       ),
     );
   }

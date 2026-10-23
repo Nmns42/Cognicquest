@@ -183,8 +183,8 @@ class _ViewToggle extends StatelessWidget {
             onPressed: view == selected ? null : () => onChanged(view),
             style: IconButton.styleFrom(
               backgroundColor:
-                  view == selected ? context.cq.vert : Colors.transparent,
-              disabledBackgroundColor: context.cq.vert,
+                  view == selected ? context.cq.beigeDark : Colors.transparent,
+              disabledBackgroundColor: context.cq.beigeDark,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(Radii.sm),
               ),
@@ -192,7 +192,7 @@ class _ViewToggle extends StatelessWidget {
             icon: Icon(
               icon,
               size: Sizes.iconMd,
-              color: view == selected ? context.onAccent : context.cq.textMuted,
+              color: view == selected ? context.cq.textPrimary : context.cq.textMuted,
             ),
           ),
       ],
@@ -413,7 +413,7 @@ class _ClosedDrawer extends ConsumerWidget {
           ref.read(taskProvider.notifier).moveTask(details.data.id, status),
       builder: (context, candidate, __) {
         final hovered = candidate.isNotEmpty;
-        final ink = hovered ? context.onAccent : context.cq.textMuted;
+        final ink = hovered ? context.cq.textPrimary : context.cq.textMuted;
         return Semantics(
           button: true,
           label: '${status.label}, $count tâche${count > 1 ? "s" : ""}',
@@ -421,9 +421,11 @@ class _ClosedDrawer extends ConsumerWidget {
             duration: Motion.duration(context, CqMotion.fast),
             curve: CqMotion.standard,
             decoration: hovered
+                // Cible de dépôt survolée : aplat pierre cerclé de sauge.
                 ? BoxDecoration(
-                    gradient: context.accentGradient,
+                    color: context.cq.beigeDark,
                     borderRadius: BorderRadius.circular(Radii.md),
+                    border: Border.all(color: context.cq.vertSauge),
                   )
                 : context.chrome.decoration(color: context.cq.cardColor),
             child: Material(
@@ -443,7 +445,7 @@ class _ClosedDrawer extends ConsumerWidget {
                                 ? 'Déposer dans « ${status.label} »'
                                 : status.label,
                             style: text.titleMedium?.copyWith(
-                                color: hovered ? context.onAccent : null),
+                                color: hovered ? context.cq.textPrimary : null),
                           ),
                         ),
                         Text('$count',
@@ -699,7 +701,7 @@ class _DraggableTaskState extends ConsumerState<_DraggableTask> {
                 height: 3,
                 margin: const EdgeInsets.only(bottom: 6),
                 decoration: BoxDecoration(
-                  color: context.cq.vert,
+                  color: context.cq.vertSauge,
                   borderRadius: BorderRadius.circular(Radii.sm),
                 ),
               ),
@@ -795,7 +797,7 @@ class _EmptyColumn extends StatelessWidget {
         isHovered ? 'Déposer ici' : 'Aucune tâche',
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: isHovered ? context.cq.vert : context.cq.textMuted,
+          color: isHovered ? context.cq.vertSauge : context.cq.textMuted,
           fontSize: TypeScale.body,
           fontWeight: isHovered ? FontWeight.w600 : FontWeight.normal,
         ),

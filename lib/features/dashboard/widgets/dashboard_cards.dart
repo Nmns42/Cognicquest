@@ -3,63 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/motion/entrance.dart';
 import '../../../shared/models/habit_model.dart';
-import '../../../shared/models/task_model.dart';
-import '../../kanban/widgets/task_card.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
-
-/// Bandeau d'accueil.
-class GreetingCard extends StatelessWidget {
-  const GreetingCard({
-    super.key,
-    required this.greeting,
-    required this.name,
-    required this.dateLabel,
-  });
-
-  final String greeting;
-  final String name;
-  final String dateLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding:
-          const EdgeInsets.symmetric(horizontal: Space.xl, vertical: Space.xl),
-      // Dégradé sauge de la maquette, sous le chrome des cartes.
-      decoration: context.chrome
-          .decoration(color: context.cq.cardColor, radius: Radii.card)
-          .copyWith(gradient: context.accentGradient),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TypeUnmask(
-            child: Text(
-              name.isEmpty ? '$greeting !' : '$greeting, $name !',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: context.onAccent, fontWeight: FontWeight.w700),
-            ),
-          ),
-          const SizedBox(height: Space.xs),
-          ContentRise(
-            child: Text(
-              dateLabel,
-              // Le gris `textMuted` sur l'accent échouait au contraste WCAG :
-              // on utilise le ton dédié.
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: context.cq.onVertMuted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Chiffre de tête du Dashboard : le temps de focus du jour.
 ///
@@ -124,14 +70,16 @@ class StatTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    required this.color,
+    this.warm = false,
     this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final Color color;
+
+  /// Pastille écorce (chaleureuse) plutôt que sauge.
+  final bool warm;
   final VoidCallback? onTap;
 
   @override
@@ -147,7 +95,7 @@ class StatTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: color, size: 20),
+              CqScoreBadge(icon: icon, warm: warm),
               const SizedBox(height: 8),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -170,67 +118,6 @@ class StatTile extends StatelessWidget {
             ],
           ),
         ),
-    );
-  }
-}
-
-class QuickStartCard extends StatelessWidget {
-  const QuickStartCard(
-      {super.key, required this.onTap, required this.subtitle});
-
-  final VoidCallback onTap;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(Radii.card),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: BoxDecoration(
-          color: context.cq.sauge,
-          borderRadius: BorderRadius.circular(Radii.card),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.cq.vert,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.play_arrow_rounded,
-                  color: context.onAccent, size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Démarrer une session',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: TypeScale.bodyLarge,
-                      color: context.cq.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                        color: context.cq.textMuted, fontSize: TypeScale.body),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded,
-                size: 14, color: context.cq.textMuted),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -260,80 +147,6 @@ class SectionHeader extends StatelessWidget {
         onPressed: onMore,
         icon: Icon(Icons.arrow_outward,
             size: Sizes.iconMd, color: context.cq.textMuted),
-      ),
-    );
-  }
-}
-
-/// Aperçu compact d'une tâche.
-class TaskPreviewRow extends StatelessWidget {
-  const TaskPreviewRow({
-    super.key,
-    required this.task,
-    required this.onToggle,
-    required this.onOpen,
-  });
-
-  final Task task;
-  final VoidCallback onToggle;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: context.cq.sauge,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.card)),
-      child: InkWell(
-        onTap: onOpen,
-        borderRadius: BorderRadius.circular(Radii.card),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              InkWell(
-                onTap: onToggle,
-                borderRadius: BorderRadius.circular(Radii.md),
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: context.cq.beigeDark, width: 2),
-                      borderRadius: BorderRadius.circular(Radii.md),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: TypeScale.body, color: context.cq.textPrimary),
-                ),
-              ),
-              if (task.isOverdue)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Icon(Icons.warning_amber_rounded,
-                      size: 15, color: context.cq.errorColor),
-                ),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: priorityColor(context, task.priority),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -377,15 +190,15 @@ class HabitPreviewRow extends StatelessWidget {
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: done ? context.cq.vert : Colors.transparent,
+                    color: done ? context.cq.vertSauge : Colors.transparent,
                     border: Border.all(
-                      color: done ? context.cq.vert : context.cq.beigeDark,
+                      color: done ? context.cq.vertSauge : context.cq.beigeDark,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: done
-                      ? Icon(Icons.check, size: 13, color: context.onAccent)
+                      ? Icon(Icons.check, size: 13, color: context.cq.beige)
                       : null,
                 ),
               ),
@@ -407,7 +220,11 @@ class HabitPreviewRow extends StatelessWidget {
                 value: habit.streak,
                 builder: (context, streak) => streak == 0
                     ? const SizedBox.shrink()
-                    : CqStreakBadge(label: '🔥 $streak'),
+                    : CqScoreBadge(
+                        value: '$streak',
+                        semanticLabel: 'Série : $streak',
+                        warm: !done,
+                      ),
               ),
             ],
           ),

@@ -89,6 +89,13 @@ void main() {
         expect(ratio(cq.onVertMuted, cq.vertLip), greaterThanOrEqualTo(4.5));
       });
 
+      test('bannières colorées (erreur, alerte, accent foncé) : texte '
+          'couleur du fond ≥ 4,5:1', () {
+        for (final fill in [cq.errorColor, cq.warning, cq.vertDark]) {
+          expect(ratio(cq.beige, fill), greaterThanOrEqualTo(4.5));
+        }
+      });
+
       test("texte sur l'ambre ≥ 4,5:1", () {
         expect(ratio(cq.onAmbre, cq.ambre), greaterThanOrEqualTo(4.5));
       });

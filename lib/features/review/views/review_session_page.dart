@@ -91,7 +91,7 @@ class _ReviewSessionPageState extends ConsumerState<ReviewSessionPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: context.cq.vert.withValues(alpha: 0.12),
+                          color: context.cq.vertSauge.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(Radii.md),
                         ),
                         child:  Text(
@@ -282,7 +282,7 @@ class _GradeBar extends StatelessWidget {
         ReviewGrade.again => context.cq.errorColor,
         ReviewGrade.hard => context.cq.warning,
         ReviewGrade.good => context.cq.vertDark,
-        ReviewGrade.easy => context.cq.vert,
+        ReviewGrade.easy => context.cq.vertSauge,
       };
 
   @override

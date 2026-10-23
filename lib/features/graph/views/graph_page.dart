@@ -411,7 +411,7 @@ class _GraphCanvasState extends State<_GraphCanvas>
                         for (final type in NoteLinkType.values)
                           type: _linkColor(context, type),
                       },
-                      nodeColor: cq.vert,
+                      nodeColor: cq.vertSauge,
                       isolatedColor: cq.textHint,
                       ringColor: cq.textPrimary,
                       background: cq.beige,

@@ -47,7 +47,7 @@ class RevisionOrderPage extends ConsumerWidget {
               padding: const EdgeInsets.all(13),
               decoration: BoxDecoration(
                 color: plan.isFeasible
-                    ? context.cq.vert.withValues(alpha: 0.08)
+                    ? context.cq.vertSauge.withValues(alpha: 0.08)
                     : context.cq.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(Radii.md),
               ),
@@ -183,7 +183,7 @@ class _RankedRow extends ConsumerWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: rank <= 3
-                      ? context.cq.vert
+                      ? context.cq.vertSauge
                       : context.cq.beigeDark.withValues(alpha: 0.8),
                   shape: BoxShape.circle,
                 ),
@@ -192,7 +192,7 @@ class _RankedRow extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: TypeScale.caption,
                     fontWeight: FontWeight.w700,
-                    color: rank <= 3 ? context.onAccent : context.cq.textMuted,
+                    color: rank <= 3 ? context.cq.beige : context.cq.textMuted,
                   ),
                 ),
               ),

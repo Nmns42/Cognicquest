@@ -64,3 +64,12 @@ flutter:
           weight: 600
         - asset: assets/fonts/plus_jakarta_sans/PlusJakartaSans-Bold.ttf
           weight: 700
+    # Fraunces (OFL, cf. OFL.txt) : serif éditoriale des titres et du logo.
+    # Embarquée (pas de google_fonts) : l'app fonctionne hors ligne.
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/fraunces/Fraunces-Regular.ttf
+        - asset: assets/fonts/fraunces/Fraunces-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/fraunces/Fraunces-SemiBold.ttf
+          weight: 600

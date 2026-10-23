@@ -68,13 +68,13 @@ void main() {
       Duration(milliseconds: 320),
       Duration(milliseconds: 280),
     ]);
-    expect(find.text('🔥 1'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
 
     await tester.pumpWidget(row(doneToday: true, reduced: false));
     await tester.pump(const Duration(milliseconds: 140));
     expect(checkScale(tester), greaterThan(1.1));
     expect(streakOpacity(tester), lessThan(1.0));
-    expect(find.text('🔥 2'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
 
     await tester.pumpAndSettle();
     expect(checkScale(tester), closeTo(1.0, 1e-9));
@@ -89,7 +89,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
     expect(checkScale(tester), closeTo(1.0, 1e-9));
     expect(streakOpacity(tester), 1.0);
-    expect(find.text('🔥 2'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 
   testWidgets('décocher ne fait pas rebondir et la série baisse sans '
@@ -99,6 +99,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 140));
     expect(checkScale(tester), 1.0);
     expect(streakOpacity(tester), 1.0);
-    expect(find.text('🔥 1'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
   });
 }

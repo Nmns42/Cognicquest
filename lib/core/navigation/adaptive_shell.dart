@@ -326,17 +326,18 @@ class _SectionTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sur l'accent : sa couleur de texte dédiée (lisible dans les deux
-    // thèmes).
-    final color = selected ? context.onAccent : context.cq.textMuted;
+    // Onglet actif : aplat pierre et texte plein, sans pastille colorée.
+    final color = selected ? context.cq.textPrimary : context.cq.textMuted;
+    final shape = RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.sm));
     return Semantics(
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? context.cq.olive : Colors.transparent,
-        shape: const StadiumBorder(),
+        color: selected ? context.cq.beigeDark : Colors.transparent,
+        shape: shape,
         child: InkWell(
-          customBorder: const StadiumBorder(),
+          customBorder: shape,
           onTap: selected ? null : () => context.go(section.route),
           child: ConstrainedBox(
             // Cible tactile de 48 dp, même si la pastille paraît plus fine.
@@ -410,23 +411,21 @@ class _RailHeader extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: Space.xxl,
-            height: Space.xxl,
-            decoration: BoxDecoration(
-              color: context.cq.olive,
-              borderRadius: BorderRadius.circular(Radii.sm),
-            ),
-            child: Icon(Icons.psychology_outlined,
-                size: 20, color: context.onAccent),
+          // Marque éditoriale : une feuille et le nom en serif.
+          SizedBox.square(
+            dimension: Space.xxl,
+            child: Icon(Icons.eco_outlined,
+                size: Sizes.iconLg, color: context.cq.vertSauge),
           ),
           if (extended) ...[
-            const SizedBox(width: Space.md),
+            const SizedBox(width: Space.sm),
             Text(
               'CognicQuest',
               style: TextStyle(
-                fontSize: TypeScale.bodyLarge,
-                fontWeight: FontWeight.w700,
+                fontFamily: appSerifFamily,
+                fontSize: TypeScale.title,
+                fontWeight: FontWeight.w500,
+                letterSpacing: TypeScale.displayTracking,
                 color: context.cq.textPrimary,
               ),
             ),

@@ -1,3 +1,5 @@
+import 'dart:ui' show FontFeature;
+
 import 'package:flutter/animation.dart';
 
 /// Jetons de design de la refonte « zen » (Phase 0).
@@ -24,6 +26,9 @@ abstract final class Space {
 /// Rayons d'angle : nets mais pas anguleux (références Craft, ElevenReader,
 /// Saturn : 8 sur les champs, 12 sur les cartes et boutons).
 abstract final class Radii {
+  /// Cases à cocher : carrées, angles à peine adoucis.
+  static const double xs = 4;
+
   /// Champs, puces, petits contrôles.
   static const double sm = 8;
 
@@ -36,11 +41,11 @@ abstract final class Radii {
   /// Boutons tactiles en relief ([Press]) : rayon généreux, à la Duolingo.
   static const double button = 16;
 
-  /// Cartes de la direction « Duolingo & végétal ».
-  static const double card = 20;
+  /// Cartes : sobres, à la manière de Notion ou Linear.
+  static const double card = 12;
 
   /// Toutes les valeurs autorisées, pour les garde-fous.
-  static const List<double> scale = [sm, md, lg, button, card];
+  static const List<double> scale = [xs, sm, md, lg, button, card];
 }
 
 /// Relief des boutons tactiles (`CqPressableButton`).
@@ -92,6 +97,12 @@ abstract final class TypeScale {
 
   /// Interlettrage en pixels pour une taille et un facteur em.
   static double tracking(double size, double em) => size * em;
+
+  /// Grands titres en serif : crénage resserré, en pixels.
+  static const double displayTracking = -0.5;
+
+  /// Chiffres tabulaires : les compteurs s'alignent (« 6 cartes à revoir »).
+  static const List<FontFeature> tabular = [FontFeature.tabularFigures()];
 }
 
 /// Dimensions des contrôles.
@@ -122,13 +133,13 @@ abstract final class Borders {
   static const double focus = 2;
 }
 
-/// « Chrome » des cartes : filet fin et ombre portée douce, large et peu
-/// dense : un relief feutré, jamais l'aspect « jouet ».
+/// « Chrome » des cartes : filet d'un pixel et ombre quasi imperceptible.
+/// La carte se détache par sa surface blanche et son filet.
 abstract final class Chrome {
   static const double borderWidth = Borders.thin;
-  static const double shadowBlur = 18;
-  static const double shadowOffsetY = 6;
-  static const double shadowOpacity = 0.07;
+  static const double shadowBlur = 8;
+  static const double shadowOffsetY = 2;
+  static const double shadowOpacity = 0.03;
 
   /// Élévation des feuilles du bas : assez pour les détacher, sans masse.
   static const double sheetElevation = 4;
@@ -137,6 +148,10 @@ abstract final class Chrome {
 /// Police unique de l'application, embarquée (cf. `pubspec.yaml`) :
 /// Plus Jakarta Sans, graisses 400 à 700.
 const String appFontFamily = 'PlusJakartaSans';
+
+/// Serif éditoriale des titres et du logo : Fraunces, graisses 400 à 600
+/// (embarquée, cf. `pubspec.yaml`).
+const String appSerifFamily = 'Fraunces';
 
 /// Durées et courbes des animations.
 ///

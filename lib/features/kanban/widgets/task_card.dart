@@ -146,7 +146,7 @@ class TaskCard extends StatelessWidget {
   Widget _dueBadge(BuildContext context) {
     final color = task.isOverdue
         ? context.cq.errorColor
-        : (task.isDueToday ? context.cq.vert : context.cq.textMuted);
+        : (task.isDueToday ? context.cq.terre : context.cq.textMuted);
     final label = task.isDueToday
         ? "Aujourd'hui"
         : '${task.dueDate!.day.toString().padLeft(2, '0')}/'
@@ -181,15 +181,15 @@ class _Checkbox extends StatelessWidget {
             width: 20,
             height: 20,
             decoration: BoxDecoration(
-              color: done ? context.cq.vert : Colors.transparent,
+              color: done ? context.cq.vertSauge : Colors.transparent,
               border: Border.all(
-                color: done ? context.cq.vert : context.cq.beigeDark,
+                color: done ? context.cq.vertSauge : context.cq.beigeDark,
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(Radii.md),
             ),
             child: done
-                ? Icon(Icons.check, size: 13, color: context.onAccent)
+                ? Icon(Icons.check, size: 13, color: context.cq.beige)
                 : null,
           ),
         ),

@@ -374,13 +374,13 @@ class _FilterButton extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: context.cq.vert,
+                color: context.cq.vertSauge,
                 borderRadius: BorderRadius.circular(Radii.md),
               ),
               child: Text(
                 '$activeCount',
                 style: TextStyle(
-                  color: context.onAccent,
+                  color: context.cq.beige,
                   fontSize: TypeScale.caption,
                   fontWeight: FontWeight.w700,
                 ),
@@ -450,8 +450,8 @@ class _Chip extends StatelessWidget {
         label: Text(label, style: const TextStyle(fontSize: TypeScale.caption)),
         onDeleted: onRemove,
         deleteIcon: const Icon(Icons.close, size: 14),
-        backgroundColor: context.cq.vert.withValues(alpha: 0.1),
-        side: BorderSide(color: context.cq.vert.withValues(alpha: 0.3)),
+        backgroundColor: context.cq.vertSauge.withValues(alpha: 0.1),
+        side: BorderSide(color: context.cq.beigeDark),
         visualDensity: VisualDensity.compact,
       ),
     );

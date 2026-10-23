@@ -255,10 +255,10 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: context.cq.vert.withValues(alpha: 0.08),
+                    color: context.cq.vertSauge.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(Radii.md),
                     border: Border.all(
-                        color: context.cq.vert.withValues(alpha: 0.25)),
+                        color: context.cq.vertSauge.withValues(alpha: 0.25)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

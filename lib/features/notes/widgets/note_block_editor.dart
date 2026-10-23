@@ -277,17 +277,17 @@ class _BlockRow extends StatelessWidget {
                   height: 18,
                   decoration: BoxDecoration(
                     color:
-                        block.isChecked ? context.cq.vert : Colors.transparent,
+                        block.isChecked ? context.cq.vertSauge : Colors.transparent,
                     border: Border.all(
                       color: block.isChecked
-                          ? context.cq.vert
+                          ? context.cq.vertSauge
                           : context.cq.beigeDark,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(Radii.md),
                   ),
                   child: block.isChecked
-                      ? Icon(Icons.check, size: 12, color: context.onAccent)
+                      ? Icon(Icons.check, size: 12, color: context.cq.beige)
                       : null,
                 ),
               ),

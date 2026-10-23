@@ -150,7 +150,7 @@ class _StrainCard extends StatelessWidget {
           Text(
             insights.isEmpty ? 'Aucun bilan' : insights.strainLevel.label,
             style: TextStyle(
-              color: insights.isEmpty ? context.cq.textMuted : context.onAccent,
+              color: insights.isEmpty ? context.cq.textMuted : context.cq.beige,
               fontSize: TypeScale.title,
               fontWeight: FontWeight.w600,
             ),
@@ -161,7 +161,7 @@ class _StrainCard extends StatelessWidget {
             style: TextStyle(
               color: insights.isEmpty
                   ? context.cq.textMuted
-                  : context.cq.onVertMuted,
+                  : context.cq.beige,
               fontSize: TypeScale.body,
               height: 1.4,
             ),
@@ -203,7 +203,7 @@ class _StrainCard extends StatelessWidget {
                 fontSize: TypeScale.caption,
                 color: insights.isEmpty
                     ? context.cq.textHint
-                    : context.cq.onVertMuted,
+                    : context.cq.beige,
               ),
             ),
           ],
@@ -226,14 +226,14 @@ class _Metric extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: context.onAccent,
+              color: context.cq.beige,
               fontSize: TypeScale.title,
               fontWeight: FontWeight.w700,
             ),
           ),
           Text(label,
               style: TextStyle(
-                  color: context.cq.onVertMuted, fontSize: TypeScale.caption)),
+                  color: context.cq.beige, fontSize: TypeScale.caption)),
         ],
       );
 }
@@ -267,7 +267,7 @@ class _ToolTile extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: context.cq.vert.withValues(alpha: 0.12),
+                  color: context.cq.vertSauge.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(Radii.md),
                 ),
                 child: Icon(icon, size: 19, color: context.cq.vertDark),
@@ -304,7 +304,7 @@ class _ToolTile extends StatelessWidget {
                   child: Text(
                     badge!,
                     style: TextStyle(
-                        color: context.onAccent,
+                        color: context.cq.beige,
                         fontSize: TypeScale.caption,
                         fontWeight: FontWeight.w700),
                   ),

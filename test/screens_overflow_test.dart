@@ -30,21 +30,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// Chaque écran est monté sur une base en mémoire remplie avec le jeu de
 /// démo, hors ligne, puis affiché à 4 tailles d'écran × 3 tailles de texte.
-/// Charge la police de l'application (Plus Jakarta Sans, versionnée dans
-/// `assets/`). La police par défaut des tests (« Ahem », un carré plein par
+/// Charge les polices de l'application (Plus Jakarta Sans et Fraunces,
+/// versionnées dans `assets/`). La police par défaut des tests (« Ahem », un carré plein par
 /// caractère) est bien plus large et haute qu'un vrai texte : elle
 /// inventerait des débordements et en masquerait d'autres. Un fichier
 /// manquant fait donc échouer le test au lieu d'y retomber en silence.
 Future<void> _loadAppFont() async {
-  final loader = FontLoader(appFontFamily);
-  for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
-    final file = File('assets/fonts/plus_jakarta_sans/PlusJakartaSans-$weight.ttf');
-    if (!file.existsSync()) {
-      throw StateError('Police introuvable : ${file.path}');
+  Future<void> load(String family, List<String> paths) async {
+    final loader = FontLoader(family);
+    for (final path in paths) {
+      final file = File(path);
+      if (!file.existsSync()) {
+        throw StateError('Police introuvable : ${file.path}');
+      }
+      loader
+          .addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
     }
-    loader.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+    await loader.load();
   }
-  await loader.load();
+
+  await load(appFontFamily, [
+    for (final weight in ['Regular', 'Medium', 'SemiBold', 'Bold'])
+      'assets/fonts/plus_jakarta_sans/PlusJakartaSans-$weight.ttf',
+  ]);
+  // Titres en serif éditoriale.
+  await load(appSerifFamily, [
+    for (final weight in ['Regular', 'Medium', 'SemiBold'])
+      'assets/fonts/fraunces/Fraunces-$weight.ttf',
+  ]);
 }
 
 /// Fait défiler la liste principale (verticale) jusqu'en bas, par pas.

@@ -301,3 +301,11 @@ class Habit {
   @override
   int get hashCode => id.hashCode;
 }
+
+/// Statistiques d'un ensemble d'habitudes.
+extension HabitListStats on List<Habit> {
+  /// Régularité moyenne sur 30 jours, de 0 à 1 (bannière, arbre compagnon).
+  double get averageConsistency => isEmpty
+      ? 0.0
+      : map((h) => h.successRateLast30Days).reduce((a, b) => a + b) / length;
+}
