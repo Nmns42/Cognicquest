@@ -99,6 +99,13 @@ final speedEstimatesProvider = Provider<List<SpeedEstimate>>((ref) {
       subject: ref.watch(speedSubjectProvider));
 });
 
+/// Toutes les estimations de vitesse, toutes matières (objectifs SMART).
+final allSpeedEstimatesProvider = Provider<List<SpeedEstimate>>((ref) {
+  final samples =
+      ref.watch(speedSamplesProvider).valueOrNull ?? const <SpeedSample>[];
+  return StudySpeed.allEstimates(samples);
+});
+
 final speedSubjectsProvider = Provider<List<String>>((ref) {
   final samples =
       ref.watch(speedSamplesProvider).valueOrNull ?? const <SpeedSample>[];

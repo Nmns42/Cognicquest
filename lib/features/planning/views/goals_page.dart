@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/planning_model.dart';
-import '../data/planning_repository.dart';
+import '../domain/goal_feasibility.dart';
 import '../providers/planning_provider.dart';
+import '../widgets/smart_goal_sheet.dart';
 import '../../../core/theme/tokens.dart';
 
 /// Objectifs SMART — « définir des objectifs précis, atteignables et
@@ -42,7 +42,7 @@ class GoalsPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final draft = await _GoalSheet.show(context);
+          final draft = await SmartGoalSheet.show(context);
           if (draft == null) return;
           await ref.read(planningActionsProvider).saveGoal(draft);
         },
@@ -63,12 +63,16 @@ class _GoalCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pace = goal.requiredPacePerDay;
     final days = goal.daysRemaining;
+    // Temps quotidien d'après la vitesse de travail mesurée, si l'unité de
+    // l'objectif en a une.
+    final feasibility =
+        GoalFeasibility.of(goal, ref.watch(allSpeedEstimatesProvider));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         onTap: () async {
-          final draft = await _GoalSheet.show(context, goal: goal);
+          final draft = await SmartGoalSheet.show(context, goal: goal);
           if (draft == null) return;
           await ref.read(planningActionsProvider).saveGoal(draft);
         },
@@ -162,7 +166,8 @@ class _GoalCard extends ConsumerWidget {
                                 ? 'Échéance aujourd\'hui'
                                 : '$days jour${days > 1 ? 's' : ''} restant'
                                     '${days > 1 ? 's' : ''}'
-                                    '${pace != null && pace > 0 ? ' · ${pace.toStringAsFixed(1)} ${goal.metricLabel}/jour' : ''}'),
+                                    '${pace != null && pace > 0 ? ' · ${formatDecimal(pace, maxDigits: 1)} ${goal.metricLabel}/jour' : ''}'
+                                    '${feasibility?.perDay == null ? '' : ' · ≈ ${formatHoursMinutes(feasibility!.perDay!)} / jour'}'),
                         style: TextStyle(
                           fontSize: TypeScale.caption,
                           color: goal.isOverdue
@@ -238,314 +243,3 @@ class _EmptyState extends StatelessWidget {
 }
 
 /// Saisie d'un objectif, guidée par les cinq critères.
-class _GoalSheet extends ConsumerStatefulWidget {
-  const _GoalSheet({this.goal});
-
-  final StudyGoal? goal;
-
-  static Future<StudyGoal?> show(BuildContext context, {StudyGoal? goal}) {
-    return showModalBottomSheet<StudyGoal>(
-      context: context,
-      sheetAnimationStyle: Motion.style(context),
-      isScrollControlled: true,
-      builder: (_) => _GoalSheet(goal: goal),
-    );
-  }
-
-  @override
-  ConsumerState<_GoalSheet> createState() => _GoalSheetState();
-}
-
-class _GoalSheetState extends ConsumerState<_GoalSheet> {
-  final _formKey = GlobalKey<FormState>();
-  late final _titleController =
-      TextEditingController(text: widget.goal?.title ?? '');
-  late final _metricController =
-      TextEditingController(text: widget.goal?.metricLabel ?? '');
-  late final _targetController = TextEditingController(
-      text: (widget.goal?.targetValue ?? 0) > 0
-          ? widget.goal!.targetValue.toStringAsFixed(0)
-          : '');
-  late final _currentController = TextEditingController(
-      text: (widget.goal?.currentValue ?? 0) > 0
-          ? widget.goal!.currentValue.toStringAsFixed(0)
-          : '');
-  late final _achievableController =
-      TextEditingController(text: widget.goal?.achievablePlan ?? '');
-  late final _relevanceController =
-      TextEditingController(text: widget.goal?.relevance ?? '');
-
-  late DateTime? _deadline = widget.goal?.deadline;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _metricController.dispose();
-    _targetController.dispose();
-    _currentController.dispose();
-    _achievableController.dispose();
-    _relevanceController.dispose();
-    super.dispose();
-  }
-
-  StudyGoal get _draft {
-    final existing = widget.goal;
-    return StudyGoal(
-      id: existing?.id ?? newPlanningId(),
-      userId: existing?.userId ?? '',
-      title: _titleController.text.trim(),
-      metricLabel: _metricController.text.trim(),
-      targetValue:
-          double.tryParse(_targetController.text.replaceAll(',', '.')) ?? 0,
-      currentValue:
-          double.tryParse(_currentController.text.replaceAll(',', '.')) ?? 0,
-      achievablePlan: _achievableController.text.trim(),
-      relevance: _relevanceController.text.trim(),
-      deadline: _deadline,
-      createdAt: existing?.createdAt ?? DateTime.now(),
-      completedAt: existing?.completedAt,
-      isSynced: false,
-    );
-  }
-
-  Future<void> _pickDeadline() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _deadline ?? now.add(const Duration(days: 14)),
-      firstDate: now.subtract(const Duration(days: 30)),
-      lastDate: DateTime(now.year + 3),
-      helpText: 'Échéance',
-      cancelText: 'Annuler',
-      confirmText: 'Valider',
-    );
-    if (picked != null) setState(() => _deadline = picked);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final existing = widget.goal;
-    final draft = _draft;
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
-        ),
-        decoration:  BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(existing == null ? 'Nouvel objectif' : 'Modifier',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 14),
-
-                // Diagnostic SMART en direct : l'utilisateur voit ce qui
-                // manque au lieu d'être bloqué après coup.
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final criterion in SmartCriterion.values)
-                      _CriterionChip(
-                        criterion: criterion,
-                        satisfied:
-                            draft.satisfiedCriteria.contains(criterion),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                TextFormField(
-                  controller: _titleController,
-                  autofocus: existing == null,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'S — Objectif précis',
-                    hintText: 'Ex : Faire 20 exercices de dérivées',
-                  ),
-                  validator: (value) => (value ?? '').trim().isEmpty
-                      ? 'Formule ton objectif.'
-                      : null,
-                ),
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _metricController,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                          labelText: 'M — Unité',
-                          hintText: 'exercices',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _targetController,
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(labelText: 'Cible'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _currentController,
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(labelText: 'Fait'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  controller: _achievableController,
-                  minLines: 2,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'A — Comment tu vas y arriver',
-                    hintText: 'Ex : 2 exercices par jour, le matin',
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                TextFormField(
-                  controller: _relevanceController,
-                  minLines: 2,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'R — Pourquoi ça compte',
-                    hintText: 'Ex : les dérivées pèsent 30 % du partiel',
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                InkWell(
-                  onTap: _pickDeadline,
-                  borderRadius: BorderRadius.circular(AppTheme.radius),
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'T — Échéance',
-                      prefixIcon: const Icon(Icons.event_outlined, size: 20),
-                      suffixIcon: _deadline == null
-                          ? null
-                          : IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => setState(() => _deadline = null),
-                            ),
-                    ),
-                    child: Text(
-                      _deadline == null
-                          ? 'Non définie'
-                          : '${_deadline!.day.toString().padLeft(2, '0')}/'
-                              '${_deadline!.month.toString().padLeft(2, '0')}/'
-                              '${_deadline!.year}',
-                      style:  TextStyle(
-                          fontSize: TypeScale.body, color: context.cq.textPrimary),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                ElevatedButton(
-                  onPressed: () {
-                    if (!_formKey.currentState!.validate()) return;
-                    Navigator.pop(context, _draft);
-                  },
-                  child: Text(existing == null ? 'Créer' : 'Enregistrer'),
-                ),
-
-                if (existing != null) ...[
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () async {
-                      await ref
-                          .read(planningActionsProvider)
-                          .deleteGoal(existing.id);
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    child:  Text('Supprimer cet objectif',
-                        style: TextStyle(color: context.cq.errorColor)),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CriterionChip extends StatelessWidget {
-  const _CriterionChip({required this.criterion, required this.satisfied});
-
-  final SmartCriterion criterion;
-  final bool satisfied;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: criterion.hint,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        decoration: BoxDecoration(
-          color: satisfied
-              ? context.cq.vertSauge.withValues(alpha: 0.13)
-              : context.cq.beigeDark.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              satisfied ? Icons.check : Icons.remove,
-              size: 12,
-              color: satisfied ? context.cq.vertDark : context.cq.textHint,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              criterion.label,
-              style: TextStyle(
-                fontSize: TypeScale.caption,
-                fontWeight: FontWeight.w600,
-                color: satisfied ? context.cq.vertDark : context.cq.textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -3,10 +3,19 @@ enum SmartCriterion {
   specific('Spécifique', 'Un énoncé précis, pas « travailler les maths »'),
   measurable('Mesurable', 'Une unité et une cible chiffrée'),
   achievable('Atteignable', 'Les moyens concrets d\'y arriver'),
-  relevant('Pertinent', 'Pourquoi cet objectif compte pour toi'),
+  relevant('Réaliste et pertinent', 'Pourquoi cet objectif compte pour toi'),
   timeBound('Temporel', 'Une échéance datée');
 
   const SmartCriterion(this.label, this.hint);
+
+  /// Lettre de l'acronyme SMART (le R reste « R » : réaliste et pertinent).
+  String get letter => switch (this) {
+        SmartCriterion.specific => 'S',
+        SmartCriterion.measurable => 'M',
+        SmartCriterion.achievable => 'A',
+        SmartCriterion.relevant => 'R',
+        SmartCriterion.timeBound => 'T',
+      };
 
   final String label;
   final String hint;
