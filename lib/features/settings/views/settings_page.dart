@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../legal/consent.dart';
 import '../../pomodoro/providers/pomodoro_provider.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
@@ -120,6 +122,11 @@ class SettingsPage extends ConsumerWidget {
               ],
               const SizedBox(height: Space.xl),
 
+              const _SectionLabel('Confidentialité'),
+              const SizedBox(height: Space.md),
+              const _PrivacyPanel(),
+              const SizedBox(height: Space.xl),
+
               const _SectionLabel('Gestion des données'),
               const SizedBox(height: Space.md),
               const DemoDataButton(),
@@ -215,6 +222,41 @@ class _Panel extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Textes légaux et retrait du consentement aux données de bien-être.
+class _PrivacyPanel extends ConsumerWidget {
+  const _PrivacyPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cq = context.cq;
+    Widget link(String title, String route) => ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+          title: Text(title, style: const TextStyle(fontSize: TypeScale.body)),
+          trailing: Icon(Icons.chevron_right,
+              size: Sizes.iconMd, color: cq.vertSauge),
+          onTap: () => context.push(route),
+        );
+    return _Panel(
+      children: [
+        link('Politique de confidentialité', LegalRoute.privacy),
+        link('Mentions légales', LegalRoute.notice),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+          title: const Text('Retirer mon consentement',
+              style: TextStyle(fontSize: TypeScale.body)),
+          subtitle: Text(
+            'L’analyse de ton humeur et de ton journal s’arrête ; l’accord '
+            'te sera redemandé.',
+            style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
+          ),
+          trailing: Icon(Icons.undo, size: Sizes.iconMd, color: cq.terre),
+          onTap: () => ref.read(consentProvider.notifier).withdraw(),
+        ),
+      ],
     );
   }
 }

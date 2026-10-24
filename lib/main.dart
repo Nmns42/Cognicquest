@@ -8,6 +8,7 @@ import 'core/config/app_config.dart';
 import 'core/motion/reduce_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dev/demo_seed.dart';
+import 'features/legal/consent.dart';
 import 'features/settings/data/ambient_sound_engine.dart';
 import 'features/settings/providers/settings_provider.dart';
 import 'features/sync/providers/sync_coordinator.dart';
@@ -120,8 +121,12 @@ class CognicQuestApp extends ConsumerWidget {
             ),
             disableAnimations: reduceMotion,
           ),
-          // Fond commun (beige et feuilles) sous toutes les pages.
-          child: ZenBackground(child: child ?? const SizedBox.shrink()),
+          // Fond commun (beige et feuilles) sous toutes les pages ; le
+          // bandeau de consentement par-dessus, à la première ouverture.
+          child: ConsentGate(
+            router: router,
+            child: ZenBackground(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
     );

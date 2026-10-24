@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/sync_queue.dart';
+import '../../../core/media/media_store.dart';
 import '../../sync/providers/sync_coordinator.dart';
 import '../data/oauth_loopback.dart';
 
@@ -261,6 +262,9 @@ class AuthController extends AsyncNotifier<void> {
   Future<bool> deleteAccount() async {
     state = const AsyncValue.loading();
     try {
+      // Les images d'abord : une fois le compte supprimé, plus aucune
+      // session ne pourrait les effacer.
+      await ref.read(mediaStoreProvider)?.purgeRemote();
       await _client.rpc('delete_own_account');
     } catch (error, stackTrace) {
       state = AsyncValue.error(

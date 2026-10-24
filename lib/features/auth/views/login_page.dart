@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../router/app_router.dart';
+import '../../legal/consent.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_scaffold.dart';
 
@@ -157,6 +158,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           question: 'Pas encore de compte ?',
           actionLabel: 'Créer un compte',
           onPressed: () => context.go(AppRoute.register),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.center,
+          children: [
+            TextButton(
+              onPressed: () => context.push(LegalRoute.privacy),
+              child: const Text('Confidentialité'),
+            ),
+            TextButton(
+              onPressed: () => context.push(LegalRoute.notice),
+              child: const Text('Mentions légales'),
+            ),
+          ],
         ),
       ],
     );

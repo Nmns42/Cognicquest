@@ -106,6 +106,24 @@ class MediaStore {
     await _serialSync();
   }
 
+  /// Supprime toutes les images du compte dans Storage (suppression du
+  /// compte). Effacer `auth.users` ne les retire pas : les fichiers ne sont
+  /// pas liés aux tables par une clé étrangère.
+  Future<void> purgeRemote() async {
+    if (!_syncEnabled) return;
+    const page = 100;
+    final storage = _client.storage.from(bucket);
+    while (true) {
+      final files = await storage.list(
+        path: _userId,
+        searchOptions: const SearchOptions(limit: page),
+      );
+      if (files.isEmpty) return;
+      await storage.remove([for (final file in files) '$_userId/${file.name}']);
+      if (files.length < page) return;
+    }
+  }
+
   Future<void> _push() => _queue.drain(bucket, (entry) async {
         final row = await (_db.select(_db.localMediaCache)
               ..where((t) => t.path.equals(entry.entityId)))

@@ -24,6 +24,9 @@ dependencies:
   file_picker: ^13.1.0
   video_player: ^2.14.1
   archive: ^4.5.2
+  # Consentement RGPD : mémorisé avant toute connexion, hors base locale
+  # (effacée à la déconnexion).
+  shared_preferences: ^2.5.3
 
   # ──────────────────────────────────────────────────────────────────────────
   # Base locale : arbitrage tranché au Lot 4 en faveur de Drift/SQLite.

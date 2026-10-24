@@ -18,6 +18,9 @@ import '../features/dashboard/views/dashboard_page.dart';
 import '../features/graph/views/graph_page.dart';
 import '../features/habits/views/habits_page.dart';
 import '../features/kanban/views/kanban_page.dart';
+import '../features/legal/consent.dart';
+import '../features/legal/legal_texts.dart';
+import '../features/legal/views/legal_page.dart';
 import '../features/metacognition/views/error_logs_page.dart';
 import '../features/metacognition/views/journal_entry_page.dart';
 import '../features/metacognition/views/journal_hub_page.dart';
@@ -138,6 +141,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (ref.read(passwordRecoveryProvider)) {
         return isOnResetPassword ? null : AppRoute.resetPassword;
       }
+      // Textes légaux : lisibles avant comme après la connexion.
+      if (LegalRoute.contains(state.matchedLocation)) return null;
       if (isOnResetPassword) {
         return isLoggedIn ? AppRoute.home : AppRoute.login;
       }
@@ -173,6 +178,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.resetPassword,
         builder: (context, state) => const ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: LegalRoute.privacy,
+        builder: (context, state) => const LegalPage(document: privacyPolicy),
+      ),
+      GoRoute(
+        path: LegalRoute.notice,
+        builder: (context, state) => const LegalPage(document: legalNotice),
       ),
       ShellRoute(
         builder: (context, state, child) => Consumer(

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nmns42.github.io/Cognicquest/sitemap.xml
