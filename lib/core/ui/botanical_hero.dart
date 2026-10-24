@@ -30,7 +30,8 @@ class BotanicalHeroBanner extends StatelessWidget {
     final radius = BorderRadius.circular(Radii.card);
 
     return DecoratedBox(
-      decoration: context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
+      decoration:
+          context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
       child: ClipRRect(
         borderRadius: radius,
         child: ColoredBox(
@@ -43,8 +44,8 @@ class BotanicalHeroBanner extends StatelessWidget {
                 final foliageWidth =
                     math.min(constraints.maxWidth * 0.4, 300.0);
                 return ConstrainedBox(
-                  constraints: BoxConstraints(
-                      minHeight: foliage ? Space.xxxl * 3.5 : 0),
+                  constraints:
+                      BoxConstraints(minHeight: foliage ? Space.xxxl * 3.5 : 0),
                   child: Stack(
                     children: [
                       if (foliage)
@@ -56,7 +57,9 @@ class BotanicalHeroBanner extends StatelessWidget {
                           child: const HeroFoliageOverlay(),
                         ),
                       Padding(
-                        padding: EdgeInsets.fromLTRB(Space.xl, Space.xl,
+                        padding: EdgeInsets.fromLTRB(
+                            Space.xl,
+                            Space.xl,
                             foliage ? foliageWidth + Space.xl : Space.xl,
                             Space.xl),
                         child: Column(
@@ -136,8 +139,7 @@ class BotanicalHeroStat extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                    color: context.cq.textMuted,
-                    fontSize: TypeScale.caption),
+                    color: context.cq.textMuted, fontSize: TypeScale.caption),
               ),
             ],
           ),
@@ -166,8 +168,7 @@ class _HeroStats extends StatelessWidget {
           children: [
             for (final (i, stat) in stats.indexed) ...[
               if (i > 0)
-                Divider(
-                    height: Space.lg, thickness: Borders.thin, color: rule),
+                Divider(height: Space.lg, thickness: Borders.thin, color: rule),
               stat,
             ],
           ],
@@ -193,17 +194,34 @@ class _HeroStats extends StatelessWidget {
 /// qui grandit avec la régularité ([growth], 0 à 1), et des rappels
 /// métacognitifs.
 class MindfulTreePanel extends StatelessWidget {
-  const MindfulTreePanel({super.key, required this.growth});
+  const MindfulTreePanel({
+    super.key,
+    required this.growth,
+    this.caption,
+    this.advice,
+  });
 
   final double growth;
 
+  /// Phrase sous l'arbre ; par défaut, la régularité sur 30 jours.
+  final Widget? caption;
+
+  /// Conseils personnalisés ; par défaut, des rappels génériques.
+  final Widget? advice;
+
   static const List<(IconData, String)> _reminders = [
-    (Icons.self_improvement_outlined,
-        'Avant de commencer, pose une intention claire pour la séance.'),
-    (Icons.psychology_alt_outlined,
-        "Qu'est-ce qui t'a aidé hier ? Refais-le aujourd'hui."),
-    (Icons.spa_outlined,
-        "Une pause de 5 minutes consolide ce que tu viens d'apprendre."),
+    (
+      Icons.self_improvement_outlined,
+      'Avant de commencer, pose une intention claire pour la séance.'
+    ),
+    (
+      Icons.psychology_alt_outlined,
+      "Qu'est-ce qui t'a aidé hier ? Refais-le aujourd'hui."
+    ),
+    (
+      Icons.spa_outlined,
+      "Une pause de 5 minutes consolide ce que tu viens d'apprendre."
+    ),
   ];
 
   @override
@@ -226,42 +244,45 @@ class MindfulTreePanel extends StatelessWidget {
                 aspectRatio: 1,
                 child: MindfulTreeIllustration(growth: growth),
               ),
-              Text(
-                'Il grandit avec ta régularité : '
-                '${(growth.clamp(0.0, 1.0) * 100).round()} % sur 30 jours.',
-                textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
-              ),
+              caption ??
+                  Text(
+                    'Il grandit avec ta régularité : '
+                    '${(growth.clamp(0.0, 1.0) * 100).round()} % sur 30 jours.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: TypeScale.caption, color: cq.textMuted),
+                  ),
               const SizedBox(height: Space.lg),
-              for (final (icon, text) in _reminders)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: Space.sm),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: cq.sauge,
-                      borderRadius: BorderRadius.circular(Radii.md),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(Space.md),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
-                          const SizedBox(width: Space.sm),
-                          Expanded(
-                            child: Text(
-                              text,
-                              style: TextStyle(
-                                  fontSize: TypeScale.caption,
-                                  color: cq.textPrimary),
+              if (advice != null) advice!,
+              if (advice == null)
+                for (final (icon, text) in _reminders)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.sm),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: cq.sauge,
+                        borderRadius: BorderRadius.circular(Radii.md),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(Space.md),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(icon, size: Sizes.iconMd, color: cq.vertSauge),
+                            const SizedBox(width: Space.sm),
+                            Expanded(
+                              child: Text(
+                                text,
+                                style: TextStyle(
+                                    fontSize: TypeScale.caption,
+                                    color: cq.textPrimary),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
             ],
           ),
         ),

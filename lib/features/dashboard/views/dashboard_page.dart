@@ -15,7 +15,6 @@ import '../../metacognition/domain/metacognition_insights.dart';
 import '../../metacognition/providers/metacognition_provider.dart';
 import '../../notes/providers/note_provider.dart';
 import '../../planning/providers/planning_provider.dart';
-import '../../../shared/models/habit_model.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../review/providers/review_provider.dart';
 import '../models/dashboard_module.dart';
@@ -242,7 +241,7 @@ class DashboardPage extends ConsumerWidget {
         ],
       ],
     );
-    final tree = GrowthTreeCard(growth: habits.averageConsistency);
+    const tree = GrowthTreeCard();
     final extras = [
       for (final module in visible)
         if (!_inGrid.contains(module))

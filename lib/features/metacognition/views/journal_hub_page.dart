@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../router/app_router.dart';
-import '../../../shared/models/habit_model.dart';
-import '../../habits/providers/habit_provider.dart';
+import '../../coach/providers/coach_provider.dart';
+import '../../coach/widgets/coach_advice_list.dart';
 import '../../../shared/models/metacognition_model.dart';
 import '../domain/metacognition_insights.dart';
 import '../providers/metacognition_provider.dart';
@@ -43,8 +43,7 @@ class _JournalHubPageState extends ConsumerState<JournalHubPage> {
     final unfinished = ref.watch(unfinishedReframesProvider);
     final entries =
         ref.watch(journalProvider).valueOrNull ?? const <JournalEntry>[];
-    final habits = ref.watch(habitProvider).valueOrNull ?? const <Habit>[];
-    final tree = _GrowthTreeCard(growth: habits.averageConsistency);
+    const tree = _GrowthTreeCard();
 
     List<Widget> content({required bool withTree}) => [
           _RetrospectiveCard(
@@ -201,16 +200,15 @@ class _RetrospectiveCard extends StatelessWidget {
   }
 }
 
-/// Carte « Mon arbre de croissance » : il grandit avec la régularité des
-/// habitudes.
-class _GrowthTreeCard extends StatelessWidget {
-  const _GrowthTreeCard({required this.growth});
-
-  final double growth;
+/// Carte « Mon arbre de croissance » : vitalité et conseils de
+/// l'Arbre-Coach (humeur, fatigue, régularité, rétention, notions floues).
+class _GrowthTreeCard extends ConsumerWidget {
+  const _GrowthTreeCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cq = context.cq;
+    final growth = ref.watch(treeCoachProvider).vitality;
     return DecoratedBox(
       decoration: context.chrome.decoration(color: cq.cardColor, radius: Radii.card),
       child: Padding(
@@ -231,16 +229,9 @@ class _GrowthTreeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Space.sm),
-            Text(
-              'Régularité : ${(growth.clamp(0.0, 1.0) * 100).round()} % '
-              'sur 30 jours',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: TypeScale.caption,
-                color: cq.textMuted,
-                fontFeatures: TypeScale.tabular,
-              ),
-            ),
+            const CoachHeadline(),
+            const SizedBox(height: Space.lg),
+            const CoachAdviceList(),
           ],
         ),
       ),

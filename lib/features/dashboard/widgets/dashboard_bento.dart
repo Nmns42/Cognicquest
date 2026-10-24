@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
 import '../../../shared/models/task_model.dart';
+import '../../coach/providers/coach_provider.dart';
+import '../../coach/widgets/coach_advice_list.dart';
 
 /// Blocs de la grille « bento » du tableau de bord (direction éditoriale :
 /// fond lin, cartes blanches à filet fin, tuiles pierre, accents rares).
@@ -418,14 +422,14 @@ class ListSection extends StatelessWidget {
   }
 }
 
-/// Carte « Mon arbre de croissance » : l'arbre compagnon, sobrement encadré.
-class GrowthTreeCard extends StatelessWidget {
-  const GrowthTreeCard({super.key, required this.growth});
-
-  final double growth;
+/// Carte « Mon arbre de croissance » : l'arbre compagnon, dont la vitalité
+/// et les conseils viennent des vraies données (Arbre-Coach).
+class GrowthTreeCard extends ConsumerWidget {
+  const GrowthTreeCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final growth = ref.watch(treeCoachProvider).vitality;
     return CqCard(
       radius: Radii.card,
       padding: const EdgeInsets.all(Space.xl),
@@ -440,16 +444,9 @@ class GrowthTreeCard extends StatelessWidget {
             child: MindfulTreeIllustration(growth: growth),
           ),
           const SizedBox(height: Space.sm),
-          Text(
-            'Régularité : ${(growth.clamp(0.0, 1.0) * 100).round()} % '
-            'sur 30 jours',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: TypeScale.caption,
-              color: context.cq.textMuted,
-              fontFeatures: TypeScale.tabular,
-            ),
-          ),
+          const CoachHeadline(),
+          const SizedBox(height: Space.lg),
+          const CoachAdviceList(limit: 2),
         ],
       ),
     );

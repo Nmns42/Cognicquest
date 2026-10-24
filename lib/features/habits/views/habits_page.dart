@@ -7,6 +7,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../providers/habit_provider.dart';
 import '../widgets/habit_detail_sheet.dart';
+import '../../coach/providers/coach_provider.dart';
+import '../../coach/widgets/coach_advice_list.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
 
@@ -158,7 +160,11 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
         ),
         SizedBox(
           width: _panelWidth,
-          child: MindfulTreePanel(growth: habits.averageConsistency),
+          child: MindfulTreePanel(
+            growth: ref.watch(treeCoachProvider).vitality,
+            caption: const CoachHeadline(),
+            advice: const CoachAdviceList(),
+          ),
         ),
       ],
     );
