@@ -4,6 +4,8 @@ import 'dart:ui' show Offset, Rect, Size;
 import 'package:flutter/foundation.dart' as foundation show compute;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
+import 'graph_settings.dart' show GraphForces;
+
 /// Disposition du graphe de connaissances (algorithme de Fruchterman-Reingold
 /// avec gravité).
 ///
@@ -293,10 +295,23 @@ class GraphLayoutJob {
 ///
 /// Repère « monde » centré sur (0, 0) ; déterministe à entrées égales.
 class GraphSimulation {
-  GraphSimulation({this.spacing = 170});
+  GraphSimulation({double spacing = 170})
+      : _forces = GraphForces(distance: spacing);
+
+  GraphForces _forces;
+
+  /// Forces réglables (panneau « Forces » du graphe).
+  GraphForces get forces => _forces;
+
+  /// Change les forces et réveille la carte pour qu'elle s'y adapte.
+  set forces(GraphForces value) {
+    if (value == _forces) return;
+    _forces = value;
+    if (alpha < 0.3) alpha = 0.3;
+  }
 
   /// Longueur de repos d'un lien.
-  final double spacing;
+  double get spacing => _forces.distance;
 
   static const double alphaMin = 0.002;
   static const double alphaDecay = 0.0228;
@@ -309,6 +324,15 @@ class GraphSimulation {
 
   final Map<String, Offset> _positions = {};
   final Map<String, Offset> _velocities = {};
+
+  /// Groupe de chaque fiche (dossier) : les membres d'un groupe s'attirent
+  /// vers leur centre commun. Vide : pas de regroupement.
+  Map<String, String> _groups = const {};
+
+  set groups(Map<String, String> value) {
+    _groups = value;
+    if (alpha < 0.3) alpha = 0.3;
+  }
   List<(String, String)> _links = const [];
   final Map<String, int> _degree = {};
 
@@ -409,8 +433,8 @@ class GraphSimulation {
       final pa = _positions[a]!, pb = _positions[b]!;
       final delta = pb - pa;
       final d = math.max(delta.distance, 1.0);
-      final strength =
-          0.7 / math.min(_degree[a]!, _degree[b]!).clamp(1, 1 << 30);
+      final strength = _forces.link /
+          math.min(_degree[a]!, _degree[b]!).clamp(1, 1 << 30);
       final pull = delta * ((d - spacing) / d * strength * alpha);
       final total = _degree[a]! + _degree[b]!;
       final biasB = _degree[a]! / total;
@@ -419,7 +443,7 @@ class GraphSimulation {
     }
 
     // Répulsion entre toutes les fiches proches (charge électrique).
-    final charge = -1.1 * spacing * spacing;
+    final charge = -_forces.repel * spacing * spacing;
     final range = spacing * 6;
     for (var i = 0; i < n; i++) {
       final pi = _positions[ids[i]]!;
@@ -438,9 +462,27 @@ class GraphSimulation {
       }
     }
 
+    // Regroupement : chaque fiche est tirée vers le centre de son groupe.
+    if (_groups.isNotEmpty) {
+      final sums = <String, (Offset, int)>{};
+      for (final MapEntry(key: id, value: group) in _groups.entries) {
+        final p = _positions[id];
+        if (p == null) continue;
+        final (sum, count) = sums[group] ?? (Offset.zero, 0);
+        sums[group] = (sum + p, count + 1);
+      }
+      for (final MapEntry(key: id, value: group) in _groups.entries) {
+        final p = _positions[id];
+        final entry = sums[group];
+        if (p == null || entry == null || entry.$2 < 2) continue;
+        final centroid = entry.$1 / entry.$2.toDouble();
+        force[id] = force[id]! + (centroid - p) * (0.08 * alpha);
+      }
+    }
+
     // Force centrale : retient les îlots et les fiches isolées.
     for (final id in ids) {
-      force[id] = force[id]! - _positions[id]! * (0.03 * alpha);
+      force[id] = force[id]! - _positions[id]! * (_forces.center * alpha);
     }
 
     for (final id in ids) {

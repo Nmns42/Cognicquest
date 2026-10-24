@@ -1,9 +1,14 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../shared/models/note_link_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../notes/providers/note_provider.dart';
 import '../data/note_link_repository.dart';
+import '../domain/graph_settings.dart';
 import '../domain/knowledge_graph.dart';
 
 final noteLinksProvider = StreamProvider<List<NoteLink>>((ref) {
@@ -22,15 +27,69 @@ final graphNotesProvider = Provider<List<Note>>((ref) {
 /// Filtre du graphe par sujet — « Zoom, filtrage et survol des nœuds » (CdC).
 final graphSubjectFilterProvider = StateProvider<String?>((ref) => null);
 
-/// Nœuds du graphe, après application du filtre.
-final graphNodesProvider = Provider<List<GraphNode>>((ref) {
+/// Réglages du graphe (filtres, groupes, affichage, forces), mémorisés sur
+/// l'appareil.
+class GraphSettingsNotifier extends Notifier<GraphSettings> {
+  static const String _key = 'cq_graph_settings';
+
+  @override
+  GraphSettings build() {
+    unawaited(_load());
+    return GraphSettings.defaults;
+  }
+
+  Future<void> _load() async {
+    try {
+      final raw = (await SharedPreferences.getInstance()).getString(_key);
+      if (raw == null) return;
+      final json = jsonDecode(raw);
+      if (json is Map<String, dynamic>) {
+        state = GraphSettings.fromJson(json);
+      }
+    } catch (_) {
+      // Stockage indisponible : réglages par défaut.
+    }
+  }
+
+  void update(GraphSettings Function(GraphSettings) change) {
+    state = change(state);
+    unawaited(_save());
+  }
+
+  void reset() {
+    state = GraphSettings.defaults;
+    unawaited(_save());
+  }
+
+  Future<void> _save() async {
+    try {
+      await (await SharedPreferences.getInstance())
+          .setString(_key, jsonEncode(state.toJson()));
+    } catch (_) {}
+  }
+}
+
+final graphSettingsProvider =
+    NotifierProvider<GraphSettingsNotifier, GraphSettings>(
+        GraphSettingsNotifier.new);
+
+/// Vue du graphe : filtre par sujet, puis réglages (recherche, orphelins,
+/// pièces jointes, fiches inexistantes).
+final graphViewProvider = Provider<GraphViewData>((ref) {
   final subject = ref.watch(graphSubjectFilterProvider);
   final all = ref.watch(graphNotesProvider);
   final notes =
       subject == null ? all : all.where((n) => n.subject == subject).toList();
-
-  return KnowledgeGraph.buildNodes(notes, ref.watch(visibleLinksProvider));
+  return GraphView.build(
+    notes,
+    ref.watch(visibleLinksProvider),
+    ref.watch(graphSettingsProvider),
+  );
 });
+
+/// Nœuds du graphe, après application des filtres.
+final graphNodesProvider =
+    Provider<List<GraphNode>>((ref) => ref.watch(graphViewProvider).nodes);
 
 /// Liens dont les deux extrémités sont visibles après filtrage.
 final visibleLinksProvider = Provider<List<NoteLink>>((ref) {

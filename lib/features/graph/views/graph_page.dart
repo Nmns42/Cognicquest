@@ -13,10 +13,13 @@ import '../../../router/app_router.dart';
 import '../../../shared/models/note_link_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../notes/providers/note_provider.dart';
+import '../../notes/data/folder_repository.dart';
 import '../domain/graph_layout.dart';
+import '../domain/graph_settings.dart';
 import '../domain/knowledge_graph.dart';
 import '../providers/graph_provider.dart';
 import '../widgets/graph_insights_sheet.dart';
+import '../widgets/graph_settings_sheet.dart';
 import '../widgets/node_preview_sheet.dart';
 import '../../../core/theme/tokens.dart';
 
@@ -45,10 +48,46 @@ class _GraphPageState extends ConsumerState<GraphPage> {
     });
   }
 
+  /// Fiche : aperçu. Pièce jointe : aperçu de sa fiche. Fiche inexistante
+  /// (`[[lien]]` sans cible) : proposition de la créer.
+  Future<void> _openNode(Note note, List<NoteLink> links) async {
+    var id = note.id;
+    if (GraphNodeIds.isAttachment(id)) {
+      final parent = links.where((l) => l.targetId == id).firstOrNull;
+      if (parent == null) return;
+      id = parent.sourceId;
+    }
+    if (GraphNodeIds.isGhost(id)) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(
+        snackBarAnimationStyle: Motion.style(context),
+        SnackBar(
+          content: Text('« ${note.title} » n’existe pas encore.'),
+          action: SnackBarAction(
+            label: 'Créer la fiche',
+            onPressed: () async {
+              final created =
+                  await ref.read(noteActionsProvider).create(title: note.title);
+              if (created != null && mounted) {
+                context.push('${AppRoute.notes}/${created.id}');
+              }
+            },
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _selectedNoteId = id);
+    await NodePreviewSheet.show(context, noteId: id);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final nodes = ref.watch(graphNodesProvider);
-    final links = ref.watch(visibleLinksProvider);
+    final view = ref.watch(graphViewProvider);
+    final nodes = view.nodes;
+    final links = view.links;
+    final settings = ref.watch(graphSettingsProvider);
+    final folders = ref.watch(foldersProvider).valueOrNull ?? const <Folder>[];
     final insights = ref.watch(graphInsightsProvider);
     final subjects = ref.watch(noteSubjectsProvider);
     final subjectFilter = ref.watch(graphSubjectFilterProvider);
@@ -57,6 +96,11 @@ class _GraphPageState extends ConsumerState<GraphPage> {
       appBar: AppBar(
         title: const Text('Graphe de connaissances'),
         actions: [
+          IconButton(
+            tooltip: 'Réglages du graphe',
+            icon: const Icon(Icons.tune),
+            onPressed: () => GraphSettingsSheet.show(context),
+          ),
           IconButton(
             tooltip: 'Analyse du graphe',
             icon: const Icon(Icons.insights_outlined),
@@ -98,11 +142,10 @@ class _GraphPageState extends ConsumerState<GraphPage> {
                         child: _GraphCanvas(
                           nodes: nodes,
                           links: links,
+                          settings: settings,
+                          folderIds: [for (final f in folders) f.id],
                           selectedNoteId: _selectedNoteId,
-                          onTapNode: (note) {
-                            setState(() => _selectedNoteId = note.id);
-                            NodePreviewSheet.show(context, noteId: note.id);
-                          },
+                          onTapNode: (note) => _openNode(note, links),
                         ),
                       ),
                     ),
@@ -138,10 +181,16 @@ class _GraphCanvas extends StatefulWidget {
     required this.links,
     required this.selectedNoteId,
     required this.onTapNode,
+    this.settings = GraphSettings.defaults,
+    this.folderIds = const [],
   });
 
   final List<GraphNode> nodes;
   final List<NoteLink> links;
+  final GraphSettings settings;
+
+  /// Dossiers connus, dans un ordre stable (une couleur chacun).
+  final List<String> folderIds;
   final String? selectedNoteId;
   final ValueChanged<Note> onTapNode;
 
@@ -185,14 +234,48 @@ class _GraphCanvasState extends State<_GraphCanvas>
   void initState() {
     super.initState();
     _ticker = createTicker((_) => _onTick());
+    _simulation.forces = widget.settings.forces;
     _relayoutIfNeeded();
+    _applyGroups();
   }
 
   @override
   void didUpdateWidget(_GraphCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
     _relayoutIfNeeded();
+    final settings = widget.settings;
+    final old = oldWidget.settings;
+    if (settings.forces != old.forces) {
+      _simulation.forces = settings.forces;
+      _kickLater();
+    }
+    if (settings.groupByFolder != old.groupByFolder ||
+        !identical(widget.nodes, oldWidget.nodes)) {
+      _applyGroups();
+    }
+    if (settings.nodeSize != old.nodeSize ||
+        settings.linkThickness != old.linkThickness ||
+        settings.labelThreshold != old.labelThreshold) {
+      _frame.value++;
+    }
   }
+
+  /// Regroupement par dossier : chaque fiche rangée est tirée vers ses
+  /// voisines de dossier.
+  void _applyGroups() {
+    final groups = widget.settings.groupByFolder
+        ? {
+            for (final node in widget.nodes)
+              if (node.note.folderId case final folder?) node.note.id: folder,
+          }
+        : const <String, String>{};
+    _simulation.groups = groups;
+    _kickLater();
+  }
+
+  void _kickLater() => WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _kick();
+      });
 
   @override
   void dispose() {
@@ -423,9 +506,15 @@ class _GraphCanvasState extends State<_GraphCanvas>
                       view: () => (_origin, _scale),
                       nodes: byId,
                       links: widget.links,
+                      settings: widget.settings,
+                      folderColors: _folderColors(context),
+                      attachmentColor: cq.terre,
+                      ghostColor: cq.textHint,
                       linkColors: {
                         for (final type in NoteLinkType.values)
-                          type: _linkColor(context, type),
+                          type: widget.settings.colorLinksByType
+                              ? _linkColor(context, type)
+                              : cq.vertSauge.withValues(alpha: 0.7),
                       },
                       nodeColor: cq.vertSauge,
                       // Fiche isolée : l'écorce la signale sans alarmer.
@@ -466,6 +555,24 @@ class _GraphCanvasState extends State<_GraphCanvas>
     );
   }
 
+  /// Une teinte de la palette par dossier, dans l'ordre des dossiers.
+  Map<String, Color> _folderColors(BuildContext context) {
+    if (!widget.settings.colorByFolder) return const {};
+    final cq = context.cq;
+    final palette = [
+      cq.vertSauge,
+      cq.terre,
+      cq.olive,
+      cq.vertDark,
+      cq.warning,
+      cq.ambre,
+    ];
+    return {
+      for (final (i, id) in widget.folderIds.indexed)
+        id: palette[i % palette.length],
+    };
+  }
+
   static Color _linkColor(BuildContext context, NoteLinkType type) =>
       switch (type) {
         // Tracés filaires sauge et écorce.
@@ -487,6 +594,10 @@ class _GraphPainter extends CustomPainter {
     required this.view,
     required this.nodes,
     required this.links,
+    required this.settings,
+    required this.folderColors,
+    required this.attachmentColor,
+    required this.ghostColor,
     required this.linkColors,
     required this.nodeColor,
     required this.isolatedColor,
@@ -502,6 +613,12 @@ class _GraphPainter extends CustomPainter {
   final (Offset, double) Function() view;
   final Map<String, GraphNode> nodes;
   final List<NoteLink> links;
+  final GraphSettings settings;
+
+  /// Couleur par dossier (réglage « Couleur par dossier ») ; vide sinon.
+  final Map<String, Color> folderColors;
+  final Color attachmentColor;
+  final Color ghostColor;
   final Map<NoteLinkType, Color> linkColors;
   final Color nodeColor;
   final Color isolatedColor;
@@ -550,7 +667,9 @@ class _GraphPainter extends CustomPainter {
       final color = linkColors[link.type]!;
       final paint = Paint()
         ..color = dimming && !touches ? color.withValues(alpha: 0.18) : color
-        ..strokeWidth = (touches ? 1.6 : 0.8) / math.sqrt(scale)
+        ..strokeWidth = (touches ? 1.6 : 0.8) *
+            settings.linkThickness /
+            math.sqrt(scale)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(from, to, paint);
@@ -559,7 +678,7 @@ class _GraphPainter extends CustomPainter {
 
     // Titres de toutes les fiches dès qu'on zoome assez ; de loin, ceux des
     // carrefours, de la fiche en avant et de ses voisines.
-    final showAllLabels = scale >= 0.55;
+    final showAllLabels = scale >= settings.labelThreshold;
     final labelled = <(GraphNode, Offset, double, bool)>[];
     for (final MapEntry(key: id, value: center) in positions.entries) {
       final node = nodes[id];
@@ -567,8 +686,40 @@ class _GraphPainter extends CustomPainter {
       final faded = dimming && !neighbours.contains(id);
       // Taille minimale à l'écran : sur une vue d'ensemble, les points
       // restent des cercles lisibles, proportionnés au nombre de liens.
-      final radius = math.max(radiusOf(node), _minScreenRadius(node) / scale);
-      final base = node.isIsolated ? isolatedColor : nodeColor;
+      final radius = math.max(radiusOf(node), _minScreenRadius(node) / scale) *
+          settings.nodeSize;
+      final folderColor = folderColors[node.note.folderId];
+      if (GraphNodeIds.isAttachment(id)) {
+        // Pièce jointe : petit carré écorce, satellite de sa fiche.
+        final side = radius * 1.4;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+              Rect.fromCenter(center: center, width: side, height: side),
+              Radius.circular(side / 4)),
+          Paint()
+            ..color = faded
+                ? attachmentColor.withValues(alpha: 0.25)
+                : attachmentColor,
+        );
+        if (showAllLabels || neighbours.contains(id)) {
+          labelled.add((node, center, radius, faded));
+        }
+        continue;
+      }
+      if (GraphNodeIds.isGhost(id)) {
+        // Fiche inexistante : cercle creux, de couleur douce.
+        canvas.drawCircle(
+          center,
+          radius,
+          Paint()
+            ..color = faded ? ghostColor.withValues(alpha: 0.25) : ghostColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5 / scale,
+        );
+        labelled.add((node, center, radius, faded));
+        continue;
+      }
+      final base = folderColor ?? (node.isIsolated ? isolatedColor : nodeColor);
       canvas.drawCircle(center, radius,
           Paint()..color = faded ? base.withValues(alpha: 0.25) : base);
       // Liseré couleur du fond : le point se détache des liens.
