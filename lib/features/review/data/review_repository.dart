@@ -72,6 +72,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
   static const String _cardsTable = 'flashcards';
   static const String _explanationsTable = 'explanations';
   static const String _sessionsTable = 'sq3r_sessions';
+  static const String _logsTable = 'review_logs';
 
   // ── Lecture ──────────────────────────────────────────────────────────────
 
@@ -188,11 +189,12 @@ class LocalFirstReviewRepository implements ReviewRepository {
         isSynced: const Value(false),
       ));
 
-      // L'historique alimente les statistiques de progression ; il reste local
-      // (non synchronisé) pour ne pas gonfler le trafic à chaque carte jugée.
+      // L'historique alimente le taux de rétention : il part au serveur avec
+      // la carte, pour suivre l'utilisateur d'un appareil à l'autre.
+      final logId = LocalFirstNoteRepository.newId();
       await _db.into(_db.localReviewLogs).insert(
             LocalReviewLogsCompanion.insert(
-              id: LocalFirstNoteRepository.newId(),
+              id: logId,
               userId: _userId,
               cardId: card.id,
               grade: grade.value,
@@ -202,6 +204,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
           );
 
       await _enqueue(_cardsTable, card.id, 'upsert');
+      await _enqueue(_logsTable, logId, 'upsert');
     });
 
     _syncQuietly();
@@ -343,7 +346,69 @@ class LocalFirstReviewRepository implements ReviewRepository {
     await _pushCards();
     await _pushExplanations();
     await _pushSessions();
+    // Après les cartes : la clé étrangère distante exige la carte.
+    await _pushLogs();
     await _pullRemote();
+    await _pullLogs();
+  }
+
+  Future<void> _pushLogs() async {
+    await _queue.drain(_logsTable, (entry) async {
+      final row = await (_db.select(_db.localReviewLogs)
+            ..where((t) => t.id.equals(entry.entityId)))
+          .getSingleOrNull();
+      // Journal supprimé avec sa carte entre-temps : rien à envoyer.
+      if (row == null) return;
+      await _client.from(_logsTable).upsert({
+        'id': row.id,
+        'user_id': row.userId,
+        'card_id': row.cardId,
+        'grade': row.grade,
+        'interval_days': row.intervalDays,
+        'reviewed_at': row.reviewedAt.toUtc().toIso8601String(),
+      });
+    });
+  }
+
+  /// Rapatrie les jugements portés sur les autres appareils. Le journal est
+  /// en ajout seul : une ligne connue n'est jamais réécrite, et une ligne
+  /// dont la carte n'est pas présente localement est ignorée.
+  Future<void> _pullLogs() async {
+    final delta = await fetchDelta(
+      rows: () => _client.from(_logsTable).select().eq('user_id', _userId),
+      since: await _cursors.read(_logsTable),
+    );
+
+    final knownCards = (await (_db.select(_db.localFlashcards)
+              ..where((t) => t.userId.equals(_userId)))
+            .get())
+        .map((c) => c.id)
+        .toSet();
+
+    await _db.transaction(() async {
+      var missingCard = false;
+      for (final row in delta.changed) {
+        final cardId = row['card_id'] as String;
+        if (!knownCards.contains(cardId)) {
+          missingCard = true;
+          continue;
+        }
+        await _db.into(_db.localReviewLogs).insert(
+              LocalReviewLogsCompanion.insert(
+                id: row['id'] as String,
+                userId: _userId,
+                cardId: cardId,
+                grade: row['grade'] as String,
+                intervalDays: row['interval_days'] as int,
+                reviewedAt: DateTime.parse(row['reviewed_at'] as String),
+              ),
+              mode: InsertMode.insertOrIgnore,
+            );
+      }
+      // Carte pas encore arrivée (pull des cartes incomplet) : on relira ces
+      // jugements au prochain pull, sans avancer le curseur.
+      if (!missingCard) await _cursors.write(_logsTable, delta.cursor);
+    });
   }
 
   Future<void> _pushCards() async {
