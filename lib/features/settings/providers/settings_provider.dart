@@ -57,6 +57,15 @@ class SettingsNotifier extends Notifier<UserSettings> {
   void setPomodoro(PomodoroSettings pomodoro) =>
       _update(state.copyWith(pomodoro: pomodoro));
 
+  void setDailyReminder(bool enabled) =>
+      _update(state.copyWith(dailyReminder: enabled));
+
+  void setDailyReminderMinutes(int minutes) =>
+      _update(state.copyWith(dailyReminderMinutes: minutes % (24 * 60)));
+
+  void setPomodoroNotifications(bool enabled) =>
+      _update(state.copyWith(pomodoroNotifications: enabled));
+
   /// Ferme définitivement l'encadré d'aide [bannerId].
   void dismissBanner(String bannerId) {
     if (state.dismissedBanners.contains(bannerId)) return;

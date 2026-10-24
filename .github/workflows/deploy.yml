@@ -64,10 +64,14 @@ jobs:
             echo "::error::Secrets SUPABASE_URL et SUPABASE_ANON_KEY manquants."
             exit 1
           fi
+          # CanvasKit servi par l'app (et non le CDN gstatic) : condition
+          # du mode hors ligne et de la CSP sans origine tierce.
           flutter build web --release \
+            --no-web-resources-cdn \
             --base-href="/Cognicquest/" \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+          dart run tool/generate_service_worker.dart build/web
 
       - uses: actions/upload-pages-artifact@v3
         with:

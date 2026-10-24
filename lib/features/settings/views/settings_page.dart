@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../legal/consent.dart';
+import '../../reminders/reminder_service.dart';
 import '../../pomodoro/providers/pomodoro_provider.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
@@ -78,6 +80,11 @@ class SettingsPage extends ConsumerWidget {
                 onPreview: (ringtone) =>
                     ref.read(pomodoroChimeProvider).play(ringtone),
               ),
+              const SizedBox(height: Space.xl),
+
+              const _SectionLabel('Rappels'),
+              const SizedBox(height: Space.md),
+              const _RemindersPanel(),
               const SizedBox(height: Space.xl),
 
               const _SectionLabel('Confort et accessibilité'),
@@ -222,6 +229,86 @@ class _Panel extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Rappel quotidien de révision et notifications du Pomodoro. Activer l'un
+/// ou l'autre demande l'autorisation du système (geste de l'utilisateur,
+/// exigé par les navigateurs).
+class _RemindersPanel extends ConsumerWidget {
+  const _RemindersPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cq = context.cq;
+    final settings = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+    final service = ref.read(reminderServiceProvider);
+    TextStyle caption() =>
+        TextStyle(fontSize: TypeScale.caption, color: cq.textMuted);
+
+    Future<void> pickTime() async {
+      final minutes = settings.dailyReminderMinutes;
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+        helpText: 'Heure du rappel',
+        cancelText: 'Annuler',
+        confirmText: 'Valider',
+      );
+      if (picked != null) {
+        notifier.setDailyReminderMinutes(picked.hour * 60 + picked.minute);
+      }
+    }
+
+    return _Panel(
+      children: [
+        SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+          value: settings.dailyReminder,
+          onChanged: (enabled) async {
+            if (enabled) await service.requestPermission();
+            notifier.setDailyReminder(enabled);
+          },
+          title: const Text('Rappel quotidien de révision',
+              style: TextStyle(fontSize: TypeScale.body)),
+          subtitle: Text(
+            kIsWeb
+                ? 'Notification à heure fixe, tant que l’app est ouverte'
+                : 'Notification à heure fixe, même app fermée',
+            style: caption(),
+          ),
+        ),
+        if (settings.dailyReminder)
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+            title: const Text('Heure du rappel',
+                style: TextStyle(fontSize: TypeScale.body)),
+            trailing: Text(
+              reminderTimeLabel(settings.dailyReminderMinutes),
+              style: TextStyle(
+                fontSize: TypeScale.body,
+                fontWeight: FontWeight.w600,
+                color: cq.textPrimary,
+                fontFeatures: TypeScale.tabular,
+              ),
+            ),
+            onTap: pickTime,
+          ),
+        SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+          value: settings.pomodoroNotifications,
+          onChanged: (enabled) async {
+            if (enabled) await service.requestPermission();
+            notifier.setPomodoroNotifications(enabled);
+          },
+          title: const Text('Notification de fin de Pomodoro',
+              style: TextStyle(fontSize: TypeScale.body)),
+          subtitle: Text('À la fin de chaque session et de chaque pause',
+              style: caption()),
+        ),
+      ],
     );
   }
 }

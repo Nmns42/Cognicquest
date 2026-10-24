@@ -27,6 +27,9 @@ dependencies:
   # Consentement RGPD : mémorisé avant toute connexion, hors base locale
   # (effacée à la déconnexion).
   shared_preferences: ^2.5.3
+  flutter_local_notifications: ^22.3.2
+  timezone: ^0.11.2
+  flutter_timezone: ^5.1.1
 
   # ──────────────────────────────────────────────────────────────────────────
   # Base locale : arbitrage tranché au Lot 4 en faveur de Drift/SQLite.

@@ -1,22 +1,31 @@
 {
+    "id": "/Cognicquest/",
     "name": "CognicQuest",
     "short_name": "CognicQuest",
+    "description": "L'espace d'étude qui t'apprend à apprendre : fiches, révision espacée, Pomodoro, habitudes et journal métacognitif.",
     "start_url": ".",
+    "scope": ".",
     "display": "standalone",
-    "background_color": "#F9F6F0",
-    "theme_color": "#7A9E7E",
-    "description": "Apprendre mieux grâce à la métacognition : fiches, révision espacée, Pomodoro, habitudes et journal.",
+    "display_override": ["window-controls-overlay", "standalone"],
+    "orientation": "any",
+    "background_color": "#083B32",
+    "theme_color": "#FAF8F5",
+    "lang": "fr",
+    "dir": "ltr",
+    "categories": ["education", "productivity"],
     "prefer_related_applications": false,
     "icons": [
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-maskable-192.png",
@@ -30,6 +39,5 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ],
-    "lang": "fr"
+    ]
 }

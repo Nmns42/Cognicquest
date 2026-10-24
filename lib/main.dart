@@ -9,6 +9,7 @@ import 'core/motion/reduce_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dev/demo_seed.dart';
 import 'features/legal/consent.dart';
+import 'features/reminders/reminder_service.dart';
 import 'features/settings/data/ambient_sound_engine.dart';
 import 'features/settings/providers/settings_provider.dart';
 import 'features/sync/providers/sync_coordinator.dart';
@@ -75,6 +76,10 @@ class CognicQuestApp extends ConsumerWidget {
     // Garde le coordinateur de synchronisation en vie pendant toute la vie de
     // l'app, sans reconstruire l'arbre à chaque changement de son état.
     ref.listen(syncCoordinatorProvider, (_, __) {});
+
+    // Rappel quotidien de révision : replanifié à chaque changement de
+    // réglage, y compris venu d'un autre appareil.
+    ref.listen(dailyReminderSyncProvider, (_, __) {});
 
     // Mode sans connexion : remplit une base vide avec des données de démo.
     if (AppConfig.devBypassAuth) ref.listen(demoSeedProvider, (_, __) {});

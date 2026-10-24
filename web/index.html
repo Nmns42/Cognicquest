@@ -14,20 +14,21 @@
     Politique de sécurité du contenu. GitHub Pages ne permet pas d'en-têtes
     HTTP : elle est donc posée ici (frame-ancestors, inopérant en <meta>, est
     omis).
-    - script-src : 'wasm-unsafe-eval' pour CanvasKit et sqlite3.wasm ; aucun
-      script en ligne exécutable (le JSON-LD n'est pas exécuté).
+    - script-src : 'wasm-unsafe-eval' pour CanvasKit et sqlite3.wasm, servis
+      par l'app (build `--no-web-resources-cdn`) ; aucun script en ligne
+      exécutable (le JSON-LD n'est pas exécuté).
     - style-src 'unsafe-inline' : Flutter injecte ses styles au démarrage.
     - connect-src : API, temps réel et Storage Supabase ; polices de repli.
     - img-src https: : les images collées par lien dans les fiches.
   -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com;
+    script-src 'self' 'wasm-unsafe-eval';
     style-src 'self' 'unsafe-inline';
     font-src 'self' data: https://fonts.gstatic.com;
     img-src 'self' data: blob: https:;
     media-src 'self' blob: https:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.gstatic.com https://fonts.gstatic.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.gstatic.com;
     worker-src 'self' blob:;
     manifest-src 'self';
     object-src 'none';
@@ -104,6 +105,7 @@
     Pomodoro, habitudes et journal métacognitif. Active JavaScript pour
     l'utiliser.
   </noscript>
+  <script src="register_sw.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/pomodoro_session_model.dart';
+import '../../reminders/reminder_service.dart';
 import '../../settings/domain/user_settings.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../data/pomodoro_repository.dart';
@@ -274,6 +275,18 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   }
 
   Future<void> _notifyPhaseEnd() async {
+    // Notification système : utile quand l'app est en arrière-plan.
+    if (ref.read(settingsProvider).pomodoroNotifications) {
+      final finished = state.phase;
+      unawaited(ref.read(reminderServiceProvider).notifyPhaseEnd(
+            title: finished.isWork
+                ? 'Session terminée : place à la pause'
+                : '${finished.label} terminée : on reprend',
+            body: finished.isWork
+                ? 'Lève-toi, respire, bois un verre d’eau.'
+                : 'Une nouvelle session de concentration commence.',
+          ));
+    }
     await ref.read(pomodoroChimeProvider).play(_config.ringtone);
     try {
       await HapticFeedback.mediumImpact();

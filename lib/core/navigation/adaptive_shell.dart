@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../motion/reduce_motion.dart';
+import '../ui/cq_logo.dart';
 import '../theme/app_theme.dart';
 import '../theme/tokens.dart';
 import 'app_destinations.dart';
@@ -411,11 +412,12 @@ class _RailHeader extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Marque éditoriale : une feuille et le nom en serif.
-          SizedBox.square(
+          // Marque éditoriale : le logo Arbre-Neurone (couleurs du thème)
+          // et le nom en serif. Décoratif ici : le bouton porte déjà un
+          // libellé.
+          const SizedBox.square(
             dimension: Space.xxl,
-            child: Icon(Icons.eco_outlined,
-                size: Sizes.iconLg, color: context.cq.vertSauge),
+            child: ExcludeSemantics(child: CqLogo(size: Space.xxl)),
           ),
           if (extended) ...[
             const SizedBox(width: Space.sm),

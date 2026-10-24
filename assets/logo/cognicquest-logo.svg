@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>CognicQuest — Arbre-Neurone</title>
+  <!-- Source : lib/core/ui/cq_logo.dart (CqLogoPainter), même géométrie. -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 268 C102 262 84 206 118 172 C108 120 160 82 208 100 C228 62 288 58 312 96 C362 82 410 122 396 172 C432 204 414 262 362 268 C330 286 290 280 274 268 L238 268 C222 280 182 286 150 268 Z" stroke="#3D6A53" stroke-width="18"/>
+    <path d="M196 206 Q214 158 256 150 M316 206 Q298 158 256 150" stroke="#3D6A53" stroke-width="12"/>
+    <path d="M256 330 L256 150 M256 288 C244 252 214 236 196 206 M256 288 C268 252 298 236 316 206" stroke="#083B32" stroke-width="24"/>
+    <path d="M256 326 L256 384 M256 380 C254 408 226 420 196 432 M256 380 C258 408 286 420 316 432 M256 384 L256 444" stroke="#7C4D25" stroke-width="24"/>
+  </g>
+  <g fill="#083B32">
+    <circle cx="256" cy="150" r="22"/>
+    <circle cx="196" cy="206" r="19"/>
+    <circle cx="316" cy="206" r="19"/>
+  </g>
+  <g fill="#7C4D25">
+    <circle cx="196" cy="432" r="14"/>
+    <circle cx="316" cy="432" r="14"/>
+    <circle cx="256" cy="444" r="14"/>
+  </g>
+</svg>

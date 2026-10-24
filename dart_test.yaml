@@ -3,3 +3,5 @@ tags:
   # Images de référence générées sous Windows : le rendu du texte diffère sous
   # Linux, donc la CI les exclut (`--exclude-tags golden`). À lancer en local.
   golden:
+  # Générateurs (icônes…) rangés dans `tool/` : jamais lancés par la suite.
+  tool:

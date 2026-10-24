@@ -193,9 +193,15 @@ class UserSettings {
     this.manualNoteOrder = false,
     this.pomodoro = PomodoroSettings.defaults,
     this.dismissedBanners = const {},
+    this.dailyReminder = false,
+    this.dailyReminderMinutes = defaultReminderMinutes,
+    this.pomodoroNotifications = true,
   });
 
   static const UserSettings defaults = UserSettings();
+
+  /// 18 h 00, en minutes depuis minuit.
+  static const int defaultReminderMinutes = 18 * 60;
 
   final AppThemeVariant themeVariant;
   final TextScalePreset textScale;
@@ -219,6 +225,15 @@ class UserSettings {
   /// réapparaissent pas, sur cet appareil comme sur les autres.
   final Set<String> dismissedBanners;
 
+  /// Rappel quotidien de révision (notification locale).
+  final bool dailyReminder;
+
+  /// Heure du rappel, en minutes depuis minuit (0 à 1439).
+  final int dailyReminderMinutes;
+
+  /// Notification à la fin de chaque phase du Pomodoro.
+  final bool pomodoroNotifications;
+
   UserSettings copyWith({
     AppThemeVariant? themeVariant,
     TextScalePreset? textScale,
@@ -229,6 +244,9 @@ class UserSettings {
     bool? manualNoteOrder,
     PomodoroSettings? pomodoro,
     Set<String>? dismissedBanners,
+    bool? dailyReminder,
+    int? dailyReminderMinutes,
+    bool? pomodoroNotifications,
   }) =>
       UserSettings(
         themeVariant: themeVariant ?? this.themeVariant,
@@ -241,6 +259,10 @@ class UserSettings {
         manualNoteOrder: manualNoteOrder ?? this.manualNoteOrder,
         pomodoro: pomodoro ?? this.pomodoro,
         dismissedBanners: dismissedBanners ?? this.dismissedBanners,
+        dailyReminder: dailyReminder ?? this.dailyReminder,
+        dailyReminderMinutes: dailyReminderMinutes ?? this.dailyReminderMinutes,
+        pomodoroNotifications:
+            pomodoroNotifications ?? this.pomodoroNotifications,
       );
 
   Map<String, dynamic> toJson() => {
@@ -254,6 +276,9 @@ class UserSettings {
         'pomodoro': pomodoro.toJson(),
         // Trié : deux appareils écrivent le même JSON pour le même ensemble.
         'dismissed_banners': dismissedBanners.toList()..sort(),
+        'daily_reminder': dailyReminder,
+        'daily_reminder_minutes': dailyReminderMinutes,
+        'pomodoro_notifications': pomodoroNotifications,
       };
 
   /// Tolérant par construction : une préférence inconnue ou absente retombe
@@ -285,6 +310,13 @@ class UserSettings {
       dismissedBanners: banners is List
           ? banners.whereType<String>().toSet()
           : const {},
+      dailyReminder: json['daily_reminder'] == true,
+      dailyReminderMinutes: json['daily_reminder_minutes'] is int
+          ? (json['daily_reminder_minutes'] as int).clamp(0, 24 * 60 - 1)
+          : defaultReminderMinutes,
+      pomodoroNotifications: json['pomodoro_notifications'] is bool
+          ? json['pomodoro_notifications'] as bool
+          : true,
     );
   }
 
@@ -301,7 +333,10 @@ class UserSettings {
       other.reduceMotion == reduceMotion &&
       other.manualNoteOrder == manualNoteOrder &&
       other.pomodoro == pomodoro &&
-      setEquals(other.dismissedBanners, dismissedBanners);
+      setEquals(other.dismissedBanners, dismissedBanners) &&
+      other.dailyReminder == dailyReminder &&
+      other.dailyReminderMinutes == dailyReminderMinutes &&
+      other.pomodoroNotifications == pomodoroNotifications;
 
   @override
   int get hashCode => Object.hash(
@@ -314,5 +349,8 @@ class UserSettings {
         manualNoteOrder,
         pomodoro,
         Object.hashAllUnordered(dismissedBanners),
+        dailyReminder,
+        dailyReminderMinutes,
+        pomodoroNotifications,
       );
 }
