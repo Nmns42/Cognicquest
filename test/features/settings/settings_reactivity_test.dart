@@ -85,8 +85,8 @@ void main() {
   });
 
   testWidgets(
-      'réglages Pomodoro : « + » allonge la session, et le minuteur au repos '
-      'prend la nouvelle durée', (tester) async {
+      'réglages Pomodoro : la durée saisie (décimale arrondie) s\'applique, '
+      'et le minuteur au repos prend la nouvelle durée', (tester) async {
     final client = offlineClient();
     addTearDown(() => unawaited(client.dispose()));
     final container = ProviderContainer(overrides: [
@@ -103,12 +103,17 @@ void main() {
     ));
     await tester.pump();
 
-    final plus = find.byTooltip('Augmenter : Session de travail');
-    await tester.scrollUntilVisible(plus, 200,
+    // Saisie libre : « 30,4 » est arrondi à 30 minutes.
+    final focus = find.descendant(
+      of: find.bySemanticsLabel('Durée Focus, en min'),
+      matching: find.byType(TextField),
+    );
+    await tester.scrollUntilVisible(focus, 200,
         scrollable: find.byType(Scrollable).first);
-    await tester.ensureVisible(plus);
+    await tester.ensureVisible(focus);
     await tester.pump();
-    await tester.tap(plus);
+    await tester.enterText(focus, '30,4');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump();
 
     expect(container.read(settingsProvider).pomodoro.workMinutes, 30);

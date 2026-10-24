@@ -5,7 +5,9 @@ import '../../../core/motion/micro_animations.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/pomodoro_session_model.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../providers/pomodoro_provider.dart';
+import '../widgets/pomodoro_settings_form.dart';
 import '../../../core/theme/tokens.dart';
 
 class PomodoroPage extends ConsumerWidget {
@@ -41,86 +43,135 @@ class PomodoroPage extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, box) {
-            // Écran statique, sans défilement : tout tient dans la place
-            // disponible. Les écarts suivent la hauteur (serrés sur un petit
-            // téléphone, aérés sur grand écran) et le cadran prend tout
-            // l'espace restant.
-            final gap = (box.maxHeight * 0.02).clamp(Space.sm, Space.xxl);
-            // Bouton principal, rond et compact : 56 sur un petit téléphone,
-            // 80 au plus.
-            final button = (box.maxHeight * 0.085)
-                .clamp(Space.xxxl + Space.sm, Space.xxxl + Space.xxl);
-            final side = (box.maxWidth * 0.05).clamp(Space.lg, Space.xxxl);
-            final controls = [
-              _Controls(
-                state: state,
-                color: color,
-                size: button,
-                onToggle: notifier.toggle,
-                onReset: notifier.reset,
-                onSkip: notifier.skip,
+        child: Stack(
+          children: [
+            Positioned.fill(child: LayoutBuilder(
+              builder: (context, box) {
+                // Écran statique, sans défilement : tout tient dans la place
+                // disponible. Les écarts suivent la hauteur (serrés sur un petit
+                // téléphone, aérés sur grand écran) et le cadran prend tout
+                // l'espace restant.
+                final gap = (box.maxHeight * 0.02).clamp(Space.sm, Space.xxl);
+                // Bouton principal, rond et compact : 56 sur un petit téléphone,
+                // 80 au plus.
+                final button = (box.maxHeight * 0.085)
+                    .clamp(Space.xxxl + Space.sm, Space.xxxl + Space.xxl);
+                final side = (box.maxWidth * 0.05).clamp(Space.lg, Space.xxxl);
+                final controls = [
+                  _Controls(
+                    state: state,
+                    color: color,
+                    size: button,
+                    onToggle: notifier.toggle,
+                    onReset: notifier.reset,
+                    onSkip: notifier.skip,
+                  ),
+                  SizedBox(height: gap),
+                  _CycleIndicator(state: state, color: color),
+                  SizedBox(height: gap),
+                  stats,
+                ];
+
+                // Grand écran à l'horizontale : cadran à gauche, commandes à
+                // droite, chacun à l'échelle de l'écran.
+                final wide =
+                    box.maxWidth >= 720 && box.maxWidth > box.maxHeight;
+
+                return Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: side, vertical: gap),
+                  child: wide
+                      ? Row(
+                          children: [
+                            Expanded(flex: 7, child: dial),
+                            SizedBox(width: side),
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _PhaseHeader(state: state, color: color),
+                                  SizedBox(height: gap * 2),
+                                  ...controls,
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _shrinkToFit(
+                              maxHeight: box.maxHeight * 0.2,
+                              width: box.maxWidth - 2 * side,
+                              child: _PhaseHeader(state: state, color: color),
+                            ),
+                            SizedBox(height: gap),
+                            Expanded(child: dial),
+                            SizedBox(height: gap),
+                            // Petit écran ou texte très agrandi : les commandes
+                            // rétrécissent au lieu de déborder (pas de
+                            // défilement sur cet écran).
+                            _shrinkToFit(
+                              maxHeight: box.maxHeight * 0.55,
+                              width: box.maxWidth - 2 * side,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: controls,
+                              ),
+                            ),
+                          ],
+                        ),
+                );
+              },
+            )),
+            // Réglage rapide des durées, sans quitter le minuteur.
+            Positioned(
+              top: Space.xs,
+              right: Space.xs,
+              child: IconButton(
+                tooltip: 'Régler le Pomodoro',
+                icon: Icon(Icons.tune,
+                    size: Sizes.iconMd, color: context.cq.textMuted),
+                onPressed: () => _showDurations(context),
               ),
-              SizedBox(height: gap),
-              _CycleIndicator(state: state, color: color),
-              SizedBox(height: gap),
-              stats,
-            ];
-
-            // Grand écran à l'horizontale : cadran à gauche, commandes à
-            // droite, chacun à l'échelle de l'écran.
-            final wide = box.maxWidth >= 720 && box.maxWidth > box.maxHeight;
-
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: side, vertical: gap),
-              child: wide
-                  ? Row(
-                      children: [
-                        Expanded(flex: 7, child: dial),
-                        SizedBox(width: side),
-                        Expanded(
-                          flex: 5,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _PhaseHeader(state: state, color: color),
-                              SizedBox(height: gap * 2),
-                              ...controls,
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _shrinkToFit(
-                          maxHeight: box.maxHeight * 0.2,
-                          width: box.maxWidth - 2 * side,
-                          child: _PhaseHeader(state: state, color: color),
-                        ),
-                        SizedBox(height: gap),
-                        Expanded(child: dial),
-                        SizedBox(height: gap),
-                        // Petit écran ou texte très agrandi : les commandes
-                        // rétrécissent au lieu de déborder (pas de
-                        // défilement sur cet écran).
-                        _shrinkToFit(
-                          maxHeight: box.maxHeight * 0.55,
-                          width: box.maxWidth - 2 * side,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: controls,
-                          ),
-                        ),
-                      ],
-                    ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
   }
+
+  static Future<void> _showDurations(BuildContext context) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        sheetAnimationStyle: Motion.style(context),
+        builder: (context) => Consumer(
+          builder: (context, ref, _) => SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom + Space.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Space.lg),
+                    child: Text('Réglages du Pomodoro',
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  const SizedBox(height: Space.sm),
+                  PomodoroDurationsForm(
+                    config: ref.watch(settingsProvider).pomodoro,
+                    onChanged: ref.read(settingsProvider.notifier).setPomodoro,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 /// Contenu à sa taille naturelle, réduit d'un bloc s'il dépasse
@@ -307,8 +358,7 @@ class _Controls extends StatelessWidget {
           child: FloatingActionButton(
             onPressed: onToggle,
             // Action principale : vert forêt en travail.
-            backgroundColor:
-                state.phase.isWork ? context.cq.vert : color,
+            backgroundColor: state.phase.isWork ? context.cq.vert : color,
             elevation: 0,
             shape: const CircleBorder(),
             heroTag: 'pomodoro-toggle',
@@ -345,6 +395,14 @@ class _CycleIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final cycle = state.cycleLength;
     final done = state.cyclePosition % cycle;
+    // Progression exacte : « 2 / 3 » pendant la 2e session ; pendant une
+    // pause, le nombre de sessions déjà faites ; la pause longue clôt le
+    // cycle (3 / 3).
+    final (current, label) = switch (state.phase) {
+      PomodoroPhase.work => (done + 1, 'Session'),
+      PomodoroPhase.shortBreak => (done, 'Pause courte · sessions faites'),
+      PomodoroPhase.longBreak => (cycle, 'Pause longue · cycle terminé'),
+    };
 
     return Column(
       children: [
@@ -363,15 +421,28 @@ class _CycleIndicator extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          done == 0
-              ? 'Pause longue après $cycle session${cycle > 1 ? 's' : ''}'
-              : 'Plus que ${cycle - done} '
-                  'session${cycle - done > 1 ? 's' : ''} '
-                  'avant la pause longue',
-          style: TextStyle(
-              color: context.cq.textMuted, fontSize: TypeScale.caption),
+        const SizedBox(height: Space.sm),
+        Semantics(
+          label: '$label : $current sur $cycle',
+          excludeSemantics: true,
+          child: Text.rich(
+            TextSpan(children: [
+              TextSpan(
+                text: '$current / $cycle',
+                style: TextStyle(
+                  fontSize: TypeScale.bodyLarge,
+                  fontWeight: FontWeight.w700,
+                  color: context.cq.textPrimary,
+                  fontFeatures: TypeScale.tabular,
+                ),
+              ),
+              TextSpan(
+                text: '   $label',
+                style: TextStyle(
+                    color: context.cq.textMuted, fontSize: TypeScale.caption),
+              ),
+            ]),
+          ),
         ),
       ],
     );

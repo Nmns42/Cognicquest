@@ -9,6 +9,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../legal/consent.dart';
 import '../../reminders/reminder_service.dart';
 import '../../pomodoro/providers/pomodoro_provider.dart';
+import '../../pomodoro/widgets/pomodoro_settings_form.dart';
 import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
@@ -480,39 +481,7 @@ class _PomodoroSettings extends StatelessWidget {
     return Column(
       children: [
         _Panel(children: [
-        _Stepper(
-          label: 'Session de travail',
-          value: config.workMinutes,
-          unit: 'min',
-          range: PomodoroSettings.workRange,
-          step: 5,
-          onChanged: (v) => onChanged(config.copyWith(workMinutes: v)),
-        ),
-        _Stepper(
-          label: 'Pause courte',
-          value: config.shortBreakMinutes,
-          unit: 'min',
-          range: PomodoroSettings.shortBreakRange,
-          step: 1,
-          onChanged: (v) => onChanged(config.copyWith(shortBreakMinutes: v)),
-        ),
-        _Stepper(
-          label: 'Pause longue',
-          value: config.longBreakMinutes,
-          unit: 'min',
-          range: PomodoroSettings.longBreakRange,
-          step: 5,
-          onChanged: (v) => onChanged(config.copyWith(longBreakMinutes: v)),
-        ),
-        _Stepper(
-          label: 'Nombre de sessions',
-          value: config.sessionsBeforeLongBreak,
-          unit: config.sessionsBeforeLongBreak > 1 ? 'sessions' : 'session',
-          range: PomodoroSettings.sessionsRange,
-          step: 1,
-          onChanged: (v) =>
-              onChanged(config.copyWith(sessionsBeforeLongBreak: v)),
-        ),
+          PomodoroDurationsForm(config: config, onChanged: onChanged),
         ]),
         const SizedBox(height: Space.lg),
         Align(
@@ -541,83 +510,6 @@ class _PomodoroSettings extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _Stepper extends StatelessWidget {
-  const _Stepper({
-    required this.label,
-    required this.value,
-    required this.unit,
-    required this.range,
-    required this.step,
-    required this.onChanged,
-  });
-
-  final String label;
-  final int value;
-  final String unit;
-  final (int, int) range;
-  final int step;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final cq = context.cq;
-    final text = unit.isEmpty ? '$value' : '$value $unit';
-    // Bouton fin : filet d'un pixel, petit rayon, icône discrète.
-    final style = IconButton.styleFrom(
-      foregroundColor: cq.textPrimary,
-      side: BorderSide(color: cq.beigeDark),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Radii.sm)),
-    );
-    return Semantics(
-      label: label,
-      value: text,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: Space.lg, vertical: Space.xs),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: TypeScale.body, color: cq.textPrimary)),
-            ),
-            IconButton(
-              tooltip: 'Diminuer : $label',
-              style: style,
-              onPressed: value <= range.$1
-                  ? null
-                  : () => onChanged((value - step).clamp(range.$1, range.$2)),
-              icon: const Icon(Icons.remove, size: Sizes.iconSm),
-            ),
-            SizedBox(
-              width: Space.xxxl * 2,
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: TypeScale.body,
-                  fontWeight: FontWeight.w700,
-                  color: cq.terre,
-                  fontFeatures: TypeScale.tabular,
-                ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Augmenter : $label',
-              style: style,
-              onPressed: value >= range.$2
-                  ? null
-                  : () => onChanged((value + step).clamp(range.$1, range.$2)),
-              icon: const Icon(Icons.add, size: Sizes.iconSm),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

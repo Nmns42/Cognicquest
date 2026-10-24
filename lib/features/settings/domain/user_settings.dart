@@ -105,9 +105,11 @@ class PomodoroSettings {
 
   static const PomodoroSettings defaults = PomodoroSettings();
 
-  static const (int, int) workRange = (5, 120);
-  static const (int, int) shortBreakRange = (1, 30);
-  static const (int, int) longBreakRange = (5, 60);
+  // Saisie libre : bornes larges (une pause longue de 3 min, une session de
+  // 62 min sont des choix légitimes), seulement contre les valeurs absurdes.
+  static const (int, int) workRange = (1, 180);
+  static const (int, int) shortBreakRange = (1, 60);
+  static const (int, int) longBreakRange = (1, 120);
   static const (int, int) sessionsRange = (1, 12);
 
   final int workMinutes;
