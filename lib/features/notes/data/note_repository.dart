@@ -9,6 +9,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/remote_pagination.dart';
 import '../../../core/database/sync_queue.dart';
+import '../../../core/database/sync_versions.dart';
 import '../../../core/ordering/manual_order.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -328,12 +329,24 @@ class LocalFirstNoteRepository implements NoteRepository {
 
         // `updated_at` est posé par le serveur (trigger) : on relit sa
         // valeur pour que les comparaisons du pull se fassent entre deux
-        // heures serveur, jamais avec l'horloge de cet appareil.
-        final saved = await _client
-            .from(_notesTable)
-            .upsert(_toRemoteJson(row))
-            .select('updated_at')
-            .single();
+        // heures serveur, jamais avec l'horloge de cet appareil. On envoie
+        // la version de base : le serveur refuse l'écriture si la fiche a
+        // été modifiée ailleurs depuis.
+        final Map<String, dynamic> saved;
+        try {
+          saved = await _client
+              .from(_notesTable)
+              .upsert(await _versions.stamp(
+                  _notesTable, row.id, _toRemoteJson(row)))
+              .select('updated_at')
+              .single();
+        } catch (error) {
+          if (!isStaleWrite(error)) rethrow;
+          await _resolveConflict(row, blocks);
+          return;
+        }
+        await _versions.record(
+            _notesTable, row.id, saved['updated_at'] as String);
         final serverUpdatedAt =
             DateTime.parse(saved['updated_at'] as String).toLocal();
 
@@ -367,6 +380,35 @@ class LocalFirstNoteRepository implements NoteRepository {
   }
 
   late final PullCursors _cursors = PullCursors(_db, _userId);
+  late final SyncVersions _versions = SyncVersions(_db);
+
+  /// Écriture refusée : la fiche a été modifiée sur un autre appareil depuis
+  /// la version de base. Rien n'est perdu : la version de cet appareil
+  /// devient une nouvelle fiche, et l'originale reprend la version serveur
+  /// au pull qui suit (curseur relu depuis le début).
+  Future<void> _resolveConflict(
+    LocalNote row,
+    List<LocalNoteBlock> blocks,
+  ) async {
+    final copyId = newId();
+    await _db.transaction(() async {
+      await _db.into(_db.localNotes).insert(row.copyWith(
+            id: copyId,
+            title: '${row.title} (version de cet appareil)',
+            isSynced: false,
+          ));
+      for (final block in blocks) {
+        await _db
+            .into(_db.localNoteBlocks)
+            .insert(block.copyWith(id: newId(), noteId: copyId));
+      }
+      await SyncQueue(_db).enqueue(_notesTable, copyId, 'upsert');
+      await (_db.update(_db.localNotes)..where((t) => t.id.equals(row.id)))
+          .write(const LocalNotesCompanion(isSynced: Value(true)));
+      await _versions.forget(_notesTable, row.id);
+      await _cursors.reset(_notesTable);
+    });
+  }
 
   Future<void> _pullRemote() async {
     // Incrémental : seules les fiches modifiées depuis le dernier pull
@@ -439,6 +481,8 @@ class LocalFirstNoteRepository implements NoteRepository {
                 isSynced: const Value(true),
               ),
             );
+        await _versions.record(
+            _notesTable, id, remote['updated_at'] as String?);
 
         await (_db.delete(_db.localNoteBlocks)
               ..where((t) => t.noteId.equals(id)))

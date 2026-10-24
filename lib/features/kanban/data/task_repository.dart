@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/database/incremental_pull.dart';
+import '../../../core/database/sync_versions.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../shared/models/task_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -167,17 +168,32 @@ class LocalFirstTaskRepository implements TaskRepository {
     if (row == null) return;
     if (row.userId != _userId) throw const SkipEntry();
 
-    await _client.from(table).upsert({
-      ..._toTask(row).toJson(),
-      'id': row.id,
-      'user_id': _userId,
-      'created_at': row.createdAt.toUtc().toIso8601String(),
-    });
+    // Version de base envoyée : une tâche modifiée entre-temps sur un autre
+    // appareil n'est pas écrasée ; sa version serveur gagne et revient au
+    // pull (curseur relu depuis le début).
+    try {
+      final saved = await _client
+          .from(table)
+          .upsert(await _versions.stamp(table, row.id, {
+            ..._toTask(row).toJson(),
+            'id': row.id,
+            'user_id': _userId,
+            'created_at': row.createdAt.toUtc().toIso8601String(),
+          }))
+          .select('updated_at')
+          .single();
+      await _versions.record(table, row.id, saved['updated_at'] as String);
+    } catch (error) {
+      if (!isStaleWrite(error)) rethrow;
+      await _versions.forget(table, row.id);
+      await _cursors.reset(table);
+    }
     await (_db.update(_db.localTasks)..where((t) => t.id.equals(row.id)))
         .write(const LocalTasksCompanion(isSynced: Value(true)));
   }
 
   late final PullCursors _cursors = PullCursors(_db, _userId);
+  late final SyncVersions _versions = SyncVersions(_db);
 
   Future<void> _pull() async {
     // Incrémental : seules les tâches modifiées depuis le dernier pull
@@ -218,6 +234,7 @@ class LocalFirstTaskRepository implements TaskRepository {
                 isSynced: const Value(true),
               ),
             );
+        await _versions.record(table, task.id, remote['updated_at'] as String?);
       }
 
       // Une tâche déjà synchronisée qui a disparu du serveur a été supprimée

@@ -617,6 +617,18 @@ class SyncCursors extends Table {
   Set<Column> get primaryKey => {userId, remoteTable};
 }
 
+/// Version serveur (`updated_at`) sur laquelle repose la copie locale d'une
+/// ligne (v14) : envoyée avec chaque modification, elle permet au serveur de
+/// refuser une écriture obsolète (contrôle de version optimiste).
+class SyncRowVersions extends Table {
+  TextColumn get remoteTable => text()();
+  TextColumn get entityId => text()();
+  TextColumn get serverUpdatedAt => text()();
+
+  @override
+  Set<Column> get primaryKey => {remoteTable, entityId};
+}
+
 /// Dossiers de l'explorateur de fiches et de cartes (v13) : une arborescence
 /// libre, `parentId` nul pour un dossier racine.
 @TableIndex(name: 'local_folders_user_parent', columns: {#userId, #parentId})
@@ -674,6 +686,7 @@ class LocalPreferences extends Table {
   SyncCursors,
   LocalPreferences,
   LocalFolders,
+  SyncRowVersions,
 ], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -694,8 +707,10 @@ class AppDatabase extends _$AppDatabase {
   /// v12 : réglages et disposition du Dashboard hors ligne (LocalPreferences).
   /// v13 : explorateur — dossiers (LocalFolders) et `folderId` des fiches et
   /// des cartes.
+  /// v14 : versions serveur des lignes (SyncRowVersions), contrôle de
+  /// version optimiste.
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -852,6 +867,11 @@ class AppDatabase extends _$AppDatabase {
             }
             if (!await _hasColumn('local_flashcards', 'folder_id')) {
               await m.addColumn(localFlashcards, localFlashcards.folderId);
+            }
+          }
+          if (from < 14) {
+            if (!await _hasColumn('sync_row_versions', 'entity_id')) {
+              await m.createTable(syncRowVersions);
             }
           }
         },

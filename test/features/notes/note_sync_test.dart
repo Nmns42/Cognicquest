@@ -57,6 +57,18 @@ class FakeNotesServer {
         case 'POST':
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           upsertBodies.add(body);
+          // Trigger reject_stale_write : refus si la version de base est
+          // plus ancienne que la ligne serveur.
+          final existing = notes[body['id']];
+          final base = body['updated_at'] as String?;
+          if (existing != null &&
+              base != null &&
+              DateTime.parse(base).isBefore(
+                  DateTime.parse(existing['updated_at'] as String))) {
+            return http.Response(
+                '{"code":"40001","message":"Écriture obsolète"}', 400,
+                headers: json, request: request);
+          }
           final row = {...body, 'updated_at': now.toIso8601String()};
           notes[body['id'] as String] = row;
           return http.Response(
@@ -138,6 +150,35 @@ void main() {
     expect(row.updatedAt.toUtc(), server.now);
     // Le client n'envoie plus son horloge.
     expect(server.upsertBodies.last.containsKey('updated_at'), isFalse);
+  });
+
+  test('modifiée ailleurs entre-temps : la version de cet appareil devient '
+      'une copie, la version serveur est conservée', () async {
+    final note = await repository.create(title: 'Cardio');
+    await repository.sync();
+
+    // Un autre appareil modifie la fiche : nouvelle version serveur.
+    server.now = server.now.add(const Duration(minutes: 5));
+    server.notes[note.id] = {
+      ...server.notes[note.id]!,
+      'title': 'Cardio (ordinateur)',
+      'updated_at': server.now.toIso8601String(),
+    };
+
+    // Cet appareil, resté sur l'ancienne version, modifie puis envoie.
+    final stored = (await repository.watchAll().first)
+        .firstWhere((n) => n.id == note.id);
+    await repository.save(stored.copyWith(title: 'Cardio (téléphone)'));
+    await repository.sync();
+    await repository.sync();
+
+    expect(server.notes[note.id]!['title'], 'Cardio (ordinateur)');
+    expect((await local(note.id))!.title, 'Cardio (ordinateur)');
+    final titles = (await repository.watchAll().first).map((n) => n.title);
+    expect(titles,
+        contains('Cardio (téléphone) (version de cet appareil)'));
+    expect(server.notes.values.map((r) => r['title']),
+        contains('Cardio (téléphone) (version de cet appareil)'));
   });
 
   test('une fiche supprimée ailleurs disparaît, même si le serveur est vide',
@@ -235,8 +276,13 @@ void main() {
 
     await repository.sync();
 
-    // Le push part en premier : la version locale gagne, côté serveur aussi.
-    expect((await local(note.id))!.title, 'Locale');
-    expect(server.notes[note.id]!['title'], 'Locale');
+    // Le push part en premier, avec l'ancienne version de base : le serveur
+    // le refuse. La modification locale n'est pas perdue pour autant : elle
+    // devient une copie, envoyée à son tour.
+    await repository.sync();
+    expect((await local(note.id))!.title, 'Distante');
+    expect(server.notes[note.id]!['title'], 'Distante');
+    expect(server.notes.values.map((r) => r['title']),
+        contains('Locale (version de cet appareil)'));
   });
 }

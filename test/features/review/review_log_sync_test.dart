@@ -55,12 +55,25 @@ class FakeReviewServer {
           return http.Response('{"code":"23503"}', 409,
               headers: json, request: request);
         }
+        // Trigger reject_stale_write : version de base plus ancienne que
+        // la ligne serveur → refus 40001.
+        final existing = table[body['id']];
+        final base = body['updated_at'] as String?;
+        if (existing != null &&
+            base != null &&
+            DateTime.parse(base)
+                .isBefore(DateTime.parse(existing['updated_at'] as String))) {
+          return http.Response(
+              '{"code":"40001","message":"Écriture obsolète"}', 400,
+              headers: json, request: request);
+        }
         now = now.add(const Duration(seconds: 1));
-        table[body['id'] as String] = {
+        final row = table[body['id'] as String] = {
           ...body,
           'updated_at': now.toIso8601String(),
         };
-        return http.Response('', 201, request: request);
+        return http.Response(jsonEncode(row), 201,
+            headers: json, request: request);
     }
     return http.Response('non simulé', 500, request: request);
   }
@@ -129,5 +142,46 @@ void main() {
     // Un second pull ne duplique rien.
     await target.sync();
     expect(await laptop.select(laptop.localReviewLogs).get(), hasLength(2));
+  });
+
+  group('contrôle de version optimiste', () {
+    test('une carte révisée ailleurs n\'est pas écrasée par un envoi obsolète',
+        () async {
+      final source = repo(phone);
+      final card = await source.createCard(front: 'Q', back: 'R');
+      await source.sync();
+
+      // L'ordinateur récupère la carte puis la modifie : version serveur v2.
+      final target = repo(laptop);
+      await target.sync();
+      final onLaptop = (await target.watchCards().first).single;
+      await target.saveCard(onLaptop.copyWith(back: 'R (ordinateur)'));
+      await target.sync();
+      expect(server.cards[card.id]!['back'], 'R (ordinateur)');
+
+      // Le téléphone, resté sur v1, modifie hors ligne puis envoie.
+      final onPhone = (await source.watchCards().first).single;
+      await source.saveCard(onPhone.copyWith(back: 'R (téléphone)'));
+      await source.sync();
+
+      // Refus serveur : la version la plus récente reste, et le téléphone
+      // la rapatrie au lieu de garder sa copie obsolète.
+      expect(server.cards[card.id]!['back'], 'R (ordinateur)');
+      expect((await source.watchCards().first).single.back, 'R (ordinateur)');
+      expect(await phone.select(phone.syncQueueEntries).get(), isEmpty);
+    });
+
+    test('envois successifs depuis le même appareil : jamais refusés',
+        () async {
+      final source = repo(phone);
+      final card = await source.createCard(front: 'Q', back: 'v1');
+      await source.sync();
+      await source.saveCard(card.copyWith(back: 'v2'));
+      await source.sync();
+      await source.saveCard(card.copyWith(back: 'v3'));
+      await source.sync();
+
+      expect(server.cards[card.id]!['back'], 'v3');
+    });
   });
 }

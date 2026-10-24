@@ -82,14 +82,17 @@ class _FakeTasksServer {
       case 'POST':
         final decoded = jsonDecode(request.body);
         final bodies = decoded is List ? decoded : [decoded];
+        Map<String, dynamic>? last;
         for (final body in bodies.cast<Map<String, dynamic>>()) {
-          rows[body['id'] as String] = {
+          last = rows[body['id'] as String] = {
             ...body,
             'updated_at': DateTime.utc(2030, 1, 1, 12, 0, _tick++)
                 .toIso8601String(),
           };
         }
-        return http.Response('', 201, request: request);
+        // `.select().single()` : la ligne enregistrée, avec son updated_at.
+        return http.Response(jsonEncode(last), 201,
+            headers: json, request: request);
     }
     return http.Response('non simulé', 500, request: request);
   });

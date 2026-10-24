@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/incremental_pull.dart';
 import '../../../core/database/sync_queue.dart';
+import '../../../core/database/sync_versions.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -343,6 +344,14 @@ class LocalFirstReviewRepository implements ReviewRepository {
   @override
   Future<void> sync() async {
     if (!_syncEnabled) return;
+    await _serialSync();
+  }
+
+  // Sérialisé : deux envois concurrents d'une même carte partiraient de la
+  // même version de base, et le second serait refusé à tort.
+  late final SerialSync _serialSync = SerialSync(_syncOnce);
+
+  Future<void> _syncOnce() async {
     await _pushCards();
     await _pushExplanations();
     await _pushSessions();
@@ -423,7 +432,23 @@ class LocalFirstReviewRepository implements ReviewRepository {
               ..where((t) => t.id.equals(entry.entityId)))
             .getSingleOrNull();
         if (row != null) {
-          await _client.from(_cardsTable).upsert(_toCard(row).toJson());
+          // Version de base envoyée : une carte révisée entre-temps sur un
+          // autre appareil n'est pas écrasée ; sa version serveur gagne et
+          // revient au pull (curseur relu depuis le début).
+          try {
+            final saved = await _client
+                .from(_cardsTable)
+                .upsert(await _versions.stamp(
+                    _cardsTable, row.id, _toCard(row).toJson()))
+                .select('updated_at')
+                .single();
+            await _versions.record(
+                _cardsTable, row.id, saved['updated_at'] as String);
+          } catch (error) {
+            if (!isStaleWrite(error)) rethrow;
+            await _versions.forget(_cardsTable, row.id);
+            await _cursors.reset(_cardsTable);
+          }
           await (_db.update(_db.localFlashcards)
                 ..where((t) => t.id.equals(row.id)))
               .write(const LocalFlashcardsCompanion(isSynced: Value(true)));
@@ -479,6 +504,7 @@ class LocalFirstReviewRepository implements ReviewRepository {
   }
 
   late final PullCursors _cursors = PullCursors(_db, _userId);
+  late final SyncVersions _versions = SyncVersions(_db);
 
   Future<void> _pullRemote() async {
     final delta = await fetchDelta(
@@ -538,6 +564,8 @@ class LocalFirstReviewRepository implements ReviewRepository {
                 isSynced: const Value(true),
               ),
             );
+        await _versions.record(
+            _cardsTable, card.id, row['updated_at'] as String?);
       }
 
       // Carte synchronisée absente du serveur : supprimée depuis un autre

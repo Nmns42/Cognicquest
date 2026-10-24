@@ -48,6 +48,13 @@ class PullCursors {
     return row?.pulledUntil;
   }
 
+  /// Oublie le curseur : le prochain pull relit toute la table. Sert après
+  /// un refus d'écriture obsolète, quand la version serveur gagnante a pu
+  /// être lue (puis ignorée car en attente d'envoi) avant le curseur actuel.
+  Future<void> reset(String table) => (_db.delete(_db.syncCursors)
+        ..where((t) => t.userId.equals(_userId) & t.remoteTable.equals(table)))
+      .go();
+
   Future<void> write(String table, String? cursor) async {
     if (cursor == null) return;
     await _db.into(_db.syncCursors).insertOnConflictUpdate(

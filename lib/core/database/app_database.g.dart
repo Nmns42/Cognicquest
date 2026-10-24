@@ -11418,6 +11418,248 @@ class LocalFoldersCompanion extends UpdateCompanion<LocalFolder> {
   }
 }
 
+class $SyncRowVersionsTable extends SyncRowVersions
+    with TableInfo<$SyncRowVersionsTable, SyncRowVersion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncRowVersionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _remoteTableMeta =
+      const VerificationMeta('remoteTable');
+  @override
+  late final GeneratedColumn<String> remoteTable = GeneratedColumn<String>(
+      'remote_table', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _entityIdMeta =
+      const VerificationMeta('entityId');
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+      'entity_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _serverUpdatedAtMeta =
+      const VerificationMeta('serverUpdatedAt');
+  @override
+  late final GeneratedColumn<String> serverUpdatedAt = GeneratedColumn<String>(
+      'server_updated_at', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [remoteTable, entityId, serverUpdatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_row_versions';
+  @override
+  VerificationContext validateIntegrity(Insertable<SyncRowVersion> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('remote_table')) {
+      context.handle(
+          _remoteTableMeta,
+          remoteTable.isAcceptableOrUnknown(
+              data['remote_table']!, _remoteTableMeta));
+    } else if (isInserting) {
+      context.missing(_remoteTableMeta);
+    }
+    if (data.containsKey('entity_id')) {
+      context.handle(_entityIdMeta,
+          entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta));
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('server_updated_at')) {
+      context.handle(
+          _serverUpdatedAtMeta,
+          serverUpdatedAt.isAcceptableOrUnknown(
+              data['server_updated_at']!, _serverUpdatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_serverUpdatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {remoteTable, entityId};
+  @override
+  SyncRowVersion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncRowVersion(
+      remoteTable: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}remote_table'])!,
+      entityId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_id'])!,
+      serverUpdatedAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}server_updated_at'])!,
+    );
+  }
+
+  @override
+  $SyncRowVersionsTable createAlias(String alias) {
+    return $SyncRowVersionsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncRowVersion extends DataClass implements Insertable<SyncRowVersion> {
+  final String remoteTable;
+  final String entityId;
+  final String serverUpdatedAt;
+  const SyncRowVersion(
+      {required this.remoteTable,
+      required this.entityId,
+      required this.serverUpdatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['remote_table'] = Variable<String>(remoteTable);
+    map['entity_id'] = Variable<String>(entityId);
+    map['server_updated_at'] = Variable<String>(serverUpdatedAt);
+    return map;
+  }
+
+  SyncRowVersionsCompanion toCompanion(bool nullToAbsent) {
+    return SyncRowVersionsCompanion(
+      remoteTable: Value(remoteTable),
+      entityId: Value(entityId),
+      serverUpdatedAt: Value(serverUpdatedAt),
+    );
+  }
+
+  factory SyncRowVersion.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncRowVersion(
+      remoteTable: serializer.fromJson<String>(json['remoteTable']),
+      entityId: serializer.fromJson<String>(json['entityId']),
+      serverUpdatedAt: serializer.fromJson<String>(json['serverUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'remoteTable': serializer.toJson<String>(remoteTable),
+      'entityId': serializer.toJson<String>(entityId),
+      'serverUpdatedAt': serializer.toJson<String>(serverUpdatedAt),
+    };
+  }
+
+  SyncRowVersion copyWith(
+          {String? remoteTable, String? entityId, String? serverUpdatedAt}) =>
+      SyncRowVersion(
+        remoteTable: remoteTable ?? this.remoteTable,
+        entityId: entityId ?? this.entityId,
+        serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
+      );
+  SyncRowVersion copyWithCompanion(SyncRowVersionsCompanion data) {
+    return SyncRowVersion(
+      remoteTable:
+          data.remoteTable.present ? data.remoteTable.value : this.remoteTable,
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      serverUpdatedAt: data.serverUpdatedAt.present
+          ? data.serverUpdatedAt.value
+          : this.serverUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncRowVersion(')
+          ..write('remoteTable: $remoteTable, ')
+          ..write('entityId: $entityId, ')
+          ..write('serverUpdatedAt: $serverUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(remoteTable, entityId, serverUpdatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncRowVersion &&
+          other.remoteTable == this.remoteTable &&
+          other.entityId == this.entityId &&
+          other.serverUpdatedAt == this.serverUpdatedAt);
+}
+
+class SyncRowVersionsCompanion extends UpdateCompanion<SyncRowVersion> {
+  final Value<String> remoteTable;
+  final Value<String> entityId;
+  final Value<String> serverUpdatedAt;
+  final Value<int> rowid;
+  const SyncRowVersionsCompanion({
+    this.remoteTable = const Value.absent(),
+    this.entityId = const Value.absent(),
+    this.serverUpdatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncRowVersionsCompanion.insert({
+    required String remoteTable,
+    required String entityId,
+    required String serverUpdatedAt,
+    this.rowid = const Value.absent(),
+  })  : remoteTable = Value(remoteTable),
+        entityId = Value(entityId),
+        serverUpdatedAt = Value(serverUpdatedAt);
+  static Insertable<SyncRowVersion> custom({
+    Expression<String>? remoteTable,
+    Expression<String>? entityId,
+    Expression<String>? serverUpdatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (remoteTable != null) 'remote_table': remoteTable,
+      if (entityId != null) 'entity_id': entityId,
+      if (serverUpdatedAt != null) 'server_updated_at': serverUpdatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncRowVersionsCompanion copyWith(
+      {Value<String>? remoteTable,
+      Value<String>? entityId,
+      Value<String>? serverUpdatedAt,
+      Value<int>? rowid}) {
+    return SyncRowVersionsCompanion(
+      remoteTable: remoteTable ?? this.remoteTable,
+      entityId: entityId ?? this.entityId,
+      serverUpdatedAt: serverUpdatedAt ?? this.serverUpdatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (remoteTable.present) {
+      map['remote_table'] = Variable<String>(remoteTable.value);
+    }
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (serverUpdatedAt.present) {
+      map['server_updated_at'] = Variable<String>(serverUpdatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncRowVersionsCompanion(')
+          ..write('remoteTable: $remoteTable, ')
+          ..write('entityId: $entityId, ')
+          ..write('serverUpdatedAt: $serverUpdatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11467,6 +11709,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LocalPreferencesTable localPreferences =
       $LocalPreferencesTable(this);
   late final $LocalFoldersTable localFolders = $LocalFoldersTable(this);
+  late final $SyncRowVersionsTable syncRowVersions =
+      $SyncRowVersionsTable(this);
   late final Index localNotesUserUpdated = Index('local_notes_user_updated',
       'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
   late final Index localNoteBlocksNotePosition = Index(
@@ -11569,6 +11813,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         syncCursors,
         localPreferences,
         localFolders,
+        syncRowVersions,
         localNotesUserUpdated,
         localNoteBlocksNotePosition,
         localNoteLinksUserCreated,
@@ -19325,6 +19570,156 @@ typedef $$LocalFoldersTableProcessedTableManager = ProcessedTableManager<
     ),
     LocalFolder,
     PrefetchHooks Function()>;
+typedef $$SyncRowVersionsTableCreateCompanionBuilder = SyncRowVersionsCompanion
+    Function({
+  required String remoteTable,
+  required String entityId,
+  required String serverUpdatedAt,
+  Value<int> rowid,
+});
+typedef $$SyncRowVersionsTableUpdateCompanionBuilder = SyncRowVersionsCompanion
+    Function({
+  Value<String> remoteTable,
+  Value<String> entityId,
+  Value<String> serverUpdatedAt,
+  Value<int> rowid,
+});
+
+class $$SyncRowVersionsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncRowVersionsTable> {
+  $$SyncRowVersionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serverUpdatedAt => $composableBuilder(
+      column: $table.serverUpdatedAt,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$SyncRowVersionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncRowVersionsTable> {
+  $$SyncRowVersionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityId => $composableBuilder(
+      column: $table.entityId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serverUpdatedAt => $composableBuilder(
+      column: $table.serverUpdatedAt,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$SyncRowVersionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncRowVersionsTable> {
+  $$SyncRowVersionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get remoteTable => $composableBuilder(
+      column: $table.remoteTable, builder: (column) => column);
+
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get serverUpdatedAt => $composableBuilder(
+      column: $table.serverUpdatedAt, builder: (column) => column);
+}
+
+class $$SyncRowVersionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SyncRowVersionsTable,
+    SyncRowVersion,
+    $$SyncRowVersionsTableFilterComposer,
+    $$SyncRowVersionsTableOrderingComposer,
+    $$SyncRowVersionsTableAnnotationComposer,
+    $$SyncRowVersionsTableCreateCompanionBuilder,
+    $$SyncRowVersionsTableUpdateCompanionBuilder,
+    (
+      SyncRowVersion,
+      BaseReferences<_$AppDatabase, $SyncRowVersionsTable, SyncRowVersion>
+    ),
+    SyncRowVersion,
+    PrefetchHooks Function()> {
+  $$SyncRowVersionsTableTableManager(
+      _$AppDatabase db, $SyncRowVersionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncRowVersionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncRowVersionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncRowVersionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> remoteTable = const Value.absent(),
+            Value<String> entityId = const Value.absent(),
+            Value<String> serverUpdatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncRowVersionsCompanion(
+            remoteTable: remoteTable,
+            entityId: entityId,
+            serverUpdatedAt: serverUpdatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String remoteTable,
+            required String entityId,
+            required String serverUpdatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SyncRowVersionsCompanion.insert(
+            remoteTable: remoteTable,
+            entityId: entityId,
+            serverUpdatedAt: serverUpdatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$SyncRowVersionsTable, SyncRowVersion>(table),
+                    BaseReferences<_$AppDatabase, $SyncRowVersionsTable,
+                        SyncRowVersion>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SyncRowVersionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SyncRowVersionsTable,
+    SyncRowVersion,
+    $$SyncRowVersionsTableFilterComposer,
+    $$SyncRowVersionsTableOrderingComposer,
+    $$SyncRowVersionsTableAnnotationComposer,
+    $$SyncRowVersionsTableCreateCompanionBuilder,
+    $$SyncRowVersionsTableUpdateCompanionBuilder,
+    (
+      SyncRowVersion,
+      BaseReferences<_$AppDatabase, $SyncRowVersionsTable, SyncRowVersion>
+    ),
+    SyncRowVersion,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -19377,4 +19772,6 @@ class $AppDatabaseManager {
       $$LocalPreferencesTableTableManager(_db, _db.localPreferences);
   $$LocalFoldersTableTableManager get localFolders =>
       $$LocalFoldersTableTableManager(_db, _db.localFolders);
+  $$SyncRowVersionsTableTableManager get syncRowVersions =>
+      $$SyncRowVersionsTableTableManager(_db, _db.syncRowVersions);
 }
