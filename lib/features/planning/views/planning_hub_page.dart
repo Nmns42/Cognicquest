@@ -53,20 +53,16 @@ class _PlanningHubPageState extends ConsumerState<PlanningHubPage> {
               onTap: () => context.push(AppRoute.gantt),
             ),
             const SizedBox(height: Space.md),
+            // Ordre de révision et vitesse de travail : un seul module, la
+            // vitesse mesurée convertissant les pages en temps.
             _ToolTile(
               icon: Icons.trending_up,
-              title: 'Ordre de révision',
+              title: 'Ordre & vitesse',
               subtitle: ranked.isEmpty
-                  ? null
+                  ? 'Rentabilité des chapitres, vitesse de travail'
                   : '${ranked.length} chapitre${ranked.length > 1 ? 's' : ''} '
-                      'classé${ranked.length > 1 ? 's' : ''}',
+                      'classé${ranked.length > 1 ? 's' : ''} par rentabilité',
               onTap: () => context.push(AppRoute.revisionOrder),
-            ),
-            const SizedBox(height: Space.md),
-            _ToolTile(
-              icon: Icons.speed_outlined,
-              title: 'Vitesse de travail',
-              onTap: () => context.push(AppRoute.studySpeed),
             ),
             const SizedBox(height: Space.md),
             _ToolTile(

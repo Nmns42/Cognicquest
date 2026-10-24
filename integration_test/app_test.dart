@@ -212,7 +212,7 @@ void main() {
     await wait(tester);
     await tester.enterText(find.byType(TextField).at(0), 'Fiche appareil');
     await tester.enterText(find.byType(TextField).at(1), 'Contenu de test');
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Retour').last);
     await wait(tester, 600);
     final notes = await tester.runAsync(() => db.select(db.localNotes).get());
     expect(notes!.map((n) => n.title), contains('Fiche appareil'));

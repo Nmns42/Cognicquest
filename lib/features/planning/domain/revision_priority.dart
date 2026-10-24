@@ -8,9 +8,14 @@ class RankedTarget {
     required this.gainablePoints,
     required this.estimatedCost,
     required this.urgencyFactor,
+    this.fromMeasuredSpeed = false,
   });
 
   final ExamTarget target;
+
+  /// Temps tiré de la vitesse de lecture mesurée (longueur en pages), et
+  /// non de la longueur en heures déclarée.
+  final bool fromMeasuredSpeed;
 
   /// Points pondérés (écart de note × coefficient) récupérables par heure de
   /// travail, ajustés par l'urgence.
@@ -28,8 +33,10 @@ class RankedTarget {
     final gap = (target.reachableGrade - target.currentGrade)
         .clamp(0.0, 20.0)
         .toStringAsFixed(0);
-    final hours = estimatedCost.toStringAsFixed(1);
-    final base = '+$gap pts × coeff. ${target.coefficient} pour ~$hours h';
+    final time =
+        formatHoursMinutes(Duration(seconds: (estimatedCost * 3600).round()));
+    final base = '+$gap pts × coeff. ${target.coefficientLabel} pour ~$time'
+        '${fromMeasuredSpeed ? ' (ta vitesse)' : ''}';
     if (urgencyFactor > 1.05) {
       final days = target.daysUntilExam;
       return '$base · examen dans $days j';
@@ -59,9 +66,12 @@ abstract final class RevisionPriority {
     return 1 + (urgencyHorizonDays - days) / urgencyHorizonDays;
   }
 
-  /// Rentabilité d'un chapitre : points récupérables par heure, ajustés.
-  static double scoreFor(ExamTarget target) {
-    final cost = target.estimatedCost;
+  /// Rentabilité estimée d'un chapitre : points pondérés récupérables par
+  /// heure de travail, ajustés par l'urgence. Le temps vient de la vitesse
+  /// de lecture mesurée ([pagesPerHour]) quand le chapitre a une longueur en
+  /// pages.
+  static double scoreFor(ExamTarget target, {double? pagesPerHour}) {
+    final cost = target.costWith(pagesPerHour: pagesPerHour);
     if (cost <= 0) return 0;
     return target.gainablePoints / cost * urgencyFor(target);
   }
@@ -71,20 +81,27 @@ abstract final class RevisionPriority {
   /// Les chapitres sans gain possible (déjà au niveau atteignable) et ceux
   /// dont l'examen est passé sont écartés : les afficher en queue de liste
   /// donnerait l'impression qu'il reste quelque chose à y gagner.
-  static List<RankedTarget> rank(List<ExamTarget> targets) {
+  static List<RankedTarget> rank(
+    List<ExamTarget> targets, {
+    double? pagesPerHour,
+  }) {
     final ranked = <RankedTarget>[];
 
     for (final target in targets) {
       final urgency = urgencyFor(target);
-      final score = scoreFor(target);
+      final score = scoreFor(target, pagesPerHour: pagesPerHour);
       if (score <= 0 || urgency <= 0) continue;
 
+      final measured = (target.lengthPages ?? 0) > 0 &&
+          pagesPerHour != null &&
+          pagesPerHour > 0;
       ranked.add(RankedTarget(
         target: target,
         score: score,
         gainablePoints: target.gainablePoints,
-        estimatedCost: target.estimatedCost,
+        estimatedCost: target.costWith(pagesPerHour: pagesPerHour),
         urgencyFactor: urgency,
+        fromMeasuredSpeed: measured,
       ));
     }
 

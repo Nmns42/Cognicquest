@@ -455,6 +455,11 @@ class LocalSpeedSamples extends Table {
   RealColumn get units => real()();
   IntColumn get durationSeconds => integer()();
 
+  /// Unité choisie (v16) : `pages`, `paragraphes`, `phrases`, `mots`,
+  /// `cartes`, `fiches`, `quiz`, `questions`, `exercices`. `null` pour les
+  /// mesures antérieures : l'unité par défaut de l'activité.
+  TextColumn get unit => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -486,6 +491,9 @@ class LocalExamTargets extends Table {
   RealColumn get reachableGrade => real().withDefault(const Constant(20))();
   /// Longueur du cours, en heures de travail estimées.
   RealColumn get lengthHours => real().withDefault(const Constant(1))();
+  /// Longueur du cours en pages (v16), convertie en temps par la vitesse de
+  /// lecture mesurée.
+  RealColumn get lengthPages => real().nullable()();
   /// Difficulté ressentie, de 1 à 5.
   IntColumn get difficulty => integer().withDefault(const Constant(3))();
 
@@ -728,8 +736,9 @@ class AppDatabase extends _$AppDatabase {
   /// version optimiste.
   /// v15 : cache local des images déposées dans Storage (LocalMediaCache),
   /// et index des dossiers oublié par la montée v13.
+  /// v16 : longueur en pages des chapitres, unité des mesures de vitesse.
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -905,6 +914,14 @@ class AppDatabase extends _$AppDatabase {
               'CREATE INDEX ',
               'CREATE INDEX IF NOT EXISTS ',
             ));
+          }
+          if (from < 16) {
+            if (!await _hasColumn('local_exam_targets', 'length_pages')) {
+              await m.addColumn(localExamTargets, localExamTargets.lengthPages);
+            }
+            if (!await _hasColumn('local_speed_samples', 'unit')) {
+              await m.addColumn(localSpeedSamples, localSpeedSamples.unit);
+            }
           }
         },
         beforeOpen: (details) async {

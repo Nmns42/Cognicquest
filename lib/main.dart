@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -99,6 +100,10 @@ class CognicQuestApp extends ConsumerWidget {
       themeAnimationStyle: reduceMotion ? AnimationStyle.noAnimation : null,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      // Interface 100 % française, y compris les composants du framework.
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       shortcuts: shortcutsEnabled ? _appShortcuts : null,
       actions: {
         ...WidgetsApp.defaultActions,

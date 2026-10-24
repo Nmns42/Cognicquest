@@ -7,9 +7,14 @@ class SpeedEstimate {
     required this.unitsPerHour,
     required this.sampleCount,
     required this.spread,
-  });
+    String? unit,
+  }) : _unit = unit;
 
   final StudyActivity activity;
+  final String? _unit;
+
+  /// Unité de l'estimation (pages, mots, cartes…).
+  String get unit => _unit ?? activity.unit;
 
   /// Unités traitées par heure.
   final double unitsPerHour;
@@ -25,7 +30,9 @@ class SpeedEstimate {
   bool get isReliable => sampleCount >= 3 && spread <= 0.6;
 
   String get confidenceLabel {
-    if (sampleCount < 3) return 'À confirmer ($sampleCount mesure${sampleCount > 1 ? 's' : ''})';
+    if (sampleCount < 3) {
+      return 'À confirmer ($sampleCount mesure${sampleCount > 1 ? 's' : ''})';
+    }
     if (spread > 0.6) return 'Variable selon les séances';
     return 'Estimation fiable';
   }
@@ -52,6 +59,7 @@ abstract final class StudySpeed {
     List<SpeedSample> samples,
     StudyActivity activity, {
     String? subject,
+    String? unit,
   }) {
     final cutoff = DateTime.now().subtract(const Duration(days: windowDays));
 
@@ -61,6 +69,7 @@ abstract final class StudySpeed {
             s.durationSeconds > 0 &&
             s.units > 0 &&
             !s.createdAt.isBefore(cutoff) &&
+            (unit == null || s.effectiveUnit == unit) &&
             (subject == null || s.subject == subject))
         .toList();
 
@@ -84,24 +93,38 @@ abstract final class StudySpeed {
 
     return SpeedEstimate(
       activity: activity,
+      unit: unit,
       unitsPerHour: unitsPerHour,
       sampleCount: relevant.length,
       spread: spread.clamp(0.0, 1.0),
     );
   }
 
-  /// Toutes les estimations disponibles, activités sans mesure exclues.
+  /// Toutes les estimations disponibles, une par activité et par unité
+  /// mesurée (on ne mélange pas des mots et des paragraphes).
   static List<SpeedEstimate> allEstimates(
     List<SpeedSample> samples, {
     String? subject,
   }) {
     final estimates = <SpeedEstimate>[];
     for (final activity in StudyActivity.values) {
-      final estimate = StudySpeed.estimate(samples, activity, subject: subject);
-      if (estimate != null) estimates.add(estimate);
+      final units = {
+        for (final s in samples)
+          if (s.activity == activity) s.effectiveUnit,
+      };
+      for (final unit in activity.units.where(units.contains)) {
+        final estimate = StudySpeed.estimate(samples, activity,
+            subject: subject, unit: unit);
+        if (estimate != null) estimates.add(estimate);
+      }
     }
     return estimates;
   }
+
+  /// Vitesse de lecture en pages par heure, si elle a été mesurée : sert à
+  /// convertir la longueur en pages d'un chapitre en temps de travail.
+  static double? readingPagesPerHour(List<SpeedSample> samples) =>
+      estimate(samples, StudyActivity.reading, unit: 'pages')?.unitsPerHour;
 
   /// Matières pour lesquelles au moins une mesure existe.
   static List<String> subjectsOf(List<SpeedSample> samples) {
@@ -116,11 +139,7 @@ abstract final class StudySpeed {
     return subjects;
   }
 
-  /// Formate une durée prévisionnelle en « 2 h 30 » / « 45 min ».
-  static String formatForecast(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    if (hours == 0) return '$minutes min';
-    return minutes == 0 ? '$hours h' : '$hours h $minutes';
-  }
+  /// Formate une durée prévisionnelle en « 1 h 30 min » / « 45 min ».
+  static String formatForecast(Duration duration) =>
+      formatHoursMinutes(duration);
 }

@@ -176,7 +176,7 @@ void main() {
       // Sortie immédiate après une frappe (avant l'autosave de 600 ms) :
       // l'écriture forcée à la fermeture ne doit ni planter ni la perdre.
       await tester.enterText(content, '# Cardio [[Chapitre 2 – Dérivées]] fin');
-      await tester.pageBack();
+      await tester.tap(find.byTooltip('Retour').last);
       await wait(tester, 500);
       expect(tester.takeException(), isNull);
       final notes = await db.select(db.localNotes).get();

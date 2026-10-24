@@ -8,10 +8,17 @@ import '../providers/planning_provider.dart';
 import '../widgets/exam_target_sheet.dart';
 import '../../../core/theme/tokens.dart';
 
-/// Ordre de révision par rentabilité — « viser là où il y a le plus de points
-/// en examen […] ⇒ ordre de révision » (CdC).
-class RevisionOrderPage extends ConsumerWidget {
-  const RevisionOrderPage({super.key});
+/// Volet « Ordre & rentabilité » du module Ordre & vitesse — « viser là où
+/// il y a le plus de points en examen […] ⇒ ordre de révision » (CdC).
+class RevisionOrderView extends ConsumerWidget {
+  const RevisionOrderView({super.key});
+
+  /// Ajoute un chapitre.
+  static Future<void> addTarget(BuildContext context, WidgetRef ref) async {
+    final draft = await ExamTargetSheet.show(context);
+    if (draft == null) return;
+    await ref.read(planningActionsProvider).saveExamTarget(draft);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,96 +27,90 @@ class RevisionOrderPage extends ConsumerWidget {
     final capacity = ref.watch(dailyCapacityProvider);
     final plan = ref.watch(adaptivePlanProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ordre de révision')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
-        children: [
-          if (ranked.isEmpty && excluded.isEmpty)
-            const _EmptyState()
-          else ...[
-             Text(
-              'Chaque chapitre est classé par points récupérables à l\'heure, '
-              'ajustés selon la proximité de l\'examen.',
-              style: TextStyle(
-                  fontSize: TypeScale.caption, color: context.cq.textMuted, height: 1.45),
-            ),
-            const SizedBox(height: 18),
+    final speed = ref.watch(readingSpeedProvider);
+    final speedNote = speed == null
+        ? 'Mesure ta vitesse de lecture (onglet Vitesse) pour convertir les '
+            'pages en temps réel.'
+        : 'Temps calculé avec ta vitesse de lecture '
+            '(${formatDecimal(speed, maxDigits: 1)} pages / h).';
 
-            _CapacitySlider(
-              value: capacity,
-              onChanged: (value) =>
-                  ref.read(dailyCapacityProvider.notifier).state = value,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 96),
+      children: [
+        if (ranked.isEmpty && excluded.isEmpty)
+          const _EmptyState()
+        else ...[
+          Text(
+            'Chaque chapitre est classé par rentabilité estimée : points '
+            'pondérés récupérables par heure, ajustés selon la proximité '
+            'de l\'examen. $speedNote',
+            style: TextStyle(
+                fontSize: TypeScale.caption,
+                color: context.cq.textMuted,
+                height: 1.45),
+          ),
+          const SizedBox(height: 18),
+          _CapacitySlider(
+            value: capacity,
+            onChanged: (value) =>
+                ref.read(dailyCapacityProvider.notifier).state = value,
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: plan.isFeasible
+                  ? context.cq.vertSauge.withValues(alpha: 0.08)
+                  : context.cq.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(Radii.md),
+            ),
+            child: Text(
+              plan.summary,
+              style: TextStyle(
+                fontSize: TypeScale.caption,
+                height: 1.4,
+                color:
+                    plan.isFeasible ? context.cq.vertDark : context.cq.warning,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          if (ranked.isNotEmpty) ...[
+            Text(
+              'Dans cet ordre',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Les 3 premiers : ~${formatHoursMinutes(Duration(
+                seconds: (RevisionPriority.effortFor(ranked) * 3600).round(),
+              ))}',
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < ranked.length; i++)
+              _RankedRow(rank: i + 1, entry: ranked[i]),
+          ],
+          if (excluded.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            Text(
+              'Écartés du classement',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              // Les montrer évite de croire à un oubli.
+              'Ils restent dans ta liste, mais ne rapporteraient rien.',
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
             const SizedBox(height: 10),
-
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: plan.isFeasible
-                    ? context.cq.vertSauge.withValues(alpha: 0.08)
-                    : context.cq.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(Radii.md),
-              ),
-              child: Text(
-                plan.summary,
-                style: TextStyle(
-                  fontSize: TypeScale.caption,
-                  height: 1.4,
-                  color: plan.isFeasible
-                      ? context.cq.vertDark
-                      : context.cq.warning,
-                ),
-              ),
-            ),
-            const SizedBox(height: 22),
-
-            if (ranked.isNotEmpty) ...[
-              Text(
-                'Dans cet ordre',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Les 3 premiers : ~'
-                '${RevisionPriority.effortFor(ranked).toStringAsFixed(1)} h',
-                style:  TextStyle(
-                    fontSize: TypeScale.caption, color: context.cq.textMuted),
-              ),
-              const SizedBox(height: 12),
-              for (var i = 0; i < ranked.length; i++)
-                _RankedRow(rank: i + 1, entry: ranked[i]),
-            ],
-
-            if (excluded.isNotEmpty) ...[
-              const SizedBox(height: 22),
-              Text(
-                'Écartés du classement',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 4),
-               Text(
-                // Les montrer évite de croire à un oubli.
-                'Ils restent dans ta liste, mais ne rapporteraient rien.',
-                style: TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
-              ),
-              const SizedBox(height: 10),
-              for (final entry in excluded)
-                _ExcludedRow(target: entry.$1, reason: entry.$2),
-            ],
+            for (final entry in excluded)
+              _ExcludedRow(target: entry.$1, reason: entry.$2),
           ],
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final draft = await ExamTargetSheet.show(context);
-          if (draft == null) return;
-          await ref.read(planningActionsProvider).saveExamTarget(draft);
-        },
-        backgroundColor: context.cq.vert,
-        tooltip: 'Ajouter un chapitre',
-        child: Icon(Icons.add, color: context.onAccent),
-      ),
+      ],
     );
   }
 }
@@ -127,14 +128,16 @@ class _CapacitySlider extends StatelessWidget {
       children: [
         Row(
           children: [
-             Text('Temps d\'étude par jour',
+            Text('Temps d\'étude par jour',
                 style: TextStyle(
                     fontSize: TypeScale.body,
                     fontWeight: FontWeight.w600,
                     color: context.cq.textPrimary)),
             const Spacer(),
-            Text('${value.toStringAsFixed(1)} h',
-                style:  TextStyle(
+            Text(
+                formatHoursMinutes(
+                    Duration(seconds: (value * 3600).round())),
+                style: TextStyle(
                     fontSize: TypeScale.body,
                     fontWeight: FontWeight.w700,
                     color: context.cq.vertDark)),
@@ -205,7 +208,7 @@ class _RankedRow extends ConsumerWidget {
                       target.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style:  TextStyle(
+                      style: TextStyle(
                           fontSize: TypeScale.body,
                           fontWeight: FontWeight.w600,
                           color: context.cq.textPrimary,
@@ -215,15 +218,17 @@ class _RankedRow extends ConsumerWidget {
                     // On explique le classement plutôt que de l'imposer.
                     Text(
                       entry.rationale,
-                      style:  TextStyle(
-                          fontSize: TypeScale.caption, color: context.cq.textMuted),
+                      style: TextStyle(
+                          fontSize: TypeScale.caption,
+                          color: context.cq.textMuted),
                     ),
                     if (target.subject != null) ...[
                       const SizedBox(height: 5),
                       Text(
                         target.subject!,
-                        style:  TextStyle(
-                            fontSize: TypeScale.caption, color: context.cq.textHint),
+                        style: TextStyle(
+                            fontSize: TypeScale.caption,
+                            color: context.cq.textHint),
                       ),
                     ],
                   ],
@@ -234,15 +239,16 @@ class _RankedRow extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    entry.score.toStringAsFixed(1),
-                    style:  TextStyle(
+                    formatDecimal(entry.score, maxDigits: 1),
+                    style: TextStyle(
                         fontSize: TypeScale.bodyLarge,
                         fontWeight: FontWeight.w700,
                         color: context.cq.vertDark),
                   ),
-                   Text('pts pondérés/h',
+                  Text('pts / h',
                       style: TextStyle(
-                          fontSize: TypeScale.caption, color: context.cq.textHint)),
+                          fontSize: TypeScale.caption,
+                          color: context.cq.textHint)),
                 ],
               ),
             ],
@@ -265,7 +271,7 @@ class _ExcludedRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-           Icon(Icons.remove_circle_outline,
+          Icon(Icons.remove_circle_outline,
               size: 14, color: context.cq.textHint),
           const SizedBox(width: 9),
           Expanded(
@@ -273,11 +279,13 @@ class _ExcludedRow extends StatelessWidget {
               target.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textMuted),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textMuted),
             ),
           ),
           Text(reason,
-              style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint)),
+              style: TextStyle(
+                  fontSize: TypeScale.caption, color: context.cq.textHint)),
         ],
       ),
     );
@@ -293,18 +301,20 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.only(top: 40),
       child: Column(
         children: [
-           Icon(Icons.trending_up, size: 48, color: context.cq.textHint),
+          Icon(Icons.trending_up, size: 48, color: context.cq.textHint),
           const SizedBox(height: 16),
           Text('Aucun chapitre déclaré',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-           Text(
+          Text(
             'Déclare tes chapitres avec leur coefficient à l\'examen, ta note '
             'actuelle et la note que tu penses pouvoir atteindre. '
             'CognicQuest te dira par quoi commencer.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: context.cq.textMuted, fontSize: TypeScale.body, height: 1.45),
+                color: context.cq.textMuted,
+                fontSize: TypeScale.body,
+                height: 1.45),
           ),
         ],
       ),

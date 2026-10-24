@@ -53,10 +53,20 @@ final upcomingPlanItemsProvider = Provider<List<PlanItem>>((ref) {
 });
 
 /// Classement des chapitres par rentabilité.
+/// Vitesse de lecture mesurée (pages par heure), toutes matières.
+final readingSpeedProvider = Provider<double?>((ref) {
+  final samples =
+      ref.watch(speedSamplesProvider).valueOrNull ?? const <SpeedSample>[];
+  return StudySpeed.readingPagesPerHour(samples);
+});
+
+/// Chapitres classés par rentabilité estimée, le temps venant de la vitesse
+/// de lecture mesurée quand elle existe.
 final rankedTargetsProvider = Provider<List<RankedTarget>>((ref) {
   final targets =
       ref.watch(examTargetsProvider).valueOrNull ?? const <ExamTarget>[];
-  return RevisionPriority.rank(targets);
+  return RevisionPriority.rank(targets,
+      pagesPerHour: ref.watch(readingSpeedProvider));
 });
 
 /// Chapitres écartés du classement, avec la raison.
@@ -97,7 +107,8 @@ final speedSubjectsProvider = Provider<List<String>>((ref) {
 
 /// Objectifs en cours, les plus urgents d'abord.
 final activeGoalsProvider = Provider<List<StudyGoal>>((ref) {
-  final goals = ref.watch(studyGoalsProvider).valueOrNull ?? const <StudyGoal>[];
+  final goals =
+      ref.watch(studyGoalsProvider).valueOrNull ?? const <StudyGoal>[];
   final active = goals.where((g) => !g.isCompleted).toList()
     ..sort((a, b) {
       // Les objectifs en retard d'abord, puis par échéance, puis sans date.

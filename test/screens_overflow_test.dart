@@ -13,6 +13,7 @@ import 'package:cognicquest/features/habits/views/habits_page.dart';
 import 'package:cognicquest/features/kanban/views/kanban_page.dart';
 import 'package:cognicquest/features/metacognition/views/journal_hub_page.dart';
 import 'package:cognicquest/features/notes/views/notes_page.dart';
+import 'package:cognicquest/features/planning/views/revision_speed_page.dart';
 import 'package:cognicquest/features/planning/views/planning_hub_page.dart';
 import 'package:cognicquest/features/pomodoro/views/pomodoro_page.dart';
 import 'package:cognicquest/features/review/views/review_home_page.dart';
@@ -97,6 +98,9 @@ void main() {
     'Habitudes': () => const HabitsPage(),
     'Graphe': () => const GraphPage(),
     'Planification': () => const PlanningHubPage(),
+    'Ordre & rentabilité': () => const RevisionSpeedPage(),
+    'Vitesse de travail': () =>
+        const RevisionSpeedPage(initialTab: RevisionSpeedTab.speed),
     'Journal': () => const JournalHubPage(),
     'Réglages': () => const SettingsPage(),
   };

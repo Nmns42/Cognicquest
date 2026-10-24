@@ -121,6 +121,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               subject: row.subject,
               units: row.units,
               durationSeconds: row.durationSeconds,
+              unit: row.unit,
               createdAt: row.createdAt,
               isSynced: row.isSynced,
             ))
@@ -144,6 +145,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               currentGrade: row.currentGrade,
               reachableGrade: row.reachableGrade,
               lengthHours: row.lengthHours,
+              lengthPages: row.lengthPages,
               difficulty: row.difficulty,
               examDate: row.examDate,
               createdAt: row.createdAt,
@@ -251,6 +253,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               subject: Value(sample.subject),
               units: sample.units,
               durationSeconds: sample.durationSeconds,
+              unit: Value(sample.unit),
               createdAt: sample.createdAt,
               isSynced: const Value(false),
             ),
@@ -274,6 +277,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
               currentGrade: Value(target.currentGrade),
               reachableGrade: Value(target.reachableGrade),
               lengthHours: Value(target.lengthHours),
+              lengthPages: Value(target.lengthPages),
               difficulty: Value(target.difficulty),
               examDate: Value(target.examDate),
               createdAt: target.createdAt,
@@ -401,6 +405,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
           'subject': row.subject,
           'units': row.units,
           'duration_seconds': row.durationSeconds,
+          'unit': row.unit,
           'created_at': row.createdAt.toUtc().toIso8601String(),
         });
         await (_db.update(_db.localSpeedSamples)
@@ -429,6 +434,7 @@ class LocalFirstPlanningRepository implements PlanningRepository {
             'current_grade': row.currentGrade,
             'reachable_grade': row.reachableGrade,
             'length_hours': row.lengthHours,
+            'length_pages': row.lengthPages,
             'difficulty': row.difficulty,
             'exam_date': row.examDate?.toUtc().toIso8601String(),
             'created_at': row.createdAt.toUtc().toIso8601String(),
@@ -440,8 +446,6 @@ class LocalFirstPlanningRepository implements PlanningRepository {
       }
     });
   }
-
-
 }
 
 final planningRepositoryProvider = Provider<PlanningRepository?>((ref) {

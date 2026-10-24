@@ -31,8 +31,7 @@ import '../features/notes/views/notes_page.dart';
 import '../features/planning/views/gantt_page.dart';
 import '../features/planning/views/goals_page.dart';
 import '../features/planning/views/planning_hub_page.dart';
-import '../features/planning/views/revision_order_page.dart';
-import '../features/planning/views/study_speed_page.dart';
+import '../features/planning/views/revision_speed_page.dart';
 import '../features/pomodoro/providers/pomodoro_provider.dart';
 import '../features/pomodoro/views/pomodoro_page.dart';
 import '../features/review/views/explain_page.dart';
@@ -236,11 +235,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'order',
                 builder: (_, __) =>
-                    const PanelSettle(child: RevisionOrderPage()),
+                    const PanelSettle(child: RevisionSpeedPage()),
               ),
               GoRoute(
                 path: 'speed',
-                builder: (_, __) => const PanelSettle(child: StudySpeedPage()),
+                builder: (_, __) => const PanelSettle(
+                    child: RevisionSpeedPage(
+                        initialTab: RevisionSpeedTab.speed)),
               ),
               GoRoute(
                   path: 'goals',

@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/tokens.dart';
 import '../../../shared/models/planning_model.dart';
 import '../data/planning_repository.dart';
 import '../domain/revision_priority.dart';
 import '../providers/planning_provider.dart';
-import '../../../core/theme/tokens.dart';
 
-/// Déclaration d'un chapitre à réviser, avec de quoi calculer sa rentabilité.
+/// Nombre décimal saisi librement (« 2,5 » ou « 2.5 »), `null` sinon.
+double? parseDecimalInput(String raw) {
+  final normalized = raw.trim().replaceAll(' ', '').replaceAll(',', '.');
+  if (normalized.isEmpty) return null;
+  final value = double.tryParse(normalized);
+  return value == null || !value.isFinite ? null : value;
+}
+
+/// Déclaration d'un chapitre à réviser, avec de quoi calculer sa
+/// rentabilité : coefficient libre, notes, longueur en pages et en heures,
+/// difficulté ressentie.
 class ExamTargetSheet extends ConsumerStatefulWidget {
   const ExamTargetSheet({super.key, this.target});
 
@@ -20,6 +31,7 @@ class ExamTargetSheet extends ConsumerStatefulWidget {
       context: context,
       sheetAnimationStyle: Motion.style(context),
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (_) => ExamTargetSheet(target: target),
     );
   }
@@ -30,43 +42,96 @@ class ExamTargetSheet extends ConsumerStatefulWidget {
 
 class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _titleController =
-      TextEditingController(text: widget.target?.title ?? '');
-  late final TextEditingController _subjectController =
-      TextEditingController(text: widget.target?.subject ?? '');
 
-  /// Coefficient de 1 à 10 (une ancienne saisie en points est ramenée dans
-  /// ces bornes).
-  late double _weight = (widget.target?.coefficient ?? 2)
-      .clamp(ExamTarget.minCoefficient, ExamTarget.maxCoefficient)
-      .toDouble();
-  late double _current = widget.target?.currentGrade ?? 8;
-  late double _reachable = widget.target?.reachableGrade ?? 16;
-  late double _length = widget.target?.lengthHours ?? 3;
+  late final _title = TextEditingController(text: widget.target?.title ?? '');
+  late final _subject =
+      TextEditingController(text: widget.target?.subject ?? '');
+  late final _coefficient = TextEditingController(
+      text: widget.target == null ? '' : widget.target!.coefficientLabel);
+  late final _current = TextEditingController(
+      text: widget.target == null
+          ? ''
+          : formatDecimal(widget.target!.currentGrade));
+  late final _reachable = TextEditingController(
+      text: widget.target == null
+          ? ''
+          : formatDecimal(widget.target!.reachableGrade));
+  late final _pages = TextEditingController(
+      text: widget.target?.lengthPages == null
+          ? ''
+          : formatDecimal(widget.target!.lengthPages!));
+  late final _hours = TextEditingController(
+      text: widget.target == null
+          ? ''
+          : formatDecimal(widget.target!.lengthHours));
+
   late int _difficulty = widget.target?.difficulty ?? 3;
   late DateTime? _examDate = widget.target?.examDate;
 
+  static const List<String> _difficultyLabels = [
+    'Très facile',
+    'Facile',
+    'Moyenne',
+    'Difficile',
+    'Très difficile',
+  ];
+
   @override
   void dispose() {
-    _titleController.dispose();
-    _subjectController.dispose();
+    for (final c in [
+      _title,
+      _subject,
+      _coefficient,
+      _current,
+      _reachable,
+      _pages,
+      _hours,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  /// Aperçu du calcul, mis à jour à chaque réglage : l'utilisateur voit
-  /// l'effet de ses réponses plutôt que de découvrir un classement opaque.
-  ExamTarget get _preview => ExamTarget(
-        id: widget.target?.id ?? 'preview',
-        userId: '',
-        title: _titleController.text,
-        examWeight: _weight,
-        currentGrade: _current,
-        reachableGrade: _reachable,
-        lengthHours: _length,
-        difficulty: _difficulty,
-        examDate: _examDate,
-        createdAt: DateTime.now(),
-      );
+  double? _value(TextEditingController c) => parseDecimalInput(c.text);
+
+  /// Chapitre tel que saisi (aperçu ou enregistrement) ; `null` tant qu'un
+  /// champ obligatoire manque.
+  ExamTarget? _build({required double? pagesPerHour}) {
+    final coefficient = _value(_coefficient);
+    final current = _value(_current);
+    final reachable = _value(_reachable);
+    final pages = _value(_pages);
+    var hours = _value(_hours);
+    if (coefficient == null || current == null || reachable == null) {
+      return null;
+    }
+    if (hours == null) {
+      if (pages == null) return null;
+      // Heures non saisies : déduites des pages (vitesse mesurée), sinon une
+      // page = 5 minutes, ordre de grandeur d'une lecture de cours active.
+      hours = pagesPerHour != null && pagesPerHour > 0
+          ? pages / pagesPerHour
+          : pages / 12;
+    }
+    final existing = widget.target;
+    final subject = _subject.text.trim();
+    return ExamTarget(
+      id: existing?.id ?? newPlanningId(),
+      userId: existing?.userId ?? '',
+      noteId: existing?.noteId,
+      title: _title.text.trim(),
+      subject: subject.isEmpty ? null : subject,
+      examWeight: coefficient,
+      currentGrade: current,
+      reachableGrade: reachable,
+      lengthHours: hours,
+      lengthPages: pages,
+      difficulty: _difficulty,
+      examDate: _examDate,
+      createdAt: existing?.createdAt ?? DateTime.now(),
+      isSynced: false,
+    );
+  }
 
   Future<void> _pickExamDate() async {
     final now = DateTime.now();
@@ -82,71 +147,100 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
     if (picked != null) setState(() => _examDate = picked);
   }
 
-  void _submit() {
+  void _submit(double? pagesPerHour) {
     if (!_formKey.currentState!.validate()) return;
+    final target = _build(pagesPerHour: pagesPerHour);
+    if (target != null) Navigator.pop(context, target);
+  }
 
-    final existing = widget.target;
-    final subject = _subjectController.text.trim();
+  // ── Validations ──────────────────────────────────────────────────────
 
-    Navigator.pop(
-      context,
-      ExamTarget(
-        id: existing?.id ?? newPlanningId(),
-        userId: existing?.userId ?? '',
-        noteId: existing?.noteId,
-        title: _titleController.text.trim(),
-        subject: subject.isEmpty ? null : subject,
-        examWeight: _weight,
-        currentGrade: _current,
-        reachableGrade: _reachable,
-        lengthHours: _length,
-        difficulty: _difficulty,
-        examDate: _examDate,
-        createdAt: existing?.createdAt ?? DateTime.now(),
-        isSynced: false,
-      ),
-    );
+  String? _coefficientRule(String? raw) {
+    final v = parseDecimalInput(raw ?? '');
+    if (v == null) return 'Saisis le coefficient (ex : 3 ou 2,5).';
+    if (v <= 0) return 'Le coefficient doit être positif.';
+    return null;
+  }
+
+  String? _gradeRule(String? raw) {
+    final v = parseDecimalInput(raw ?? '');
+    if (v == null) return 'Saisis une note sur 20.';
+    if (v < 0 || v > 20) return 'Entre 0 et 20.';
+    return null;
+  }
+
+  String? _reachableRule(String? raw) {
+    final error = _gradeRule(raw);
+    if (error != null) return error;
+    final current = _value(_current);
+    final v = parseDecimalInput(raw ?? '')!;
+    if (current != null && v < current) {
+      return 'Au moins ta note actuelle (${formatDecimal(current)}).';
+    }
+    return null;
+  }
+
+  String? _lengthRule(String? _) {
+    final pages = _value(_pages);
+    final hours = _value(_hours);
+    if (pages == null && hours == null) {
+      return 'Indique la longueur en pages ou en heures.';
+    }
+    if ((pages != null && pages <= 0) || (hours != null && hours <= 0)) {
+      return 'La longueur doit être positive.';
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final cq = context.cq;
     final existing = widget.target;
-    final preview = _preview;
+    final pagesPerHour = ref.watch(readingSpeedProvider);
+    final preview = _build(pagesPerHour: pagesPerHour);
+
+    Widget number(
+      TextEditingController controller,
+      String label, {
+      String? suffix,
+      String? helper,
+      FormFieldValidator<String>? validator,
+    }) =>
+        TextFormField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ],
+          onChanged: (_) => setState(() {}),
+          style: const TextStyle(fontFeatures: TypeScale.tabular),
+          decoration: InputDecoration(
+            labelText: label,
+            suffixText: suffix,
+            helperText: helper,
+            helperMaxLines: 2,
+          ),
+          validator: validator,
+        );
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
-        ),
-        decoration:  BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(Radii.md)),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: ConstrainedBox(
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9),
         child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(Space.lg, 0, Space.lg, Space.xl),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: context.cq.beigeDark,
-                      borderRadius: BorderRadius.circular(Radii.sm),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
                 Text(existing == null ? 'Nouveau chapitre' : 'Modifier',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 18),
-
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: Space.lg),
                 TextFormField(
-                  controller: _titleController,
+                  controller: _title,
                   autofocus: existing == null,
                   textCapitalization: TextCapitalization.sentences,
                   onChanged: (_) => setState(() {}),
@@ -158,75 +252,82 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                       ? 'Nomme le chapitre.'
                       : null,
                 ),
-                const SizedBox(height: 14),
-
+                const SizedBox(height: Space.md),
                 TextFormField(
-                  controller: _subjectController,
+                  controller: _subject,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     labelText: 'Matière (facultatif)',
                     prefixIcon: Icon(Icons.folder_outlined, size: 20),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                _Slider(
-                  label: 'Coefficient à l\'examen',
-                  valueLabel: 'Coeff. ${_weight.toStringAsFixed(0)}',
-                  value: _weight,
-                  min: ExamTarget.minCoefficient.toDouble(),
-                  max: ExamTarget.maxCoefficient.toDouble(),
-                  divisions:
-                      ExamTarget.maxCoefficient - ExamTarget.minCoefficient,
-                  onChanged: (v) => setState(() => _weight = v),
+                const SizedBox(height: Space.md),
+                number(_coefficient, 'Coefficient',
+                    helper: 'Libre : 1, 3, 12, 2,5…',
+                    validator: _coefficientRule),
+                const SizedBox(height: Space.md),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: number(_current, 'Note actuelle',
+                          suffix: '/20', validator: _gradeRule),
+                    ),
+                    const SizedBox(width: Space.md),
+                    Expanded(
+                      child: number(_reachable, 'Note atteignable',
+                          suffix: '/20', validator: _reachableRule),
+                    ),
+                  ],
                 ),
-                _Slider(
-                  label: 'Ma note actuelle',
-                  valueLabel: '${_current.toStringAsFixed(0)}/20',
-                  value: _current,
-                  min: 0,
-                  max: 20,
-                  divisions: 20,
-                  onChanged: (v) => setState(() {
-                    _current = v;
-                    // Une note atteignable inférieure à la note actuelle n'a
-                    // pas de sens : on la remonte plutôt que de la refuser.
-                    if (_reachable < _current) _reachable = _current;
-                  }),
+                const SizedBox(height: Space.md),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: number(_pages, 'Longueur en pages',
+                          suffix: 'p.', validator: _lengthRule),
+                    ),
+                    const SizedBox(width: Space.md),
+                    Expanded(
+                      child: number(_hours, 'Longueur en heures',
+                          suffix: 'h', validator: _lengthRule),
+                    ),
+                  ],
                 ),
-                _Slider(
-                  label: 'Note atteignable',
-                  valueLabel: '${_reachable.toStringAsFixed(0)}/20',
-                  value: _reachable,
-                  min: 0,
-                  max: 20,
-                  divisions: 20,
-                  onChanged: (v) => setState(
-                      () => _reachable = v < _current ? _current : v),
+                const SizedBox(height: Space.xs),
+                Text(
+                  pagesPerHour == null
+                      ? 'Mesure ta vitesse de lecture (onglet Vitesse) : les '
+                          'pages seront converties en temps réel de travail.'
+                      : 'Ta vitesse de lecture : '
+                          '${formatDecimal(pagesPerHour, maxDigits: 1)} '
+                          'pages / h — les pages priment sur les heures.',
+                  style: TextStyle(
+                      fontSize: TypeScale.caption, color: cq.textMuted),
                 ),
-                _Slider(
-                  label: 'Longueur du cours',
-                  valueLabel: '${_length.toStringAsFixed(1)} h',
-                  value: _length,
-                  min: 0.5,
-                  max: 20,
-                  divisions: 39,
-                  onChanged: (v) => setState(() => _length = v),
+                const SizedBox(height: Space.lg),
+                Text('Difficulté ressentie',
+                    style: TextStyle(
+                        fontSize: TypeScale.body, color: cq.textPrimary)),
+                const SizedBox(height: Space.sm),
+                Wrap(
+                  spacing: Space.sm,
+                  runSpacing: Space.sm,
+                  children: [
+                    for (var level = 1; level <= 5; level++)
+                      ChoiceChip(
+                        label: Text('$level · ${_difficultyLabels[level - 1]}'),
+                        selected: _difficulty == level,
+                        showCheckmark: false,
+                        onSelected: (_) => setState(() => _difficulty = level),
+                      ),
+                  ],
                 ),
-                _Slider(
-                  label: 'Difficulté ressentie',
-                  valueLabel: '$_difficulty/5',
-                  value: _difficulty.toDouble(),
-                  min: 1,
-                  max: 5,
-                  divisions: 4,
-                  onChanged: (v) => setState(() => _difficulty = v.round()),
-                ),
-                const SizedBox(height: 10),
-
+                const SizedBox(height: Space.lg),
                 InkWell(
                   onTap: _pickExamDate,
-                  borderRadius: BorderRadius.circular(AppTheme.radius),
+                  borderRadius: BorderRadius.circular(Radii.sm),
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Date de l\'examen (facultatif)',
@@ -234,9 +335,9 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                       suffixIcon: _examDate == null
                           ? null
                           : IconButton(
+                              tooltip: 'Effacer la date',
                               icon: const Icon(Icons.close, size: 18),
-                              onPressed: () =>
-                                  setState(() => _examDate = null),
+                              onPressed: () => setState(() => _examDate = null),
                             ),
                     ),
                     child: Text(
@@ -245,55 +346,20 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                           : '${_examDate!.day.toString().padLeft(2, '0')}/'
                               '${_examDate!.month.toString().padLeft(2, '0')}/'
                               '${_examDate!.year}',
-                      style:  TextStyle(
-                          fontSize: TypeScale.body, color: context.cq.textPrimary),
+                      style: TextStyle(
+                          fontSize: TypeScale.body, color: cq.textPrimary),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: context.cq.vertSauge.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(Radii.md),
-                    border: Border.all(
-                        color: context.cq.vertSauge.withValues(alpha: 0.25)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       Text('Rentabilité estimée',
-                          style: TextStyle(
-                              fontSize: TypeScale.caption,
-                              fontWeight: FontWeight.w600,
-                              color: context.cq.vertDark)),
-                      const SizedBox(height: 6),
-                      Text(
-                        '+${(_reachable - _current).toStringAsFixed(0)} pts '
-                        '× coeff. ${_weight.toStringAsFixed(0)} = '
-                        '${preview.gainablePoints.toStringAsFixed(0)} points '
-                        'pondérés pour ~'
-                        '${preview.estimatedCost.toStringAsFixed(1)} h '
-                        '→ ${RevisionPriority.scoreFor(preview).toStringAsFixed(1)} '
-                        'par heure',
-                        style:  TextStyle(
-                            fontSize: TypeScale.caption,
-                            color: context.cq.textPrimary,
-                            height: 1.4),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 22),
-
-                ElevatedButton(
-                  onPressed: _submit,
+                const SizedBox(height: Space.lg),
+                _ProfitPreview(target: preview, pagesPerHour: pagesPerHour),
+                const SizedBox(height: Space.lg),
+                FilledButton(
+                  onPressed: () => _submit(pagesPerHour),
                   child: Text(existing == null ? 'Ajouter' : 'Enregistrer'),
                 ),
-
                 if (existing != null) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Space.sm),
                   TextButton(
                     onPressed: () async {
                       await ref
@@ -301,8 +367,8 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
                           .deleteExamTarget(existing.id);
                       if (context.mounted) Navigator.pop(context);
                     },
-                    child:  Text('Supprimer ce chapitre',
-                        style: TextStyle(color: context.cq.errorColor)),
+                    child: Text('Supprimer ce chapitre',
+                        style: TextStyle(color: cq.errorColor)),
                   ),
                 ],
               ],
@@ -314,52 +380,56 @@ class _ExamTargetSheetState extends ConsumerState<ExamTargetSheet> {
   }
 }
 
-class _Slider extends StatelessWidget {
-  const _Slider({
-    required this.label,
-    required this.valueLabel,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.onChanged,
-  });
+/// Rentabilité estimée, recalculée à chaque saisie : on voit l'effet de ses
+/// réponses plutôt que de découvrir un classement opaque.
+class _ProfitPreview extends StatelessWidget {
+  const _ProfitPreview({required this.target, required this.pagesPerHour});
 
-  final String label;
-  final String valueLabel;
-  final double value;
-  final double min;
-  final double max;
-  final int divisions;
-  final ValueChanged<double> onChanged;
+  final ExamTarget? target;
+  final double? pagesPerHour;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label,
-                style:  TextStyle(
-                    fontSize: TypeScale.body, color: context.cq.textPrimary)),
-            const Spacer(),
-            Text(valueLabel,
-                style:  TextStyle(
-                    fontSize: TypeScale.caption,
-                    fontWeight: FontWeight.w700,
-                    color: context.cq.vertDark)),
-          ],
-        ),
-        Slider(
-          value: value.clamp(min, max),
-          min: min,
-          max: max,
-          divisions: divisions,
-          activeColor: context.cq.vertDark,
-          onChanged: onChanged,
-        ),
-      ],
+    final cq = context.cq;
+    final t = target;
+    final String text;
+    if (t == null) {
+      text = 'Coefficient, notes et longueur suffisent à estimer la '
+          'rentabilité de ce chapitre.';
+    } else {
+      final cost = t.costWith(pagesPerHour: pagesPerHour);
+      final gap = (t.reachableGrade - t.currentGrade).clamp(0.0, 20.0);
+      final time = formatHoursMinutes(Duration(seconds: (cost * 3600).round()));
+      text = '+${formatDecimal(gap)} pts × coeff. ${t.coefficientLabel} = '
+          '${formatDecimal(t.gainablePoints)} points pondérés pour ~$time '
+          '→ ${formatDecimal(RevisionPriority.scoreFor(t, pagesPerHour: pagesPerHour), maxDigits: 1)} '
+          'pts / h';
+    }
+    return Container(
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: cq.parchemin,
+        borderRadius: BorderRadius.circular(Radii.sm),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Rentabilité estimée',
+              style: TextStyle(
+                  fontSize: TypeScale.caption,
+                  fontWeight: FontWeight.w600,
+                  color: cq.terre)),
+          const SizedBox(height: Space.xs),
+          Text(text,
+              style: TextStyle(
+                fontSize: TypeScale.caption,
+                color: cq.textPrimary,
+                height: TypeScale.bodyHeight,
+                fontFeatures: TypeScale.tabular,
+              )),
+        ],
+      ),
     );
   }
 }

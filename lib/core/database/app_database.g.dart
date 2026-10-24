@@ -7537,6 +7537,11 @@ class $LocalSpeedSamplesTable extends LocalSpeedSamples
   late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
       'duration_seconds', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+      'unit', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -7561,6 +7566,7 @@ class $LocalSpeedSamplesTable extends LocalSpeedSamples
         subject,
         units,
         durationSeconds,
+        unit,
         createdAt,
         isSynced
       ];
@@ -7609,6 +7615,10 @@ class $LocalSpeedSamplesTable extends LocalSpeedSamples
     } else if (isInserting) {
       context.missing(_durationSecondsMeta);
     }
+    if (data.containsKey('unit')) {
+      context.handle(
+          _unitMeta, unit.isAcceptableOrUnknown(data['unit']!, _unitMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -7640,6 +7650,8 @@ class $LocalSpeedSamplesTable extends LocalSpeedSamples
           .read(DriftSqlType.double, data['${effectivePrefix}units'])!,
       durationSeconds: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}duration_seconds'])!,
+      unit: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       isSynced: attachedDatabase.typeMapping
@@ -7665,6 +7677,11 @@ class LocalSpeedSample extends DataClass
   /// Quantité traitée, dans l'unité de l'activité (pages, mots, cartes…).
   final double units;
   final int durationSeconds;
+
+  /// Unité choisie (v16) : `pages`, `paragraphes`, `phrases`, `mots`,
+  /// `cartes`, `fiches`, `quiz`, `questions`, `exercices`. `null` pour les
+  /// mesures antérieures : l'unité par défaut de l'activité.
+  final String? unit;
   final DateTime createdAt;
   final bool isSynced;
   const LocalSpeedSample(
@@ -7674,6 +7691,7 @@ class LocalSpeedSample extends DataClass
       this.subject,
       required this.units,
       required this.durationSeconds,
+      this.unit,
       required this.createdAt,
       required this.isSynced});
   @override
@@ -7687,6 +7705,9 @@ class LocalSpeedSample extends DataClass
     }
     map['units'] = Variable<double>(units);
     map['duration_seconds'] = Variable<int>(durationSeconds);
+    if (!nullToAbsent || unit != null) {
+      map['unit'] = Variable<String>(unit);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -7702,6 +7723,7 @@ class LocalSpeedSample extends DataClass
           : Value(subject),
       units: Value(units),
       durationSeconds: Value(durationSeconds),
+      unit: unit == null && nullToAbsent ? const Value.absent() : Value(unit),
       createdAt: Value(createdAt),
       isSynced: Value(isSynced),
     );
@@ -7717,6 +7739,7 @@ class LocalSpeedSample extends DataClass
       subject: serializer.fromJson<String?>(json['subject']),
       units: serializer.fromJson<double>(json['units']),
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
+      unit: serializer.fromJson<String?>(json['unit']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -7731,6 +7754,7 @@ class LocalSpeedSample extends DataClass
       'subject': serializer.toJson<String?>(subject),
       'units': serializer.toJson<double>(units),
       'durationSeconds': serializer.toJson<int>(durationSeconds),
+      'unit': serializer.toJson<String?>(unit),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -7743,6 +7767,7 @@ class LocalSpeedSample extends DataClass
           Value<String?> subject = const Value.absent(),
           double? units,
           int? durationSeconds,
+          Value<String?> unit = const Value.absent(),
           DateTime? createdAt,
           bool? isSynced}) =>
       LocalSpeedSample(
@@ -7752,6 +7777,7 @@ class LocalSpeedSample extends DataClass
         subject: subject.present ? subject.value : this.subject,
         units: units ?? this.units,
         durationSeconds: durationSeconds ?? this.durationSeconds,
+        unit: unit.present ? unit.value : this.unit,
         createdAt: createdAt ?? this.createdAt,
         isSynced: isSynced ?? this.isSynced,
       );
@@ -7765,6 +7791,7 @@ class LocalSpeedSample extends DataClass
       durationSeconds: data.durationSeconds.present
           ? data.durationSeconds.value
           : this.durationSeconds,
+      unit: data.unit.present ? data.unit.value : this.unit,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -7779,6 +7806,7 @@ class LocalSpeedSample extends DataClass
           ..write('subject: $subject, ')
           ..write('units: $units, ')
           ..write('durationSeconds: $durationSeconds, ')
+          ..write('unit: $unit, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -7787,7 +7815,7 @@ class LocalSpeedSample extends DataClass
 
   @override
   int get hashCode => Object.hash(id, userId, activity, subject, units,
-      durationSeconds, createdAt, isSynced);
+      durationSeconds, unit, createdAt, isSynced);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7798,6 +7826,7 @@ class LocalSpeedSample extends DataClass
           other.subject == this.subject &&
           other.units == this.units &&
           other.durationSeconds == this.durationSeconds &&
+          other.unit == this.unit &&
           other.createdAt == this.createdAt &&
           other.isSynced == this.isSynced);
 }
@@ -7809,6 +7838,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
   final Value<String?> subject;
   final Value<double> units;
   final Value<int> durationSeconds;
+  final Value<String?> unit;
   final Value<DateTime> createdAt;
   final Value<bool> isSynced;
   final Value<int> rowid;
@@ -7819,6 +7849,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
     this.subject = const Value.absent(),
     this.units = const Value.absent(),
     this.durationSeconds = const Value.absent(),
+    this.unit = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -7830,6 +7861,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
     this.subject = const Value.absent(),
     required double units,
     required int durationSeconds,
+    this.unit = const Value.absent(),
     required DateTime createdAt,
     this.isSynced = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -7846,6 +7878,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
     Expression<String>? subject,
     Expression<double>? units,
     Expression<int>? durationSeconds,
+    Expression<String>? unit,
     Expression<DateTime>? createdAt,
     Expression<bool>? isSynced,
     Expression<int>? rowid,
@@ -7857,6 +7890,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
       if (subject != null) 'subject': subject,
       if (units != null) 'units': units,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (unit != null) 'unit': unit,
       if (createdAt != null) 'created_at': createdAt,
       if (isSynced != null) 'is_synced': isSynced,
       if (rowid != null) 'rowid': rowid,
@@ -7870,6 +7904,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
       Value<String?>? subject,
       Value<double>? units,
       Value<int>? durationSeconds,
+      Value<String?>? unit,
       Value<DateTime>? createdAt,
       Value<bool>? isSynced,
       Value<int>? rowid}) {
@@ -7880,6 +7915,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
       subject: subject ?? this.subject,
       units: units ?? this.units,
       durationSeconds: durationSeconds ?? this.durationSeconds,
+      unit: unit ?? this.unit,
       createdAt: createdAt ?? this.createdAt,
       isSynced: isSynced ?? this.isSynced,
       rowid: rowid ?? this.rowid,
@@ -7907,6 +7943,9 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
     if (durationSeconds.present) {
       map['duration_seconds'] = Variable<int>(durationSeconds.value);
     }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -7928,6 +7967,7 @@ class LocalSpeedSamplesCompanion extends UpdateCompanion<LocalSpeedSample> {
           ..write('subject: $subject, ')
           ..write('units: $units, ')
           ..write('durationSeconds: $durationSeconds, ')
+          ..write('unit: $unit, ')
           ..write('createdAt: $createdAt, ')
           ..write('isSynced: $isSynced, ')
           ..write('rowid: $rowid')
@@ -8003,6 +8043,12 @@ class $LocalExamTargetsTable extends LocalExamTargets
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(1));
+  static const VerificationMeta _lengthPagesMeta =
+      const VerificationMeta('lengthPages');
+  @override
+  late final GeneratedColumn<double> lengthPages = GeneratedColumn<double>(
+      'length_pages', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _difficultyMeta =
       const VerificationMeta('difficulty');
   @override
@@ -8044,6 +8090,7 @@ class $LocalExamTargetsTable extends LocalExamTargets
         currentGrade,
         reachableGrade,
         lengthHours,
+        lengthPages,
         difficulty,
         examDate,
         createdAt,
@@ -8108,6 +8155,12 @@ class $LocalExamTargetsTable extends LocalExamTargets
           lengthHours.isAcceptableOrUnknown(
               data['length_hours']!, _lengthHoursMeta));
     }
+    if (data.containsKey('length_pages')) {
+      context.handle(
+          _lengthPagesMeta,
+          lengthPages.isAcceptableOrUnknown(
+              data['length_pages']!, _lengthPagesMeta));
+    }
     if (data.containsKey('difficulty')) {
       context.handle(
           _difficultyMeta,
@@ -8155,6 +8208,8 @@ class $LocalExamTargetsTable extends LocalExamTargets
           DriftSqlType.double, data['${effectivePrefix}reachable_grade'])!,
       lengthHours: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}length_hours'])!,
+      lengthPages: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}length_pages']),
       difficulty: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}difficulty'])!,
       examDate: attachedDatabase.typeMapping
@@ -8191,6 +8246,10 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
   /// Longueur du cours, en heures de travail estimées.
   final double lengthHours;
 
+  /// Longueur du cours en pages (v16), convertie en temps par la vitesse de
+  /// lecture mesurée.
+  final double? lengthPages;
+
   /// Difficulté ressentie, de 1 à 5.
   final int difficulty;
   final DateTime? examDate;
@@ -8206,6 +8265,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
       required this.currentGrade,
       required this.reachableGrade,
       required this.lengthHours,
+      this.lengthPages,
       required this.difficulty,
       this.examDate,
       required this.createdAt,
@@ -8226,6 +8286,9 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
     map['current_grade'] = Variable<double>(currentGrade);
     map['reachable_grade'] = Variable<double>(reachableGrade);
     map['length_hours'] = Variable<double>(lengthHours);
+    if (!nullToAbsent || lengthPages != null) {
+      map['length_pages'] = Variable<double>(lengthPages);
+    }
     map['difficulty'] = Variable<int>(difficulty);
     if (!nullToAbsent || examDate != null) {
       map['exam_date'] = Variable<DateTime>(examDate);
@@ -8249,6 +8312,9 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
       currentGrade: Value(currentGrade),
       reachableGrade: Value(reachableGrade),
       lengthHours: Value(lengthHours),
+      lengthPages: lengthPages == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lengthPages),
       difficulty: Value(difficulty),
       examDate: examDate == null && nullToAbsent
           ? const Value.absent()
@@ -8271,6 +8337,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
       currentGrade: serializer.fromJson<double>(json['currentGrade']),
       reachableGrade: serializer.fromJson<double>(json['reachableGrade']),
       lengthHours: serializer.fromJson<double>(json['lengthHours']),
+      lengthPages: serializer.fromJson<double?>(json['lengthPages']),
       difficulty: serializer.fromJson<int>(json['difficulty']),
       examDate: serializer.fromJson<DateTime?>(json['examDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -8290,6 +8357,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
       'currentGrade': serializer.toJson<double>(currentGrade),
       'reachableGrade': serializer.toJson<double>(reachableGrade),
       'lengthHours': serializer.toJson<double>(lengthHours),
+      'lengthPages': serializer.toJson<double?>(lengthPages),
       'difficulty': serializer.toJson<int>(difficulty),
       'examDate': serializer.toJson<DateTime?>(examDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -8307,6 +8375,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
           double? currentGrade,
           double? reachableGrade,
           double? lengthHours,
+          Value<double?> lengthPages = const Value.absent(),
           int? difficulty,
           Value<DateTime?> examDate = const Value.absent(),
           DateTime? createdAt,
@@ -8321,6 +8390,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
         currentGrade: currentGrade ?? this.currentGrade,
         reachableGrade: reachableGrade ?? this.reachableGrade,
         lengthHours: lengthHours ?? this.lengthHours,
+        lengthPages: lengthPages.present ? lengthPages.value : this.lengthPages,
         difficulty: difficulty ?? this.difficulty,
         examDate: examDate.present ? examDate.value : this.examDate,
         createdAt: createdAt ?? this.createdAt,
@@ -8343,6 +8413,8 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
           : this.reachableGrade,
       lengthHours:
           data.lengthHours.present ? data.lengthHours.value : this.lengthHours,
+      lengthPages:
+          data.lengthPages.present ? data.lengthPages.value : this.lengthPages,
       difficulty:
           data.difficulty.present ? data.difficulty.value : this.difficulty,
       examDate: data.examDate.present ? data.examDate.value : this.examDate,
@@ -8363,6 +8435,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
           ..write('currentGrade: $currentGrade, ')
           ..write('reachableGrade: $reachableGrade, ')
           ..write('lengthHours: $lengthHours, ')
+          ..write('lengthPages: $lengthPages, ')
           ..write('difficulty: $difficulty, ')
           ..write('examDate: $examDate, ')
           ..write('createdAt: $createdAt, ')
@@ -8382,6 +8455,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
       currentGrade,
       reachableGrade,
       lengthHours,
+      lengthPages,
       difficulty,
       examDate,
       createdAt,
@@ -8399,6 +8473,7 @@ class LocalExamTarget extends DataClass implements Insertable<LocalExamTarget> {
           other.currentGrade == this.currentGrade &&
           other.reachableGrade == this.reachableGrade &&
           other.lengthHours == this.lengthHours &&
+          other.lengthPages == this.lengthPages &&
           other.difficulty == this.difficulty &&
           other.examDate == this.examDate &&
           other.createdAt == this.createdAt &&
@@ -8415,6 +8490,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
   final Value<double> currentGrade;
   final Value<double> reachableGrade;
   final Value<double> lengthHours;
+  final Value<double?> lengthPages;
   final Value<int> difficulty;
   final Value<DateTime?> examDate;
   final Value<DateTime> createdAt;
@@ -8430,6 +8506,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
     this.currentGrade = const Value.absent(),
     this.reachableGrade = const Value.absent(),
     this.lengthHours = const Value.absent(),
+    this.lengthPages = const Value.absent(),
     this.difficulty = const Value.absent(),
     this.examDate = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -8446,6 +8523,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
     this.currentGrade = const Value.absent(),
     this.reachableGrade = const Value.absent(),
     this.lengthHours = const Value.absent(),
+    this.lengthPages = const Value.absent(),
     this.difficulty = const Value.absent(),
     this.examDate = const Value.absent(),
     required DateTime createdAt,
@@ -8465,6 +8543,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
     Expression<double>? currentGrade,
     Expression<double>? reachableGrade,
     Expression<double>? lengthHours,
+    Expression<double>? lengthPages,
     Expression<int>? difficulty,
     Expression<DateTime>? examDate,
     Expression<DateTime>? createdAt,
@@ -8481,6 +8560,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
       if (currentGrade != null) 'current_grade': currentGrade,
       if (reachableGrade != null) 'reachable_grade': reachableGrade,
       if (lengthHours != null) 'length_hours': lengthHours,
+      if (lengthPages != null) 'length_pages': lengthPages,
       if (difficulty != null) 'difficulty': difficulty,
       if (examDate != null) 'exam_date': examDate,
       if (createdAt != null) 'created_at': createdAt,
@@ -8499,6 +8579,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
       Value<double>? currentGrade,
       Value<double>? reachableGrade,
       Value<double>? lengthHours,
+      Value<double?>? lengthPages,
       Value<int>? difficulty,
       Value<DateTime?>? examDate,
       Value<DateTime>? createdAt,
@@ -8514,6 +8595,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
       currentGrade: currentGrade ?? this.currentGrade,
       reachableGrade: reachableGrade ?? this.reachableGrade,
       lengthHours: lengthHours ?? this.lengthHours,
+      lengthPages: lengthPages ?? this.lengthPages,
       difficulty: difficulty ?? this.difficulty,
       examDate: examDate ?? this.examDate,
       createdAt: createdAt ?? this.createdAt,
@@ -8552,6 +8634,9 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
     if (lengthHours.present) {
       map['length_hours'] = Variable<double>(lengthHours.value);
     }
+    if (lengthPages.present) {
+      map['length_pages'] = Variable<double>(lengthPages.value);
+    }
     if (difficulty.present) {
       map['difficulty'] = Variable<int>(difficulty.value);
     }
@@ -8582,6 +8667,7 @@ class LocalExamTargetsCompanion extends UpdateCompanion<LocalExamTarget> {
           ..write('currentGrade: $currentGrade, ')
           ..write('reachableGrade: $reachableGrade, ')
           ..write('lengthHours: $lengthHours, ')
+          ..write('lengthPages: $lengthPages, ')
           ..write('difficulty: $difficulty, ')
           ..write('examDate: $examDate, ')
           ..write('createdAt: $createdAt, ')
@@ -17559,6 +17645,7 @@ typedef $$LocalSpeedSamplesTableCreateCompanionBuilder
   Value<String?> subject,
   required double units,
   required int durationSeconds,
+  Value<String?> unit,
   required DateTime createdAt,
   Value<bool> isSynced,
   Value<int> rowid,
@@ -17571,6 +17658,7 @@ typedef $$LocalSpeedSamplesTableUpdateCompanionBuilder
   Value<String?> subject,
   Value<double> units,
   Value<int> durationSeconds,
+  Value<String?> unit,
   Value<DateTime> createdAt,
   Value<bool> isSynced,
   Value<int> rowid,
@@ -17603,6 +17691,9 @@ class $$LocalSpeedSamplesTableFilterComposer
   ColumnFilters<int> get durationSeconds => $composableBuilder(
       column: $table.durationSeconds,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -17639,6 +17730,9 @@ class $$LocalSpeedSamplesTableOrderingComposer
       column: $table.durationSeconds,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -17672,6 +17766,9 @@ class $$LocalSpeedSamplesTableAnnotationComposer
 
   GeneratedColumn<int> get durationSeconds => $composableBuilder(
       column: $table.durationSeconds, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -17714,6 +17811,7 @@ class $$LocalSpeedSamplesTableTableManager extends RootTableManager<
             Value<String?> subject = const Value.absent(),
             Value<double> units = const Value.absent(),
             Value<int> durationSeconds = const Value.absent(),
+            Value<String?> unit = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<bool> isSynced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -17725,6 +17823,7 @@ class $$LocalSpeedSamplesTableTableManager extends RootTableManager<
             subject: subject,
             units: units,
             durationSeconds: durationSeconds,
+            unit: unit,
             createdAt: createdAt,
             isSynced: isSynced,
             rowid: rowid,
@@ -17736,6 +17835,7 @@ class $$LocalSpeedSamplesTableTableManager extends RootTableManager<
             Value<String?> subject = const Value.absent(),
             required double units,
             required int durationSeconds,
+            Value<String?> unit = const Value.absent(),
             required DateTime createdAt,
             Value<bool> isSynced = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -17747,6 +17847,7 @@ class $$LocalSpeedSamplesTableTableManager extends RootTableManager<
             subject: subject,
             units: units,
             durationSeconds: durationSeconds,
+            unit: unit,
             createdAt: createdAt,
             isSynced: isSynced,
             rowid: rowid,
@@ -17789,6 +17890,7 @@ typedef $$LocalExamTargetsTableCreateCompanionBuilder
   Value<double> currentGrade,
   Value<double> reachableGrade,
   Value<double> lengthHours,
+  Value<double?> lengthPages,
   Value<int> difficulty,
   Value<DateTime?> examDate,
   required DateTime createdAt,
@@ -17806,6 +17908,7 @@ typedef $$LocalExamTargetsTableUpdateCompanionBuilder
   Value<double> currentGrade,
   Value<double> reachableGrade,
   Value<double> lengthHours,
+  Value<double?> lengthPages,
   Value<int> difficulty,
   Value<DateTime?> examDate,
   Value<DateTime> createdAt,
@@ -17866,6 +17969,9 @@ class $$LocalExamTargetsTableFilterComposer
 
   ColumnFilters<double> get lengthHours => $composableBuilder(
       column: $table.lengthHours, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get lengthPages => $composableBuilder(
+      column: $table.lengthPages, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get difficulty => $composableBuilder(
       column: $table.difficulty, builder: (column) => ColumnFilters(column));
@@ -17935,6 +18041,9 @@ class $$LocalExamTargetsTableOrderingComposer
   ColumnOrderings<double> get lengthHours => $composableBuilder(
       column: $table.lengthHours, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get lengthPages => $composableBuilder(
+      column: $table.lengthPages, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get difficulty => $composableBuilder(
       column: $table.difficulty, builder: (column) => ColumnOrderings(column));
 
@@ -18000,6 +18109,9 @@ class $$LocalExamTargetsTableAnnotationComposer
 
   GeneratedColumn<double> get lengthHours => $composableBuilder(
       column: $table.lengthHours, builder: (column) => column);
+
+  GeneratedColumn<double> get lengthPages => $composableBuilder(
+      column: $table.lengthPages, builder: (column) => column);
 
   GeneratedColumn<int> get difficulty => $composableBuilder(
       column: $table.difficulty, builder: (column) => column);
@@ -18067,6 +18179,7 @@ class $$LocalExamTargetsTableTableManager extends RootTableManager<
             Value<double> currentGrade = const Value.absent(),
             Value<double> reachableGrade = const Value.absent(),
             Value<double> lengthHours = const Value.absent(),
+            Value<double?> lengthPages = const Value.absent(),
             Value<int> difficulty = const Value.absent(),
             Value<DateTime?> examDate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -18083,6 +18196,7 @@ class $$LocalExamTargetsTableTableManager extends RootTableManager<
             currentGrade: currentGrade,
             reachableGrade: reachableGrade,
             lengthHours: lengthHours,
+            lengthPages: lengthPages,
             difficulty: difficulty,
             examDate: examDate,
             createdAt: createdAt,
@@ -18099,6 +18213,7 @@ class $$LocalExamTargetsTableTableManager extends RootTableManager<
             Value<double> currentGrade = const Value.absent(),
             Value<double> reachableGrade = const Value.absent(),
             Value<double> lengthHours = const Value.absent(),
+            Value<double?> lengthPages = const Value.absent(),
             Value<int> difficulty = const Value.absent(),
             Value<DateTime?> examDate = const Value.absent(),
             required DateTime createdAt,
@@ -18115,6 +18230,7 @@ class $$LocalExamTargetsTableTableManager extends RootTableManager<
             currentGrade: currentGrade,
             reachableGrade: reachableGrade,
             lengthHours: lengthHours,
+            lengthPages: lengthPages,
             difficulty: difficulty,
             examDate: examDate,
             createdAt: createdAt,

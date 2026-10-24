@@ -203,13 +203,39 @@ void main() {
       expect(fromScratch.gainablePoints, closeTo(80, 0.01));
     });
 
-    test('le coefficient compte comme un multiplicateur, borné de 1 à 10', () {
+    test('le coefficient compte comme un multiplicateur, sans borne haute',
+        () {
       // Même écart, coefficient double : deux fois plus de points.
       expect(target(id: 'a', weight: 6, current: 10).gainablePoints,
           2 * target(id: 'b', weight: 3, current: 10).gainablePoints);
-      // Ancienne saisie en « points » (jusqu'à 40) : ramenée au maximum.
-      expect(target(id: 'c', weight: 25).coefficient, 10);
+      // Saisie libre : 25 reste 25, 2,5 reste 2,5.
+      expect(target(id: 'c', weight: 25).coefficient, 25);
+      expect(target(id: 'e', weight: 2.5).coefficientLabel, '2,5');
       expect(target(id: 'd', weight: 0).coefficient, 0);
+    });
+
+    test('longueur en pages : temps tiré de la vitesse de lecture', () {
+      // 60 pages à 20 pages/h = 3 h, difficulté neutre.
+      final paged = ExamTarget(
+        id: 'p',
+        userId: 'u',
+        title: 'Thermo',
+        createdAt: DateTime(2026),
+        examWeight: 2,
+        currentGrade: 10,
+        reachableGrade: 16,
+        lengthHours: 10,
+        lengthPages: 60,
+      );
+      expect(paged.costWith(pagesPerHour: 20), 3);
+      // Sans vitesse mesurée : la longueur en heures déclarée.
+      expect(paged.costWith(), 10);
+
+      final ranked = RevisionPriority.rank([paged], pagesPerHour: 20);
+      expect(ranked.single.estimatedCost, 3);
+      expect(ranked.single.score, closeTo(12 / 3, 1e-9));
+      expect(ranked.single.rationale, contains('3 h'));
+      expect(ranked.single.rationale, contains('(ta vitesse)'));
     });
 
     test('le classement se justifie en coefficient', () {
@@ -494,7 +520,10 @@ void main() {
       expect(StudySpeed.formatForecast(const Duration(hours: 2)), '2 h');
       expect(
           StudySpeed.formatForecast(const Duration(hours: 2, minutes: 30)),
-          '2 h 30');
+          '2 h 30 min');
+      expect(formatHoursMinutes(const Duration(minutes: 90)), '1 h 30 min');
+      expect(formatDecimal(1.25), '1,25');
+      expect(formatDecimal(3), '3');
     });
   });
 

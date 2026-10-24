@@ -68,12 +68,15 @@ class AdaptivePlan {
     }
     if (!isFeasible) {
       final missing = unscheduled.fold<double>(0, (sum, e) => sum + e.$2);
-      return 'Il manque ~${missing.toStringAsFixed(1)} h pour tout couvrir. '
+      return 'Il manque ~${_hours(missing)} pour tout couvrir. '
           'Revois tes objectifs à la baisse ou dégage du temps.';
     }
-    return '${totalPlannedHours.toStringAsFixed(1)} h réparties sur '
+    return '${_hours(totalPlannedHours)} réparties sur '
         '${days.where((d) => !d.isEmpty).length} jours.';
   }
+
+  static String _hours(double hours) =>
+      formatHoursMinutes(Duration(seconds: (hours * 3600).round()));
 }
 
 /// Calendrier adaptatif : répartit le travail restant sur les jours

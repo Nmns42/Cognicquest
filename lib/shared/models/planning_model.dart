@@ -235,8 +235,20 @@ enum StudyActivity {
   final String value;
   final String label;
 
-  /// Unité mesurée pour cette activité.
+  /// Unité mesurée par défaut pour cette activité.
   final String unit;
+
+  /// Unités proposées au choix (menu déroulant de la saisie).
+  List<String> get units => switch (this) {
+        StudyActivity.reading => const ['pages'],
+        StudyActivity.writing => const ['pages', 'paragraphes', 'phrases', 'mots'],
+        StudyActivity.memorising => const ['cartes', 'fiches', 'quiz', 'questions'],
+        StudyActivity.exercises => const ['exercices'],
+      };
+
+  /// La lecture se chronomètre à la seconde près (cadran H:M:S), les autres
+  /// activités à la minute (cadran H:M).
+  bool get timedToTheSecond => this == StudyActivity.reading;
 
   static StudyActivity fromValue(String? value) {
     for (final activity in values) {
@@ -256,6 +268,7 @@ class SpeedSample {
     required this.durationSeconds,
     required this.createdAt,
     this.subject,
+    this.unit,
     this.isSynced = true,
   });
 
@@ -265,6 +278,11 @@ class SpeedSample {
   final String? subject;
   final double units;
   final int durationSeconds;
+
+  /// Unité de la mesure ; `null` (anciennes mesures) : celle de l'activité.
+  final String? unit;
+
+  String get effectiveUnit => unit ?? activity.unit;
   final DateTime createdAt;
   final bool isSynced;
 
@@ -286,6 +304,7 @@ class ExamTarget {
     this.currentGrade = 0,
     this.reachableGrade = 20,
     this.lengthHours = 1,
+    this.lengthPages,
     this.difficulty = 3,
     this.examDate,
     this.isSynced = true,
@@ -297,24 +316,24 @@ class ExamTarget {
   final String title;
   final String? subject;
 
-  /// Coefficient de la matière (ou du chapitre) à l'examen, de 1 à 10.
+  /// Coefficient de la matière (ou du chapitre) à l'examen, saisi
+  /// librement (2, 7, 12, 2,5…) : pas de borne haute, les barèmes varient.
   ///
   /// Le nom de colonne historique reste `exam_weight` ; c'est bien un
   /// coefficient, pas une note ni un nombre de points.
   final double examWeight;
 
-  /// Bornes du coefficient.
-  static const int minCoefficient = 1;
-  static const int maxCoefficient = 10;
+  double get coefficient => examWeight <= 0 ? 0 : examWeight;
 
-  /// Coefficient arrondi et borné (les anciennes saisies en « points »,
-  /// jusqu'à 40, sont ramenées à 10).
-  int get coefficient =>
-      examWeight <= 0 ? 0 : examWeight.round().clamp(minCoefficient, maxCoefficient);
+  /// « 2 », « 2,5 » : le coefficient tel qu'on l'écrit.
+  String get coefficientLabel => formatDecimal(coefficient);
 
   final double currentGrade;
   final double reachableGrade;
   final double lengthHours;
+
+  /// Longueur en pages, facultative.
+  final double? lengthPages;
   final int difficulty;
   final DateTime? examDate;
   final DateTime createdAt;
@@ -329,10 +348,23 @@ class ExamTarget {
   }
 
   /// Coût estimé en heures, la difficulté alourdissant la longueur.
-  double get estimatedCost {
-    final safeLength = lengthHours <= 0 ? 0.5 : lengthHours;
-    // Difficulté 3 = neutre ; 1 allège de 40 %, 5 alourdit de 40 %.
-    return safeLength * (1 + (difficulty - 3) * 0.2);
+  double get estimatedCost => costWith();
+
+  /// Difficulté 3 = neutre ; 1 allège de 40 %, 5 alourdit de 40 %.
+  double get difficultyFactor => 1 + (difficulty - 3) * 0.2;
+
+  /// Coût en heures selon la vitesse de lecture mesurée : avec une longueur
+  /// en pages et une vitesse connue ([pagesPerHour]), le temps vient des
+  /// mesures de l'utilisateur ; sinon de la longueur en heures déclarée.
+  double costWith({double? pagesPerHour}) {
+    final pages = lengthPages;
+    final double base;
+    if (pages != null && pages > 0 && pagesPerHour != null && pagesPerHour > 0) {
+      base = pages / pagesPerHour;
+    } else {
+      base = lengthHours <= 0 ? 0.5 : lengthHours;
+    }
+    return base * difficultyFactor;
   }
 
   int? get daysUntilExam {
@@ -351,6 +383,7 @@ class ExamTarget {
     double? currentGrade,
     double? reachableGrade,
     double? lengthHours,
+    double? lengthPages,
     int? difficulty,
     DateTime? examDate,
     bool clearExamDate = false,
@@ -366,6 +399,7 @@ class ExamTarget {
         currentGrade: currentGrade ?? this.currentGrade,
         reachableGrade: reachableGrade ?? this.reachableGrade,
         lengthHours: lengthHours ?? this.lengthHours,
+        lengthPages: lengthPages ?? this.lengthPages,
         difficulty: difficulty ?? this.difficulty,
         examDate: clearExamDate ? null : (examDate ?? this.examDate),
         createdAt: createdAt,
@@ -377,4 +411,25 @@ class ExamTarget {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// Nombre décimal à la française, sans zéro inutile : 2 → « 2 »,
+/// 2.5 → « 2,5 », 1.25 → « 1,25 ».
+String formatDecimal(double value, {int maxDigits = 2}) {
+  var text = value.toStringAsFixed(maxDigits);
+  if (text.contains('.')) {
+    text = text.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
+  }
+  return text.replaceAll('.', ',');
+}
+
+/// Durée en « X h Y min » : 90 min → « 1 h 30 min », 45 min → « 45 min »,
+/// 2 h → « 2 h ». Arrondie à la minute (« moins d'1 min » en dessous).
+String formatHoursMinutes(Duration duration) {
+  final totalMinutes = (duration.inSeconds / 60).round();
+  if (totalMinutes <= 0) return 'moins d’1 min';
+  final hours = totalMinutes ~/ 60;
+  final minutes = totalMinutes % 60;
+  if (hours == 0) return '$minutes min';
+  return minutes == 0 ? '$hours h' : '$hours h $minutes min';
 }
