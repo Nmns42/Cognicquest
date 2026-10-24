@@ -629,6 +629,22 @@ class SyncRowVersions extends Table {
   Set<Column> get primaryKey => {remoteTable, entityId};
 }
 
+/// Images des fiches et des cartes (v15). Le texte d'un bloc ou d'une carte
+/// ne garde qu'une référence `media://<chemin>` ; les octets sont déposés
+/// dans le bucket Storage `user_media` et gardés ici, pour l'affichage hors
+/// ligne et en attendant leur envoi (file `user_media`).
+class LocalMediaCache extends Table {
+  /// Chemin dans le bucket : `<user_id>/<identifiant>.<extension>`.
+  TextColumn get path => text()();
+  TextColumn get userId => text()();
+  BlobColumn get bytes => blob()();
+  TextColumn get mimeType => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {path};
+}
+
 /// Dossiers de l'explorateur de fiches et de cartes (v13) : une arborescence
 /// libre, `parentId` nul pour un dossier racine.
 @TableIndex(name: 'local_folders_user_parent', columns: {#userId, #parentId})
@@ -687,6 +703,7 @@ class LocalPreferences extends Table {
   LocalPreferences,
   LocalFolders,
   SyncRowVersions,
+  LocalMediaCache,
 ], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -709,8 +726,9 @@ class AppDatabase extends _$AppDatabase {
   /// des cartes.
   /// v14 : versions serveur des lignes (SyncRowVersions), contrôle de
   /// version optimiste.
+  /// v15 : cache local des images déposées dans Storage (LocalMediaCache).
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -872,6 +890,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 14) {
             if (!await _hasColumn('sync_row_versions', 'entity_id')) {
               await m.createTable(syncRowVersions);
+            }
+          }
+          if (from < 15) {
+            if (!await _hasColumn('local_media_cache', 'path')) {
+              await m.createTable(localMediaCache);
             }
           }
         },

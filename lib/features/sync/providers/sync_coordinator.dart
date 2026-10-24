@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../../core/errors/data_failure.dart';
+import '../../../core/media/media_store.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../graph/data/note_link_repository.dart';
 import '../../habits/data/habit_repository.dart';
@@ -124,6 +125,9 @@ class SyncCoordinator extends Notifier<SyncStatus> {
   /// les tâches avant les sessions Pomodoro qui peuvent y renvoyer, les
   /// fiches avant leurs liens et leurs cartes.
   List<Future<void> Function()?> _modules() => [
+        // Les images d'abord : une fiche qui les référence ne doit pas
+        // arriver sur un autre appareil avant elles.
+        ref.read(mediaStoreProvider)?.sync,
         ref.read(taskRepositoryProvider)?.sync,
         ref.read(habitRepositoryProvider)?.sync,
         ref.read(pomodoroRepositoryProvider)?.sync,

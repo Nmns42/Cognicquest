@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show File;
 
 import 'package:file_picker/file_picker.dart';
@@ -8,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../core/motion/reduce_motion.dart';
+import '../../../core/media/media_store.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
+import '../../../core/ui/media_image.dart';
 import 'slash_commands.dart';
 
 /// Édition des blocs structurés d'une fiche.
@@ -377,15 +378,15 @@ class _BlockRow extends StatelessWidget {
 
 // ─── Blocs média ────────────────────────────────────────────────────────────
 
-/// Poids maximal d'une image importée : elle est enregistrée dans la fiche
-/// elle-même (image encodée), donc synchronisée avec elle.
-const int _maxImageBytes = 2 * 1024 * 1024;
+/// Poids maximal d'une image importée (limite du bucket Storage).
+const int _maxImageBytes = MediaStore.maxBytes;
 
 /// Bloc image ou vidéo. Vide, il propose d'importer un fichier ou de coller
 /// un lien ; rempli, il affiche l'image ou le lecteur vidéo.
 ///
 /// Contenu du bloc :
-/// - image : lien `http(s)` ou image encodée `data:image/…;base64,…` ;
+/// - image : référence Storage `media://…`, lien `http(s)` ou (ancien
+///   format) image encodée `data:image/…;base64,…` ;
 /// - vidéo : lien `http(s)` (fichier vidéo ou page YouTube) ou chemin d'un
 ///   fichier de l'appareil (lisible sur cet appareil seulement).
 class _MediaBlock extends StatelessWidget {
@@ -406,13 +407,13 @@ class _MediaBlock extends StatelessWidget {
       if (_isImage) {
         if ((await file.length() ?? 0) > _maxImageBytes) {
           if (!context.mounted) return;
-          _snack(context, 'Image trop lourde (2 Mo au plus) : '
+          _snack(context, 'Image trop lourde (5 Mo au plus) : '
                   'colle plutôt un lien.');
           return;
         }
         final bytes = await file.readAsBytes();
-        onChanged('data:${_mimeOf(file.extension)};base64,'
-            '${base64Encode(bytes)}');
+        if (!context.mounted) return;
+        onChanged(await storeImage(context, bytes, extension: file.extension));
       } else {
         // Sur le web, un fichier choisi n'a pas de chemin durable.
         final path = kIsWeb ? null : file.path;
@@ -437,15 +438,6 @@ class _MediaBlock extends StatelessWidget {
     );
     if (link != null && link.isNotEmpty) onChanged(link);
   }
-
-  static String _mimeOf(String? extension) =>
-      switch (extension?.toLowerCase()) {
-        'png' => 'image/png',
-        'gif' => 'image/gif',
-        'webp' => 'image/webp',
-        'svg' => 'image/svg+xml',
-        _ => 'image/jpeg',
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -521,27 +513,13 @@ class _ImageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget broken(BuildContext context, Object _, StackTrace? __) =>
-        _MediaFallback(
-            icon: Icons.broken_image_outlined,
-            message: 'Image introuvable',
-            detail: source.startsWith('data:') ? null : source);
-
-    final Widget image;
-    if (source.startsWith('data:')) {
-      final comma = source.indexOf(',');
-      Uint8List? bytes;
-      try {
-        bytes = base64Decode(source.substring(comma + 1));
-      } catch (_) {
-        bytes = null;
-      }
-      image = bytes == null
-          ? broken(context, '', null)
-          : Image.memory(bytes, fit: BoxFit.contain, errorBuilder: broken);
-    } else {
-      image = Image.network(source, fit: BoxFit.contain, errorBuilder: broken);
-    }
+    final image = MediaImage(
+      source: source,
+      broken: (context) => _MediaFallback(
+          icon: Icons.broken_image_outlined,
+          message: 'Image introuvable',
+          detail: source.startsWith('http') ? source : null),
+    );
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 420),
       child: Semantics(image: true, label: 'Image de la fiche', child: image),

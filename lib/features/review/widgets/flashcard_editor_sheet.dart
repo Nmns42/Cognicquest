@@ -1,10 +1,10 @@
-import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/motion/reduce_motion.dart';
+import '../../../core/media/media_store.dart';
+import '../../../core/ui/media_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../../core/theme/tokens.dart';
@@ -19,12 +19,11 @@ class FlashcardDraft {
   final String? deck;
 }
 
-/// Poids maximal d'une image de carte : elle est enregistrée dans la carte
-/// elle-même, donc synchronisée avec elle.
-const int maxCardImageBytes = 1536 * 1024;
+/// Poids maximal d'une image de carte (limite du bucket Storage).
+const int maxCardImageBytes = MediaStore.maxBytes;
 
-/// Choisit une image sur l'appareil et la renvoie encodée
-/// (`data:image/…;base64,…`), ou `null` (annulé, trop lourde, impossible).
+/// Choisit une image sur l'appareil, la dépose dans Storage et renvoie sa
+/// référence (`media://…`), ou `null` (annulé, trop lourde, impossible).
 Future<String?> pickCardImage(BuildContext context) async {
   void tell(String text) {
     if (!context.mounted) return;
@@ -36,24 +35,20 @@ Future<String?> pickCardImage(BuildContext context) async {
     final file = (await FilePicker.pickFiles(type: FileType.image)).firstOrNull;
     if (file == null) return null;
     if ((await file.length() ?? 0) > maxCardImageBytes) {
-      tell('Image trop lourde (1,5 Mo au plus).');
+      tell('Image trop lourde (5 Mo au plus).');
       return null;
     }
     final bytes = await file.readAsBytes();
-    final mime = switch (file.extension?.toLowerCase()) {
-      'png' => 'image/png',
-      'gif' => 'image/gif',
-      'webp' => 'image/webp',
-      _ => 'image/jpeg',
-    };
-    return 'data:$mime;base64,${base64Encode(bytes)}';
+    if (!context.mounted) return null;
+    return storeImage(context, bytes, extension: file.extension);
   } catch (_) {
     tell('Impossible d’ouvrir le sélecteur d’images ici.');
     return null;
   }
 }
 
-/// Image d'une face de carte : encodée ou par lien, cadrée sans déformation.
+/// Image d'une face de carte (Storage, encodée ou lien), cadrée sans
+/// déformation.
 class CardImage extends StatelessWidget {
   const CardImage({super.key, required this.source, this.maxHeight = 260});
 
@@ -68,19 +63,10 @@ class CardImage extends StatelessWidget {
           color: context.cq.beige,
           child: Icon(Icons.broken_image_outlined, color: context.cq.textHint),
         );
-    Uint8List? bytes;
-    if (source.startsWith('data:')) {
-      try {
-        bytes = base64Decode(source.substring(source.indexOf(',') + 1));
-      } catch (_) {
-        bytes = null;
-      }
-    }
-    final image = source.startsWith('data:')
-        ? (bytes == null
-            ? broken(context, '', null)
-            : Image.memory(bytes, fit: BoxFit.contain, errorBuilder: broken))
-        : Image.network(source, fit: BoxFit.contain, errorBuilder: broken);
+    final image = MediaImage(
+      source: source,
+      broken: (context) => broken(context, '', null),
+    );
     return ClipRRect(
       borderRadius: BorderRadius.circular(Radii.sm),
       child: ConstrainedBox(

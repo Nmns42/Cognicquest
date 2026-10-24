@@ -11660,6 +11660,318 @@ class SyncRowVersionsCompanion extends UpdateCompanion<SyncRowVersion> {
   }
 }
 
+class $LocalMediaCacheTable extends LocalMediaCache
+    with TableInfo<$LocalMediaCacheTable, LocalMediaCacheData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalMediaCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+      'path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _bytesMeta = const VerificationMeta('bytes');
+  @override
+  late final GeneratedColumn<Uint8List> bytes = GeneratedColumn<Uint8List>(
+      'bytes', aliasedName, false,
+      type: DriftSqlType.blob, requiredDuringInsert: true);
+  static const VerificationMeta _mimeTypeMeta =
+      const VerificationMeta('mimeType');
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+      'mime_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [path, userId, bytes, mimeType, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_media_cache';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LocalMediaCacheData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('path')) {
+      context.handle(
+          _pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('bytes')) {
+      context.handle(
+          _bytesMeta, bytes.isAcceptableOrUnknown(data['bytes']!, _bytesMeta));
+    } else if (isInserting) {
+      context.missing(_bytesMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(_mimeTypeMeta,
+          mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta));
+    } else if (isInserting) {
+      context.missing(_mimeTypeMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {path};
+  @override
+  LocalMediaCacheData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalMediaCacheData(
+      path: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}path'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      bytes: attachedDatabase.typeMapping
+          .read(DriftSqlType.blob, data['${effectivePrefix}bytes'])!,
+      mimeType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mime_type'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $LocalMediaCacheTable createAlias(String alias) {
+    return $LocalMediaCacheTable(attachedDatabase, alias);
+  }
+}
+
+class LocalMediaCacheData extends DataClass
+    implements Insertable<LocalMediaCacheData> {
+  /// Chemin dans le bucket : `<user_id>/<identifiant>.<extension>`.
+  final String path;
+  final String userId;
+  final Uint8List bytes;
+  final String mimeType;
+  final DateTime createdAt;
+  const LocalMediaCacheData(
+      {required this.path,
+      required this.userId,
+      required this.bytes,
+      required this.mimeType,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['path'] = Variable<String>(path);
+    map['user_id'] = Variable<String>(userId);
+    map['bytes'] = Variable<Uint8List>(bytes);
+    map['mime_type'] = Variable<String>(mimeType);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  LocalMediaCacheCompanion toCompanion(bool nullToAbsent) {
+    return LocalMediaCacheCompanion(
+      path: Value(path),
+      userId: Value(userId),
+      bytes: Value(bytes),
+      mimeType: Value(mimeType),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory LocalMediaCacheData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalMediaCacheData(
+      path: serializer.fromJson<String>(json['path']),
+      userId: serializer.fromJson<String>(json['userId']),
+      bytes: serializer.fromJson<Uint8List>(json['bytes']),
+      mimeType: serializer.fromJson<String>(json['mimeType']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'path': serializer.toJson<String>(path),
+      'userId': serializer.toJson<String>(userId),
+      'bytes': serializer.toJson<Uint8List>(bytes),
+      'mimeType': serializer.toJson<String>(mimeType),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  LocalMediaCacheData copyWith(
+          {String? path,
+          String? userId,
+          Uint8List? bytes,
+          String? mimeType,
+          DateTime? createdAt}) =>
+      LocalMediaCacheData(
+        path: path ?? this.path,
+        userId: userId ?? this.userId,
+        bytes: bytes ?? this.bytes,
+        mimeType: mimeType ?? this.mimeType,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  LocalMediaCacheData copyWithCompanion(LocalMediaCacheCompanion data) {
+    return LocalMediaCacheData(
+      path: data.path.present ? data.path.value : this.path,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      bytes: data.bytes.present ? data.bytes.value : this.bytes,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMediaCacheData(')
+          ..write('path: $path, ')
+          ..write('userId: $userId, ')
+          ..write('bytes: $bytes, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      path, userId, $driftBlobEquality.hash(bytes), mimeType, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalMediaCacheData &&
+          other.path == this.path &&
+          other.userId == this.userId &&
+          $driftBlobEquality.equals(other.bytes, this.bytes) &&
+          other.mimeType == this.mimeType &&
+          other.createdAt == this.createdAt);
+}
+
+class LocalMediaCacheCompanion extends UpdateCompanion<LocalMediaCacheData> {
+  final Value<String> path;
+  final Value<String> userId;
+  final Value<Uint8List> bytes;
+  final Value<String> mimeType;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const LocalMediaCacheCompanion({
+    this.path = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.bytes = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalMediaCacheCompanion.insert({
+    required String path,
+    required String userId,
+    required Uint8List bytes,
+    required String mimeType,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : path = Value(path),
+        userId = Value(userId),
+        bytes = Value(bytes),
+        mimeType = Value(mimeType),
+        createdAt = Value(createdAt);
+  static Insertable<LocalMediaCacheData> custom({
+    Expression<String>? path,
+    Expression<String>? userId,
+    Expression<Uint8List>? bytes,
+    Expression<String>? mimeType,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (path != null) 'path': path,
+      if (userId != null) 'user_id': userId,
+      if (bytes != null) 'bytes': bytes,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalMediaCacheCompanion copyWith(
+      {Value<String>? path,
+      Value<String>? userId,
+      Value<Uint8List>? bytes,
+      Value<String>? mimeType,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return LocalMediaCacheCompanion(
+      path: path ?? this.path,
+      userId: userId ?? this.userId,
+      bytes: bytes ?? this.bytes,
+      mimeType: mimeType ?? this.mimeType,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (bytes.present) {
+      map['bytes'] = Variable<Uint8List>(bytes.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalMediaCacheCompanion(')
+          ..write('path: $path, ')
+          ..write('userId: $userId, ')
+          ..write('bytes: $bytes, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11711,6 +12023,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LocalFoldersTable localFolders = $LocalFoldersTable(this);
   late final $SyncRowVersionsTable syncRowVersions =
       $SyncRowVersionsTable(this);
+  late final $LocalMediaCacheTable localMediaCache =
+      $LocalMediaCacheTable(this);
   late final Index localNotesUserUpdated = Index('local_notes_user_updated',
       'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
   late final Index localNoteBlocksNotePosition = Index(
@@ -11814,6 +12128,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localPreferences,
         localFolders,
         syncRowVersions,
+        localMediaCache,
         localNotesUserUpdated,
         localNoteBlocksNotePosition,
         localNoteLinksUserCreated,
@@ -19720,6 +20035,185 @@ typedef $$SyncRowVersionsTableProcessedTableManager = ProcessedTableManager<
     ),
     SyncRowVersion,
     PrefetchHooks Function()>;
+typedef $$LocalMediaCacheTableCreateCompanionBuilder = LocalMediaCacheCompanion
+    Function({
+  required String path,
+  required String userId,
+  required Uint8List bytes,
+  required String mimeType,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$LocalMediaCacheTableUpdateCompanionBuilder = LocalMediaCacheCompanion
+    Function({
+  Value<String> path,
+  Value<String> userId,
+  Value<Uint8List> bytes,
+  Value<String> mimeType,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$LocalMediaCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalMediaCacheTable> {
+  $$LocalMediaCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<Uint8List> get bytes => $composableBuilder(
+      column: $table.bytes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+      column: $table.mimeType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalMediaCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalMediaCacheTable> {
+  $$LocalMediaCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<Uint8List> get bytes => $composableBuilder(
+      column: $table.bytes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+      column: $table.mimeType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalMediaCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalMediaCacheTable> {
+  $$LocalMediaCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<Uint8List> get bytes =>
+      $composableBuilder(column: $table.bytes, builder: (column) => column);
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$LocalMediaCacheTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalMediaCacheTable,
+    LocalMediaCacheData,
+    $$LocalMediaCacheTableFilterComposer,
+    $$LocalMediaCacheTableOrderingComposer,
+    $$LocalMediaCacheTableAnnotationComposer,
+    $$LocalMediaCacheTableCreateCompanionBuilder,
+    $$LocalMediaCacheTableUpdateCompanionBuilder,
+    (
+      LocalMediaCacheData,
+      BaseReferences<_$AppDatabase, $LocalMediaCacheTable, LocalMediaCacheData>
+    ),
+    LocalMediaCacheData,
+    PrefetchHooks Function()> {
+  $$LocalMediaCacheTableTableManager(
+      _$AppDatabase db, $LocalMediaCacheTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalMediaCacheTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalMediaCacheTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalMediaCacheTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> path = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<Uint8List> bytes = const Value.absent(),
+            Value<String> mimeType = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalMediaCacheCompanion(
+            path: path,
+            userId: userId,
+            bytes: bytes,
+            mimeType: mimeType,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String path,
+            required String userId,
+            required Uint8List bytes,
+            required String mimeType,
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalMediaCacheCompanion.insert(
+            path: path,
+            userId: userId,
+            bytes: bytes,
+            mimeType: mimeType,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$LocalMediaCacheTable, LocalMediaCacheData>(
+                        table),
+                    BaseReferences<_$AppDatabase, $LocalMediaCacheTable,
+                        LocalMediaCacheData>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalMediaCacheTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalMediaCacheTable,
+    LocalMediaCacheData,
+    $$LocalMediaCacheTableFilterComposer,
+    $$LocalMediaCacheTableOrderingComposer,
+    $$LocalMediaCacheTableAnnotationComposer,
+    $$LocalMediaCacheTableCreateCompanionBuilder,
+    $$LocalMediaCacheTableUpdateCompanionBuilder,
+    (
+      LocalMediaCacheData,
+      BaseReferences<_$AppDatabase, $LocalMediaCacheTable, LocalMediaCacheData>
+    ),
+    LocalMediaCacheData,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -19774,4 +20268,6 @@ class $AppDatabaseManager {
       $$LocalFoldersTableTableManager(_db, _db.localFolders);
   $$SyncRowVersionsTableTableManager get syncRowVersions =>
       $$SyncRowVersionsTableTableManager(_db, _db.syncRowVersions);
+  $$LocalMediaCacheTableTableManager get localMediaCache =>
+      $$LocalMediaCacheTableTableManager(_db, _db.localMediaCache);
 }

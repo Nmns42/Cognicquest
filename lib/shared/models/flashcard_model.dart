@@ -5,8 +5,8 @@ import '../../features/review/domain/spaced_repetition.dart';
 /// Une face de carte : du texte et, en option, une image.
 ///
 /// L'image voyage **dans** le texte de la face, sur sa dernière ligne, au
-/// format Markdown `![image](…)` (image encodée `data:image/…;base64,…` ou
-/// lien `http(s)`). Ainsi elle se synchronise avec la carte sans nouvelle
+/// format Markdown `![image](…)` (référence Storage `media://…`, lien
+/// `http(s)` ou, ancien format, image encodée `data:image/…;base64,…`). Ainsi elle se synchronise avec la carte sans nouvelle
 /// colonne, et un écran qui n'affiche que la première ligne reste propre.
 class CardSide {
   const CardSide(this.text, [this.image]);
@@ -20,7 +20,7 @@ class CardSide {
   bool get isEmpty => text.trim().isEmpty && !hasImage;
 
   static final RegExp _marker = RegExp(
-      r'(?:^|\n+)!\[image\]\(((?:data:image/|https?://)[^)\s]+)\)\s*$');
+      r'(?:^|\n+)!\[image\]\(((?:media://|data:image/|https?://)[^)\s]+)\)\s*$');
 
   factory CardSide.parse(String raw) {
     final match = _marker.firstMatch(raw);
