@@ -153,6 +153,11 @@ const String appFontFamily = 'PlusJakartaSans';
 /// (embarquée, cf. `pubspec.yaml`).
 const String appSerifFamily = 'Fraunces';
 
+/// Police de secours de tout le texte (grec, cyrillique, flèches), embarquée
+/// pour s'afficher aussi hors ligne : les deux polices de l'app ne couvrent
+/// que le latin.
+const List<String> appFontFallback = ['NotoSans'];
+
 /// Durées et courbes des animations.
 ///
 /// Repères (UI UX Pro Max, `motion.csv`) : retour de pression 150–200 ms,

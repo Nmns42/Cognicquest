@@ -380,6 +380,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       fontFamily: appFontFamily,
+      fontFamilyFallback: appFontFallback,
       colorScheme: scheme,
       // Transparent : le fond (gris et motif de feuilles) est peint une
       // seule fois sous toute l'app, par `ZenBackground`.

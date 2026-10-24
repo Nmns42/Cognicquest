@@ -33,8 +33,10 @@ jobs:
       - run: flutter analyze
 
       # Goldens exclus : leurs images de référence sont générées sous Windows.
+      # `pdfium` exclu : le moteur PDF natif n'est pas fourni au runner de
+      # test Linux (ces tests tournent en local).
       # Sans DEV_BYPASS_AUTH, la recette test/e2e est ignorée.
-      - run: flutter test --exclude-tags golden
+      - run: flutter test --exclude-tags "golden || pdfium"
 
       # Recette de bout en bout, en mode démo (aucun appel serveur).
       - run: flutter test --dart-define=DEV_BYPASS_AUTH=true test/e2e

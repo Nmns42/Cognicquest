@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
 
+import '../../../core/media/media_store.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/note_model.dart';
@@ -15,7 +17,12 @@ import '../widgets/note_meta_sheet.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../router/app_router.dart';
 import '../../graph/providers/graph_provider.dart';
+import '../../../core/ui/media_image.dart';
+import '../domain/note_pdf_export.dart';
 import '../domain/wiki_links.dart';
+import '../widgets/format_toolbar.dart';
+import '../widgets/pdf_block.dart';
+import '../widgets/rich_markdown.dart';
 import '../widgets/slash_commands.dart';
 
 /// Éditeur de fiche, avec **sauvegarde automatique** — « Sauvegarde automatique
@@ -69,6 +76,9 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   void _hydrate(Note note) {
     if (_initialised) return;
     _initialised = true;
+    // Une fiche déjà remplie s'ouvre en lecture ; une fiche vide, en
+    // édition (le crayon bascule de l'un à l'autre).
+    _isPreview = note.content.trim().isNotEmpty || note.blocks.isNotEmpty;
     _draft = note;
     _titleController.text = note.title;
     _contentController.text = note.content;
@@ -156,8 +166,8 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
   /// en `[[Titre]]`.
   Future<void> _insertNoteLink() async {
     final notes = ref.read(notesProvider).valueOrNull ?? const <Note>[];
-    final target = await showNotePicker(context,
-        notes: notes, excludeId: _draft?.id);
+    final target =
+        await showNotePicker(context, notes: notes, excludeId: _draft?.id);
     if (target == null || !mounted) return;
     final value = _contentController.value;
     final caret = value.selection.baseOffset;
@@ -200,6 +210,46 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         ));
   }
 
+  /// Export PDF de la fiche telle qu'affichée (mise en forme, images,
+  /// PDF annotés joints), puis partage ou téléchargement selon la
+  /// plateforme.
+  Future<void> _exportPdf(Note note) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Préparation du PDF…')),
+      snackBarAnimationStyle: Motion.style(context),
+    );
+    try {
+      Future<ByteData> font(String path) =>
+          rootBundle.load('assets/fonts/$path');
+      final fonts = PdfFonts.fromBytes(
+        regular: await font('plus_jakarta_sans/PlusJakartaSans-Regular.ttf'),
+        bold: await font('plus_jakarta_sans/PlusJakartaSans-Bold.ttf'),
+        serif: await font('fraunces/Fraunces-Regular.ttf'),
+        serifBold: await font('fraunces/Fraunces-SemiBold.ttf'),
+        fallback: await font('noto_sans/NotoSans-Regular.ttf'),
+      );
+      final store = ref.read(mediaStoreProvider);
+      final bytes = await NotePdfExporter(
+        fonts: fonts,
+        loadImage: (source) async => store?.read(source),
+      ).build(note);
+      final name =
+          note.displayTitle.replaceAll(RegExp(r'[\\/:*?"<>|]'), ' ').trim();
+      messenger.hideCurrentSnackBar();
+      await Printing.sharePdf(
+          bytes: bytes, filename: '${name.isEmpty ? 'fiche' : name}.pdf');
+    } catch (_) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+            const SnackBar(
+                content: Text('Export PDF impossible sur cet appareil.')),
+            snackBarAnimationStyle: Motion.style(context));
+    }
+  }
+
   Future<void> _confirmDelete(Note note) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -217,7 +267,7 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child:  Text('Supprimer',
+            child: Text('Supprimer',
                 style: TextStyle(color: context.cq.errorColor)),
           ),
         ],
@@ -239,22 +289,24 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
     final stored = ref.watch(noteByIdProvider(widget.noteId));
 
     if (stored == null && !_initialised) {
-      return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
+      return Scaffold(
+        body: Center(
+            child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
     if (stored != null) _hydrate(stored);
 
     final draft = _draft;
     if (draft == null) {
-      return  Scaffold(
-        body: Center(child: CircularProgressIndicator(color: context.cq.vertDark)),
+      return Scaffold(
+        body: Center(
+            child: CircularProgressIndicator(color: context.cq.vertDark)),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isPreview ? 'Aperçu' : 'Fiche'),
+        title: Text(_isPreview ? 'Aperçu' : 'Édition'),
         actions: [
           IconButton(
             tooltip: draft.isFavorite
@@ -262,16 +314,16 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 : 'Ajouter aux favorites',
             icon: Icon(
               draft.isFavorite ? Icons.star : Icons.star_border,
-              color: draft.isFavorite
-                  ? context.cq.warning
-                  : context.cq.textMuted,
+              color:
+                  draft.isFavorite ? context.cq.warning : context.cq.textMuted,
             ),
-            onPressed: () => _updateDraft(
-                (d) => d.copyWith(isFavorite: !d.isFavorite)),
+            onPressed: () =>
+                _updateDraft((d) => d.copyWith(isFavorite: !d.isFavorite)),
           ),
           IconButton(
-            tooltip: _isPreview ? 'Éditer' : 'Aperçu Markdown',
-            icon: Icon(_isPreview ? Icons.edit_outlined : Icons.visibility_outlined),
+            tooltip: _isPreview ? 'Modifier la fiche' : 'Voir l’aperçu',
+            icon: Icon(
+                _isPreview ? Icons.edit_outlined : Icons.visibility_outlined),
             onPressed: () => setState(() => _isPreview = !_isPreview),
           ),
           PopupMenuButton<String>(
@@ -283,6 +335,11 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                   final updated =
                       await NoteMetaSheet.show(context, note: draft);
                   if (updated != null) _updateDraft((_) => updated);
+                case 'pdf':
+                  await _exportPdf(draft.copyWith(
+                    title: _titleController.text,
+                    content: _contentController.text,
+                  ));
                 case 'archive':
                   _updateDraft((d) => d.copyWith(isArchived: !d.isArchived));
                 case 'delete':
@@ -294,11 +351,15 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 value: 'meta',
                 child: Text('Sujet, tags, importance'),
               ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Text('Exporter en PDF'),
+              ),
               PopupMenuItem(
                 value: 'archive',
                 child: Text(draft.isArchived ? 'Désarchiver' : 'Archiver'),
               ),
-               PopupMenuItem(
+              PopupMenuItem(
                 value: 'delete',
                 child: Text('Supprimer',
                     style: TextStyle(color: context.cq.errorColor)),
@@ -308,70 +369,86 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
         ],
       ),
       body: _isPreview
-          ? _MarkdownPreview(
+          ? _RichPreview(
               note: draft.copyWith(
                 title: _titleController.text,
                 content: _contentController.text,
               ),
             )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+          : Column(
               children: [
-                TextField(
-                  controller: _titleController,
-                  onChanged: (_) => _scheduleSave(),
-                  textCapitalization: TextCapitalization.sentences,
-                  style:  TextStyle(
-                    fontSize: TypeScale.headline,
-                    fontWeight: FontWeight.bold,
-                    color: context.cq.textPrimary,
-                  ),
-                  decoration:  InputDecoration(
-                    hintText: 'Titre de la fiche',
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    hintStyle: TextStyle(
-                      fontSize: TypeScale.headline,
-                      fontWeight: FontWeight.bold,
-                      color: context.cq.textHint,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _MetaSummary(note: draft),
-                const SizedBox(height: 12),
-                TextField(
-                  key: _contentKey,
+                FormatToolbar(
                   controller: _contentController,
-                  onChanged: _onContentChanged,
-                  minLines: 6,
-                  maxLines: null,
-                  textCapitalization: TextCapitalization.sentences,
-                  keyboardType: TextInputType.multiline,
-                  style:  TextStyle(
-                      fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
-                  decoration: const InputDecoration(
-                    hintText: 'Écris ici. Tape / pour un titre, une liste, du '
-                        'code, une image ou une vidéo, et [[ pour lier une '
-                        'fiche.',
-                    filled: false,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
+                  onEdited: () {
+                    _lastContent = _contentController.text;
+                    _scheduleSave();
+                  },
                 ),
-                const SizedBox(height: 20),
-                NoteBlockEditor(
-                  blocks: draft.blocks,
-                  noteId: draft.id,
-                  linkableNotes:
-                      ref.watch(notesProvider).valueOrNull ?? const [],
-                  onChanged: (blocks) =>
-                      _updateDraft((d) => d.copyWith(blocks: blocks)),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                    children: [
+                      TextField(
+                        controller: _titleController,
+                        onChanged: (_) => _scheduleSave(),
+                        textCapitalization: TextCapitalization.sentences,
+                        style: TextStyle(
+                          fontSize: TypeScale.headline,
+                          fontWeight: FontWeight.bold,
+                          color: context.cq.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Titre de la fiche',
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          hintStyle: TextStyle(
+                            fontSize: TypeScale.headline,
+                            fontWeight: FontWeight.bold,
+                            color: context.cq.textHint,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _MetaSummary(note: draft),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: _contentKey,
+                        controller: _contentController,
+                        onChanged: _onContentChanged,
+                        minLines: 6,
+                        maxLines: null,
+                        textCapitalization: TextCapitalization.sentences,
+                        keyboardType: TextInputType.multiline,
+                        style: TextStyle(
+                            fontSize: TypeScale.bodyLarge,
+                            height: 1.5,
+                            color: context.cq.textPrimary),
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Écris ici. Tape / pour un titre, une liste, du '
+                              'code, une image ou une vidéo, et [[ pour lier une '
+                              'fiche.',
+                          filled: false,
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      NoteBlockEditor(
+                        blocks: draft.blocks,
+                        noteId: draft.id,
+                        linkableNotes:
+                            ref.watch(notesProvider).valueOrNull ?? const [],
+                        onChanged: (blocks) =>
+                            _updateDraft((d) => d.copyWith(blocks: blocks)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -402,20 +479,23 @@ class _MetaSummary extends StatelessWidget {
       children: [
         if (note.subject != null)
           Chip(
-            label: Text(note.subject!, style: const TextStyle(fontSize: TypeScale.caption)),
+            label: Text(note.subject!,
+                style: const TextStyle(fontSize: TypeScale.caption)),
             avatar: const Icon(Icons.folder_outlined, size: 13),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
         for (final tag in note.tags)
           Chip(
-            label: Text('#$tag', style: const TextStyle(fontSize: TypeScale.caption)),
+            label: Text('#$tag',
+                style: const TextStyle(fontSize: TypeScale.caption)),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
         if (importance != NoteImportance.review)
           Chip(
-            label: Text(importance.label, style: const TextStyle(fontSize: TypeScale.caption)),
+            label: Text(importance.label,
+                style: const TextStyle(fontSize: TypeScale.caption)),
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
@@ -424,55 +504,75 @@ class _MetaSummary extends StatelessWidget {
   }
 }
 
-class _MarkdownPreview extends ConsumerWidget {
-  const _MarkdownPreview({required this.note});
+/// Aperçu de la fiche en lecture seule : texte mis en forme (souligné,
+/// surligné, alignements), liens vers d'autres fiches, images Storage, et
+/// PDF annotés ouvrables.
+class _RichPreview extends ConsumerWidget {
+  const _RichPreview({required this.note});
 
   final Note note;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cq = context.cq;
     final notes = ref.watch(notesProvider).valueOrNull ?? const <Note>[];
-    return Markdown(
-      data: WikiLinks.toMarkdown(note.toMarkdown(), notes),
-      // Un lien vers une fiche ouvre la fiche ; les autres liens restent du
-      // texte (pas de sortie inattendue de l'app).
-      onTapLink: (_, href, __) {
-        final id = WikiLinks.noteIdOf(href);
-        if (id != null) context.push('${AppRoute.notes}/$id');
-      },
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 60),
-      styleSheet: MarkdownStyleSheet(
-        h1:  TextStyle(
-            fontSize: TypeScale.headline, fontWeight: FontWeight.bold, color: context.cq.textPrimary),
-        h2:  TextStyle(
-            fontSize: TypeScale.title, fontWeight: FontWeight.w600, color: context.cq.textPrimary),
-        h3: TextStyle(
-            fontSize: TypeScale.bodyLarge,
-            fontWeight: FontWeight.w600,
-            color: context.cq.textPrimary),
-        h4: TextStyle(
-            fontSize: TypeScale.body,
-            fontWeight: FontWeight.w700,
-            color: context.cq.textPrimary),
-        h5: TextStyle(
-            fontSize: TypeScale.body,
-            fontWeight: FontWeight.w600,
-            color: context.cq.textMuted),
-        h6: TextStyle(
-            fontSize: TypeScale.caption,
-            fontWeight: FontWeight.w600,
-            color: context.cq.textMuted),
-        p:  TextStyle(fontSize: TypeScale.bodyLarge, height: 1.5, color: context.cq.textPrimary),
-        blockquoteDecoration: BoxDecoration(
-          color: context.cq.beigeDark.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
-        code: const TextStyle(
-            fontSize: TypeScale.body, backgroundColor: Colors.transparent),
-        codeblockDecoration: BoxDecoration(
-          color: context.cq.beigeDark.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(Radii.md),
-        ),
+    void openLink(String text, String? href, String title) {
+      final id = WikiLinks.noteIdOf(href);
+      // Un lien vers une fiche ouvre la fiche ; les autres restent du texte
+      // (pas de sortie inattendue de l'app).
+      if (id != null) context.push('${AppRoute.notes}/$id');
+    }
+
+    return SelectionArea(
+      child: ListView(
+        padding:
+            const EdgeInsets.fromLTRB(Space.lg, Space.md, Space.lg, Space.xxxl),
+        children: [
+          Text(
+            note.displayTitle,
+            style: TextStyle(
+              fontFamily: appSerifFamily,
+              fontSize: TypeScale.display,
+              fontWeight: FontWeight.w500,
+              letterSpacing: TypeScale.displayTracking,
+              height: TypeScale.titleHeight,
+              color: cq.textPrimary,
+            ),
+          ),
+          const SizedBox(height: Space.sm),
+          _MetaSummary(note: note),
+          const SizedBox(height: Space.md),
+          if (note.content.trim().isNotEmpty)
+            RichMarkdown(
+              data: WikiLinks.toMarkdown(note.content, notes),
+              selectable: false,
+              onTapLink: openLink,
+            ),
+          for (final block in note.blocks)
+            Padding(
+              padding: const EdgeInsets.only(top: Space.md),
+              child: switch (block.type) {
+                NoteBlockType.pdf => PdfBlockCard(content: block.content),
+                NoteBlockType.image when block.content.trim().isNotEmpty =>
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.sm),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 420),
+                      child: MediaImage(
+                        source: block.content.trim(),
+                        broken: (context) => Icon(Icons.broken_image_outlined,
+                            color: cq.textHint),
+                      ),
+                    ),
+                  ),
+                _ => RichMarkdown(
+                    data: WikiLinks.toMarkdown(block.toMarkdown(), notes),
+                    selectable: false,
+                    onTapLink: openLink,
+                  ),
+              },
+            ),
+        ],
       ),
     );
   }
@@ -502,7 +602,8 @@ class _SaveIndicator extends StatelessWidget {
             isSynced
                 ? 'Enregistrée et synchronisée'
                 : 'Enregistrée sur cet appareil',
-            style:  TextStyle(fontSize: TypeScale.caption, color: context.cq.textHint),
+            style: TextStyle(
+                fontSize: TypeScale.caption, color: context.cq.textHint),
           ),
         ],
       ),

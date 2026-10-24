@@ -13,6 +13,7 @@ import '../../../shared/models/note_model.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
 import '../../../core/ui/media_image.dart';
+import 'pdf_block.dart';
 import 'slash_commands.dart';
 
 /// Édition des blocs structurés d'une fiche.
@@ -76,8 +77,8 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
 
   /// Frappe dans un bloc : « / » dans un bloc vide ouvre le menu des types,
   /// « [[ » ouvre le choix d'une fiche à lier.
-  void _onContentChanged(BuildContext rowContext, NoteBlock block,
-      String previous, String value) {
+  void _onContentChanged(
+      BuildContext rowContext, NoteBlock block, String previous, String value) {
     _update(block, block.copyWith(content: value));
     final controller = _controllers[block.id];
     if (controller == null) return;
@@ -101,19 +102,19 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
     );
     if (command == null || !mounted) return;
     controller.text = '';
-    final current = widget.blocks.firstWhere((b) => b.id == block.id,
-        orElse: () => block);
+    final current =
+        widget.blocks.firstWhere((b) => b.id == block.id, orElse: () => block);
     if (command == SlashCommand.noteLink) {
       _update(current, current.copyWith(content: ''));
       await _insertNoteLink(current, controller, replaceTyped: false);
       return;
     }
-    _update(current,
-        current.copyWith(type: command.blockType, content: ''));
+    _update(current, current.copyWith(type: command.blockType, content: ''));
   }
 
-  Future<void> _insertNoteLink(NoteBlock block,
-      TextEditingController controller, {bool replaceTyped = true}) async {
+  Future<void> _insertNoteLink(
+      NoteBlock block, TextEditingController controller,
+      {bool replaceTyped = true}) async {
     final target = await showNotePicker(context,
         notes: widget.linkableNotes, excludeId: widget.noteId);
     if (target == null || !mounted) return;
@@ -132,8 +133,8 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
       text: text,
       selection: TextSelection.collapsed(offset: start + insert.length),
     );
-    final current = widget.blocks.firstWhere((b) => b.id == block.id,
-        orElse: () => block);
+    final current =
+        widget.blocks.firstWhere((b) => b.id == block.id, orElse: () => block);
     _update(current, current.copyWith(content: text));
   }
 
@@ -173,12 +174,12 @@ class _NoteBlockEditorState extends State<NoteBlockEditor> {
           child: _BlockRow(
             index: index,
             block: block,
-            controller: block.type == NoteBlockType.divider ||
-                    block.type.isMedia
-                ? null
-                : _controllerFor(block),
-            onContentChanged: (rowContext, value) => _onContentChanged(
-                rowContext, block, block.content, value),
+            controller:
+                block.type == NoteBlockType.divider || block.type.isMedia
+                    ? null
+                    : _controllerFor(block),
+            onContentChanged: (rowContext, value) =>
+                _onContentChanged(rowContext, block, block.content, value),
             onToggleCheck: () =>
                 _update(block, block.copyWith(isChecked: !block.isChecked)),
             onMediaChanged: (source) =>
@@ -205,8 +206,7 @@ class _BlockRow extends StatelessWidget {
   final int index;
   final NoteBlock block;
   final TextEditingController? controller;
-  final void Function(BuildContext rowContext, String value)
-      onContentChanged;
+  final void Function(BuildContext rowContext, String value) onContentChanged;
   final VoidCallback onToggleCheck;
   final ValueChanged<String> onMediaChanged;
   final VoidCallback onRemove;
@@ -240,6 +240,9 @@ class _BlockRow extends StatelessWidget {
   Widget _content(BuildContext context) {
     if (block.type == NoteBlockType.divider) {
       return const Divider(height: 20);
+    }
+    if (block.type == NoteBlockType.pdf) {
+      return PdfBlockCard(content: block.content, onChanged: onMediaChanged);
     }
     if (block.type.isMedia) {
       return _MediaBlock(block: block, onChanged: onMediaChanged);
@@ -277,8 +280,9 @@ class _BlockRow extends StatelessWidget {
                   width: 18,
                   height: 18,
                   decoration: BoxDecoration(
-                    color:
-                        block.isChecked ? context.cq.vertSauge : Colors.transparent,
+                    color: block.isChecked
+                        ? context.cq.vertSauge
+                        : Colors.transparent,
                     border: Border.all(
                       color: block.isChecked
                           ? context.cq.vertSauge
@@ -407,8 +411,10 @@ class _MediaBlock extends StatelessWidget {
       if (_isImage) {
         if ((await file.length() ?? 0) > _maxImageBytes) {
           if (!context.mounted) return;
-          _snack(context, 'Image trop lourde (5 Mo au plus) : '
-                  'colle plutôt un lien.');
+          _snack(
+              context,
+              'Image trop lourde (5 Mo au plus) : '
+              'colle plutôt un lien.');
           return;
         }
         final bytes = await file.readAsBytes();
@@ -495,8 +501,8 @@ class _MediaBlock extends StatelessWidget {
             shape: const CircleBorder(),
             child: IconButton(
               tooltip: _isImage ? 'Remplacer l’image' : 'Remplacer la vidéo',
-              icon: Icon(Icons.swap_horiz, size: Sizes.iconSm,
-                  color: cq.textMuted),
+              icon: Icon(Icons.swap_horiz,
+                  size: Sizes.iconSm, color: cq.textMuted),
               onPressed: () => onChanged(''),
             ),
           ),
@@ -565,9 +571,7 @@ class _VideoViewState extends State<_VideoView> {
     final isWeb = widget.source.startsWith('http');
     final controller = isWeb
         ? VideoPlayerController.networkUrl(Uri.parse(widget.source))
-        : (kIsWeb
-            ? null
-            : VideoPlayerController.file(File(widget.source)));
+        : (kIsWeb ? null : VideoPlayerController.file(File(widget.source)));
     if (controller == null) {
       _failed = true;
       return;
@@ -682,7 +686,8 @@ class _VideoViewState extends State<_VideoView> {
 }
 
 class _MediaFallback extends StatelessWidget {
-  const _MediaFallback({required this.icon, required this.message, this.detail});
+  const _MediaFallback(
+      {required this.icon, required this.message, this.detail});
 
   final IconData icon;
   final String message;

@@ -37,8 +37,11 @@ class MediaStore {
 
   static const String bucket = 'user_media';
 
-  /// Taille maximale d'une image (limite du bucket).
+  /// Taille maximale d'une image.
   static const int maxBytes = 5 * 1024 * 1024;
+
+  /// Taille maximale d'un PDF (limite du bucket).
+  static const int maxPdfBytes = 20 * 1024 * 1024;
 
   late final SyncQueue _queue = SyncQueue(_db);
   late final SerialSync _serialSync = SerialSync(_push);
@@ -50,10 +53,11 @@ class MediaStore {
         'png' => 'image/png',
         'gif' => 'image/gif',
         'webp' => 'image/webp',
+        'pdf' => 'application/pdf',
         _ => 'image/jpeg',
       };
 
-  /// Enregistre une image et renvoie sa référence `media://…`.
+  /// Enregistre une image ou un PDF et renvoie sa référence `media://…`.
   Future<String> put(Uint8List bytes, {String? extension}) async {
     final mime = mimeOf(extension);
     final ext = mime.split('/').last.replaceFirst('jpeg', 'jpg');

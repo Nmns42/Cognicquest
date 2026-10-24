@@ -5,3 +5,5 @@ tags:
   golden:
   # Générateurs (icônes…) rangés dans `tool/` : jamais lancés par la suite.
   tool:
+  # Moteur PDF natif (PDFium) requis : lancé en local, exclu de la CI Linux.
+  pdfium:

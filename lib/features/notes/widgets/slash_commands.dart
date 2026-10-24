@@ -23,13 +23,14 @@ enum SlashCommand {
   bulleted('Liste à puces', Icons.format_list_bulleted, '- ',
       NoteBlockType.bulleted),
   numbered('Liste numérotée', Icons.format_list_numbered, '1. ', null),
-  todo('Liste à cocher', Icons.check_box_outlined, '- [ ] ',
-      NoteBlockType.todo),
+  todo(
+      'Liste à cocher', Icons.check_box_outlined, '- [ ] ', NoteBlockType.todo),
   quote('Citation', Icons.format_quote, '> ', NoteBlockType.quote),
   code('Code', Icons.code, '```\n', NoteBlockType.code, suffix: '\n```'),
   divider('Séparateur', Icons.horizontal_rule, '---\n', NoteBlockType.divider),
   image('Image', Icons.image_outlined, '', NoteBlockType.image),
   video('Vidéo', Icons.smart_display_outlined, '', NoteBlockType.video),
+  pdf('PDF à annoter', Icons.picture_as_pdf_outlined, '', NoteBlockType.pdf),
   noteLink('Lien vers une fiche', Icons.link, '[[', null);
 
   const SlashCommand(this.label, this.icon, this.markdown, this.blockType,
@@ -85,8 +86,9 @@ Trigger? detectTrigger(String previous, TextEditingValue value) {
 /// Rectangle global du curseur dans un champ (approximation par mise en
 /// page du texte qui le précède, au style et à la largeur du champ) : le
 /// menu s'ouvre juste sous la ligne en cours, pas au bord du champ.
-Rect caretRect(BuildContext fieldContext, TextEditingValue value,
-    TextStyle style, {EdgeInsets padding = EdgeInsets.zero}) {
+Rect caretRect(
+    BuildContext fieldContext, TextEditingValue value, TextStyle style,
+    {EdgeInsets padding = EdgeInsets.zero}) {
   final box = fieldContext.findRenderObject() as RenderBox?;
   if (box == null || !box.hasSize) return Rect.zero;
   final width = (box.size.width - padding.horizontal).clamp(1.0, 4000.0);
@@ -101,8 +103,7 @@ Rect caretRect(BuildContext fieldContext, TextEditingValue value,
       TextPosition(offset: value.selection.baseOffset), Rect.zero);
   final lineHeight = painter.preferredLineHeight;
   painter.dispose();
-  final topLeft =
-      box.localToGlobal(Offset(padding.left, padding.top) + caret);
+  final topLeft = box.localToGlobal(Offset(padding.left, padding.top) + caret);
   return Rect.fromLTWH(topLeft.dx, topLeft.dy, 1, lineHeight);
 }
 
@@ -113,8 +114,7 @@ Future<SlashCommand?> showSlashMenu(
   required Rect anchor,
   List<SlashCommand> commands = SlashCommand.values,
 }) {
-  final overlay =
-      Overlay.of(context).context.findRenderObject()! as RenderBox;
+  final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
   final position = RelativeRect.fromRect(
     Rect.fromLTWH(anchor.left, anchor.bottom, 1, 1),
     Offset.zero & overlay.size,

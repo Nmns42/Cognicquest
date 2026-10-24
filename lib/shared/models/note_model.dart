@@ -12,7 +12,10 @@ enum NoteBlockType {
   image('image', 'Image'),
   video('video', 'Vidéo'),
   link('link', 'Lien'),
-  divider('divider', 'Séparateur');
+  divider('divider', 'Séparateur'),
+
+  /// PDF importé et annoté (contenu : JSON, cf. `PdfBlockData`).
+  pdf('pdf', 'PDF');
 
   const NoteBlockType(this.value, this.label);
 
@@ -30,7 +33,10 @@ enum NoteBlockType {
 
   /// Bloc d'image ou de vidéo : son contenu est une adresse (lien, fichier
   /// de l'appareil ou image encodée), jamais du texte à lire ni à chercher.
-  bool get isMedia => this == NoteBlockType.image || this == NoteBlockType.video;
+  bool get isMedia =>
+      this == NoteBlockType.image ||
+      this == NoteBlockType.video ||
+      this == NoteBlockType.pdf;
 }
 
 class NoteBlock {
@@ -76,8 +82,19 @@ class NoteBlock {
         NoteBlockType.video => '[Vidéo]($content)',
         NoteBlockType.link => '<$content>',
         NoteBlockType.divider => '---',
+        NoteBlockType.pdf => _pdfMarkdown(content),
         NoteBlockType.paragraph => content,
       };
+
+  /// « [PDF : cours.pdf](media://…) » : lien lisible dans un export.
+  static String _pdfMarkdown(String content) {
+    try {
+      final json = jsonDecode(content) as Map;
+      return '[PDF : ${json['name'] ?? 'document'}](${json['src'] ?? ''})';
+    } catch (_) {
+      return '';
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
