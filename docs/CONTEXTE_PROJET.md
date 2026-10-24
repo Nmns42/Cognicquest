@@ -129,6 +129,7 @@ positions absolues).
 | 2026-10-24 | P1-Sync : table `review_logs` (RLS `owns_flashcard`, trigger `updated_at`, migration `supabase/migrations/20261024090000_review_logs.sql`) ; chaque jugement est mis en file et poussé après sa carte, puis rapatrié au pull (curseur incrémental, insertion idempotente) : la rétention suit l'utilisateur d'un appareil à l'autre | Fait |
 | 2026-10-24 | P1-Conflits : contrôle de version optimiste sur `notes`, `flashcards`, `tasks`. Drift v14 `SyncRowVersions` garde la version serveur de base de chaque ligne (`SyncVersions`), envoyée en `updated_at` ; trigger `reject_stale_write` (code 40001, migration `20261024100000_optimistic_concurrency.sql`). Refus : la version serveur gagne (curseur relu) ; pour une fiche, la version de l'appareil est conservée en copie « (version de cet appareil) ». Sync des révisions sérialisée (`SerialSync`) | Fait |
 | 2026-10-24 | P1-Storage : images des fiches et des cartes déposées dans le bucket privé `user_media` (RLS par dossier `auth.uid()`, 5 Mo, PNG / JPEG / GIF / WebP ; migration `20261024110000_user_media.sql`). Le texte ne garde que `media://<uid>/<fichier>` ; `MediaStore` (`lib/core/media/`) : cache local Drift v15 `LocalMediaCache`, envoi en file `user_media` (premier module du `SyncCoordinator`), téléchargement à la demande. `MediaImage` (`lib/core/ui/media_image.dart`) lit les trois formats ; les anciennes images base64 restent affichées | Fait |
+| 2026-10-24 | P1-Migrations & Auth : `supabase/migrations/` (baseline + incrémentales, format CLI), `schema.sql` = leur concaténation (test `supabase_migrations_test.dart`), `supabase/README.md`. Test de montée Drift v1 → courante comparé à une installation neuve (`migration_full_test.dart`) : a révélé l'index `local_folders_user_parent` absent depuis v13, recréé au palier v15. Google sur Windows / Linux : retour PKCE par serveur local `http://127.0.0.1:43823/auth/callback` (`LoopbackOAuthReceiver`, à autoriser dans Supabase) | Fait |
 
 Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 `flutter analyze` sans problème.
@@ -138,9 +139,8 @@ Mesures au 2026-10-23 : ~36 k lignes Dart (hors généré), 667 tests verts,
 1. Découper les fichiers géants : `notes/widgets/folder_explorer.dart`
    (1 333 l.), `kanban/views/kanban_page.dart` (1 025 l.).
 2. Tests widget pour kanban, habits, planning, review (1 fichier chacun).
-3. Sortir les migrations Drift dans un fichier dédié + test de montée v1 → v13.
-4. Migrations Supabase versionnées (`supabase/migrations/`).
-5. Backlog technique détaillé : `docs/backlog.md` (graphe à grande échelle…).
+3. Sortir les migrations Drift dans un fichier dédié.
+4. Backlog technique détaillé : `docs/backlog.md` (graphe à grande échelle…).
 
 Manques fonctionnels vs cahier des charges : gamification avancée,
 notifications/rappels, export PDF/CSV, collaboration temps réel, IA,

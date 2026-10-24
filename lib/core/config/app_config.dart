@@ -37,6 +37,10 @@ class AppConfig {
   ///  - Android : `android/app/src/main/AndroidManifest.xml` (intent-filter)
   ///  - iOS     : `ios/Runner/Info.plist` (CFBundleURLTypes)
   ///  - Supabase: Authentication > URL Configuration > Redirect URLs
+  ///
+  /// Windows / Linux n'utilisent pas ce schéma mais un retour local :
+  /// autoriser aussi `http://127.0.0.1:43823/auth/callback`
+  /// (cf. `LoopbackOAuthReceiver`).
   static const String oauthRedirectUrl = String.fromEnvironment(
     'OAUTH_REDIRECT_URL',
     defaultValue: 'io.cognicquest.app://login-callback/',

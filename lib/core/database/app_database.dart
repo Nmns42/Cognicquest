@@ -726,7 +726,8 @@ class AppDatabase extends _$AppDatabase {
   /// des cartes.
   /// v14 : versions serveur des lignes (SyncRowVersions), contrôle de
   /// version optimiste.
-  /// v15 : cache local des images déposées dans Storage (LocalMediaCache).
+  /// v15 : cache local des images déposées dans Storage (LocalMediaCache),
+  /// et index des dossiers oublié par la montée v13.
   @override
   int get schemaVersion => 15;
 
@@ -896,6 +897,14 @@ class AppDatabase extends _$AppDatabase {
             if (!await _hasColumn('local_media_cache', 'path')) {
               await m.createTable(localMediaCache);
             }
+            // Oubli du palier v13 : `createTable` ne crée pas les index
+            // déclarés par @TableIndex. Rejouable (`IF NOT EXISTS`).
+            final create = localFoldersUserParent
+                .createStatementsByDialect[SqlDialect.sqlite]!;
+            await customStatement(create.replaceFirst(
+              'CREATE INDEX ',
+              'CREATE INDEX IF NOT EXISTS ',
+            ));
           }
         },
         beforeOpen: (details) async {

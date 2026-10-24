@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/sync_queue.dart';
 import '../../sync/providers/sync_coordinator.dart';
+import '../data/oauth_loopback.dart';
 
 /// Client Supabase exposé via Riverpod plutôt que via le singleton global :
 /// les couches métier n'ont ainsi jamais besoin d'importer `Supabase.instance`
@@ -138,6 +139,7 @@ class AuthController extends AsyncNotifier<void> {
 
   Future<bool> signInWithGoogle() async {
     state = const AsyncValue.loading();
+    if (LoopbackOAuthReceiver.isNeeded) return _signInWithGoogleLoopback();
     try {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -151,6 +153,33 @@ class AuthController extends AsyncNotifier<void> {
     } catch (error, stackTrace) {
       state = AsyncValue.error(AuthFailure.from(error), stackTrace);
       return false;
+    }
+  }
+
+  /// Windows / Linux : pas de schéma d'URL pour revenir dans l'app. Le
+  /// navigateur renvoie le code PKCE à un serveur local éphémère
+  /// (`127.0.0.1`), échangé ici contre la session.
+  Future<bool> _signInWithGoogleLoopback() async {
+    final receiver = LoopbackOAuthReceiver();
+    try {
+      final redirect = await receiver.start();
+      await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: redirect,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      final code = await receiver.waitForCode();
+      await _client.auth.exchangeCodeForSession(code);
+      state = const AsyncValue.data(null);
+      return true;
+    } on OAuthLoopbackException catch (error, stackTrace) {
+      state = AsyncValue.error(AuthFailure(error.message), stackTrace);
+      return false;
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(AuthFailure.from(error), stackTrace);
+      return false;
+    } finally {
+      await receiver.close();
     }
   }
 
