@@ -11,6 +11,7 @@ import '../../../shared/models/note_model.dart';
 import '../../notes/data/note_repository.dart';
 import '../../notes/providers/note_provider.dart';
 import '../domain/spaced_repetition.dart';
+import '../../quiz/providers/quiz_provider.dart';
 import '../providers/review_provider.dart';
 import 'explain_page.dart';
 
@@ -240,6 +241,9 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
                   Text(_stage.instruction,
                       style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(height: Space.lg),
+                  _FuzzyHeadings(
+                      headings:
+                          ref.watch(fuzzyHeadingsForNoteProvider(widget.noteId))),
                   ...switch (_stage) {
                     StudyStage.preview => _preview(context, note, session),
                     StudyStage.read => _read(context, note, session),
@@ -411,6 +415,53 @@ class _Sq3rPageState extends ConsumerState<Sq3rPage> {
         ),
       ),
     ];
+  }
+}
+
+/// Titres de la fiche ratés aux quiz : la lecture et l'explication s'y
+/// attardent d'abord (boucle quiz → étude guidée).
+class _FuzzyHeadings extends StatelessWidget {
+  const _FuzzyHeadings({required this.headings});
+
+  final Set<String> headings;
+
+  @override
+  Widget build(BuildContext context) {
+    if (headings.isEmpty) return const SizedBox.shrink();
+    final cq = context.cq;
+    return Container(
+      margin: const EdgeInsets.only(bottom: Space.lg),
+      padding: const EdgeInsets.all(Space.md),
+      decoration: BoxDecoration(
+        color: cq.parchemin,
+        borderRadius: BorderRadius.circular(Radii.sm),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lightbulb_outline, size: Sizes.iconMd, color: cq.terre),
+          const SizedBox(width: Space.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('À reprendre en priorité (d’après tes quiz)',
+                    style: TextStyle(
+                        fontSize: TypeScale.caption,
+                        fontWeight: FontWeight.w600,
+                        color: cq.terre)),
+                const SizedBox(height: Space.xs),
+                for (final heading in headings)
+                  Text('• $heading',
+                      style: TextStyle(
+                          fontSize: TypeScale.body, color: cq.textPrimary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

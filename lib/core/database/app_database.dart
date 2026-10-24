@@ -653,6 +653,29 @@ class LocalMediaCache extends Table {
   Set<Column> get primaryKey => {path};
 }
 
+/// Réponses aux quiz génératifs (v17) : alimentent les boucles quiz →
+/// cartes → étude guidée (titres flous) et les priorités du jour.
+@TableIndex(name: 'local_quiz_attempts_user_answered', columns: {#userId, #answeredAt})
+class LocalQuizAttempts extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get questionId => text()();
+
+  /// `card` | `reverse` | `section` | `cloze` | `definition`
+  TextColumn get kind => text()();
+  BoolColumn get correct => boolean()();
+  DateTimeColumn get answeredAt => dateTime()();
+
+  /// Fiche et carte d'origine : sans clé étrangère, une réponse survit à la
+  /// suppression de sa source (statistiques).
+  TextColumn get noteId => text().nullable()();
+  TextColumn get cardId => text().nullable()();
+  TextColumn get heading => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Dossiers de l'explorateur de fiches et de cartes (v13) : une arborescence
 /// libre, `parentId` nul pour un dossier racine.
 @TableIndex(name: 'local_folders_user_parent', columns: {#userId, #parentId})
@@ -712,6 +735,7 @@ class LocalPreferences extends Table {
   LocalFolders,
   SyncRowVersions,
   LocalMediaCache,
+  LocalQuizAttempts,
 ], include: {'note_triggers.drift'})
 class AppDatabase extends _$AppDatabase {
   /// [executor] n'est fourni que par les tests, qui injectent une base en
@@ -737,8 +761,9 @@ class AppDatabase extends _$AppDatabase {
   /// v15 : cache local des images déposées dans Storage (LocalMediaCache),
   /// et index des dossiers oublié par la montée v13.
   /// v16 : longueur en pages des chapitres, unité des mesures de vitesse.
+  /// v17 : réponses aux quiz génératifs (LocalQuizAttempts).
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   /// Index ajoutés en v8. Liste explicite (et non « tous les index du
   /// schéma ») : un index ajouté plus tard aura son propre palier de
@@ -922,6 +947,17 @@ class AppDatabase extends _$AppDatabase {
             if (!await _hasColumn('local_speed_samples', 'unit')) {
               await m.addColumn(localSpeedSamples, localSpeedSamples.unit);
             }
+          }
+          if (from < 17) {
+            if (!await _hasColumn('local_quiz_attempts', 'id')) {
+              await m.createTable(localQuizAttempts);
+            }
+            final create = localQuizAttemptsUserAnswered
+                .createStatementsByDialect[SqlDialect.sqlite]!;
+            await customStatement(create.replaceFirst(
+              'CREATE INDEX ',
+              'CREATE INDEX IF NOT EXISTS ',
+            ));
           }
         },
         beforeOpen: (details) async {

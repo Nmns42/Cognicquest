@@ -36,10 +36,14 @@ void main() {
             updatedAt: now,
           ),
         );
-    // Index des paliers v8 seulement : celui des dossiers vient en v13.
-    final expected = appIndexes()
-        .where((name) => name != 'local_folders_user_parent')
-        .toList();
+    // Index du palier v8 seulement : ceux des dossiers (v13) et des quiz
+    // (v17) viennent après.
+    const later = [
+      'local_folders_user_parent',
+      'local_quiz_attempts_user_answered'
+    ];
+    final expected =
+        appIndexes().where((name) => !later.contains(name)).toList();
     await seed.close();
     expect(expected, hasLength(27));
 
@@ -48,14 +52,14 @@ void main() {
       raw.execute('DROP INDEX $name;');
     }
     raw.execute('PRAGMA user_version = 7;');
-    expect(appIndexes(), ['local_folders_user_parent']);
+    expect(appIndexes(), unorderedEquals(later));
 
     final db = AppDatabase(NativeDatabase.opened(raw));
     addTearDown(db.close);
 
     expect((await db.select(db.localNotes).get()).single.title,
         'Fiche avant migration');
-    expect(appIndexes(), unorderedEquals([...expected, 'local_folders_user_parent']));
+    expect(appIndexes(), unorderedEquals([...expected, ...later]));
     expect(raw.userVersion, db.schemaVersion);
   });
 
@@ -66,10 +70,8 @@ void main() {
     tearDown(() => db.close());
 
     Future<String> plan(String sql) async {
-      final rows = await db
-          .customSelect('EXPLAIN QUERY PLAN $sql',
-              variables: [Variable.withString('u1')])
-          .get();
+      final rows = await db.customSelect('EXPLAIN QUERY PLAN $sql',
+          variables: [Variable.withString('u1')]).get();
       return rows.map((r) => r.read<String>('detail')).join(' | ');
     }
 

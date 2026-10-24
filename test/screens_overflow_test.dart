@@ -16,6 +16,7 @@ import 'package:cognicquest/features/notes/views/notes_page.dart';
 import 'package:cognicquest/features/planning/views/revision_speed_page.dart';
 import 'package:cognicquest/features/planning/views/planning_hub_page.dart';
 import 'package:cognicquest/features/pomodoro/views/pomodoro_page.dart';
+import 'package:cognicquest/features/quiz/views/quiz_page.dart';
 import 'package:cognicquest/features/review/views/review_home_page.dart';
 import 'package:cognicquest/features/settings/views/settings_page.dart';
 import 'package:drift/native.dart';
@@ -95,6 +96,7 @@ void main() {
     'Tâches (Kanban)': () => const KanbanPage(),
     'Fiches': () => const NotesPage(),
     'Réviser': () => const ReviewHomePage(),
+    'Quiz ciblé': () => const QuizPage(),
     'Habitudes': () => const HabitsPage(),
     'Graphe': () => const GraphPage(),
     'Planification': () => const PlanningHubPage(),

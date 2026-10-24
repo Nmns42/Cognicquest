@@ -7,6 +7,7 @@ import '../../../router/app_router.dart';
 import '../../../shared/models/flashcard_model.dart';
 import '../../notes/providers/note_provider.dart';
 import '../domain/spaced_repetition.dart';
+import '../../quiz/widgets/revision_focus_section.dart';
 import '../providers/review_provider.dart';
 import '../widgets/flashcard_editor_sheet.dart';
 import '../../../core/theme/tokens.dart';
@@ -98,6 +99,9 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
                 const SizedBox(height: 24),
               ],
 
+              const RevisionFocusSection(),
+              const SizedBox(height: Space.xl),
+
               const _SectionLabel('Comprendre avant de mémoriser'),
               const SizedBox(height: 4),
                Text(
@@ -113,6 +117,21 @@ class _ReviewHomePageState extends ConsumerState<ReviewHomePage> {
                 subtitle: 'Survol et questions · lecture ciblée · '
                     'explication avec tes mots',
                 onTap: () => context.push(AppRoute.sq3rPicker),
+              ),
+              const SizedBox(height: Space.sm),
+              _ToolCard(
+                icon: Icons.quiz_outlined,
+                title: 'Quiz ciblé',
+                subtitle: 'Notions floues et chapitres prioritaires d’abord ; '
+                    'une erreur renvoie la carte à J0',
+                onTap: () => context.push(AppRoute.quizFor()),
+              ),
+              const SizedBox(height: Space.sm),
+              _ToolCard(
+                icon: Icons.psychology_outlined,
+                title: 'Approfondissement',
+                subtitle: 'Questions inversées sur tes cartes maîtrisées',
+                onTap: () => context.push(AppRoute.quizFor(deepen: true)),
               ),
               const SizedBox(height: 24),
               const _StudySheets(),

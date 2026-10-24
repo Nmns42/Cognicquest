@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../habits/providers/habit_provider.dart';
 import '../../metacognition/providers/metacognition_provider.dart';
 import '../../notes/providers/note_provider.dart';
+import '../../quiz/providers/quiz_provider.dart';
 import '../../review/providers/review_provider.dart';
 import '../../../shared/models/habit_model.dart';
 import '../../../shared/models/metacognition_model.dart';
@@ -44,6 +45,16 @@ final coachSignalsProvider = Provider<CoachSignals>((ref) {
     }
   }
   final lapses = <String, int>{};
+  // Erreurs de quiz récentes : elles comptent comme des oublis.
+  final since = now.subtract(const Duration(days: 30));
+  for (final attempt
+      in ref.watch(quizAttemptsProvider).valueOrNull ?? const []) {
+    final noteId = attempt.noteId;
+    if (attempt.correct || noteId == null || attempt.answeredAt.isBefore(since)) {
+      continue;
+    }
+    lapses[noteId] = (lapses[noteId] ?? 0) + 1;
+  }
   for (final card in cards) {
     final noteId = card.noteId;
     if (noteId == null) continue;

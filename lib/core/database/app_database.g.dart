@@ -12058,6 +12058,485 @@ class LocalMediaCacheCompanion extends UpdateCompanion<LocalMediaCacheData> {
   }
 }
 
+class $LocalQuizAttemptsTable extends LocalQuizAttempts
+    with TableInfo<$LocalQuizAttemptsTable, LocalQuizAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalQuizAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _questionIdMeta =
+      const VerificationMeta('questionId');
+  @override
+  late final GeneratedColumn<String> questionId = GeneratedColumn<String>(
+      'question_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _correctMeta =
+      const VerificationMeta('correct');
+  @override
+  late final GeneratedColumn<bool> correct = GeneratedColumn<bool>(
+      'correct', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("correct" IN (0, 1))'));
+  static const VerificationMeta _answeredAtMeta =
+      const VerificationMeta('answeredAt');
+  @override
+  late final GeneratedColumn<DateTime> answeredAt = GeneratedColumn<DateTime>(
+      'answered_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _noteIdMeta = const VerificationMeta('noteId');
+  @override
+  late final GeneratedColumn<String> noteId = GeneratedColumn<String>(
+      'note_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _cardIdMeta = const VerificationMeta('cardId');
+  @override
+  late final GeneratedColumn<String> cardId = GeneratedColumn<String>(
+      'card_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _headingMeta =
+      const VerificationMeta('heading');
+  @override
+  late final GeneratedColumn<String> heading = GeneratedColumn<String>(
+      'heading', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        userId,
+        questionId,
+        kind,
+        correct,
+        answeredAt,
+        noteId,
+        cardId,
+        heading
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_quiz_attempts';
+  @override
+  VerificationContext validateIntegrity(Insertable<LocalQuizAttempt> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('question_id')) {
+      context.handle(
+          _questionIdMeta,
+          questionId.isAcceptableOrUnknown(
+              data['question_id']!, _questionIdMeta));
+    } else if (isInserting) {
+      context.missing(_questionIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('correct')) {
+      context.handle(_correctMeta,
+          correct.isAcceptableOrUnknown(data['correct']!, _correctMeta));
+    } else if (isInserting) {
+      context.missing(_correctMeta);
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+          _answeredAtMeta,
+          answeredAt.isAcceptableOrUnknown(
+              data['answered_at']!, _answeredAtMeta));
+    } else if (isInserting) {
+      context.missing(_answeredAtMeta);
+    }
+    if (data.containsKey('note_id')) {
+      context.handle(_noteIdMeta,
+          noteId.isAcceptableOrUnknown(data['note_id']!, _noteIdMeta));
+    }
+    if (data.containsKey('card_id')) {
+      context.handle(_cardIdMeta,
+          cardId.isAcceptableOrUnknown(data['card_id']!, _cardIdMeta));
+    }
+    if (data.containsKey('heading')) {
+      context.handle(_headingMeta,
+          heading.isAcceptableOrUnknown(data['heading']!, _headingMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalQuizAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalQuizAttempt(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      questionId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}question_id'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      correct: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}correct'])!,
+      answeredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}answered_at'])!,
+      noteId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note_id']),
+      cardId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}card_id']),
+      heading: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}heading']),
+    );
+  }
+
+  @override
+  $LocalQuizAttemptsTable createAlias(String alias) {
+    return $LocalQuizAttemptsTable(attachedDatabase, alias);
+  }
+}
+
+class LocalQuizAttempt extends DataClass
+    implements Insertable<LocalQuizAttempt> {
+  final String id;
+  final String userId;
+  final String questionId;
+
+  /// `card` | `reverse` | `section` | `cloze` | `definition`
+  final String kind;
+  final bool correct;
+  final DateTime answeredAt;
+
+  /// Fiche et carte d'origine : sans clé étrangère, une réponse survit à la
+  /// suppression de sa source (statistiques).
+  final String? noteId;
+  final String? cardId;
+  final String? heading;
+  const LocalQuizAttempt(
+      {required this.id,
+      required this.userId,
+      required this.questionId,
+      required this.kind,
+      required this.correct,
+      required this.answeredAt,
+      this.noteId,
+      this.cardId,
+      this.heading});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['question_id'] = Variable<String>(questionId);
+    map['kind'] = Variable<String>(kind);
+    map['correct'] = Variable<bool>(correct);
+    map['answered_at'] = Variable<DateTime>(answeredAt);
+    if (!nullToAbsent || noteId != null) {
+      map['note_id'] = Variable<String>(noteId);
+    }
+    if (!nullToAbsent || cardId != null) {
+      map['card_id'] = Variable<String>(cardId);
+    }
+    if (!nullToAbsent || heading != null) {
+      map['heading'] = Variable<String>(heading);
+    }
+    return map;
+  }
+
+  LocalQuizAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return LocalQuizAttemptsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      questionId: Value(questionId),
+      kind: Value(kind),
+      correct: Value(correct),
+      answeredAt: Value(answeredAt),
+      noteId:
+          noteId == null && nullToAbsent ? const Value.absent() : Value(noteId),
+      cardId:
+          cardId == null && nullToAbsent ? const Value.absent() : Value(cardId),
+      heading: heading == null && nullToAbsent
+          ? const Value.absent()
+          : Value(heading),
+    );
+  }
+
+  factory LocalQuizAttempt.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalQuizAttempt(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      questionId: serializer.fromJson<String>(json['questionId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      correct: serializer.fromJson<bool>(json['correct']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+      noteId: serializer.fromJson<String?>(json['noteId']),
+      cardId: serializer.fromJson<String?>(json['cardId']),
+      heading: serializer.fromJson<String?>(json['heading']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'questionId': serializer.toJson<String>(questionId),
+      'kind': serializer.toJson<String>(kind),
+      'correct': serializer.toJson<bool>(correct),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+      'noteId': serializer.toJson<String?>(noteId),
+      'cardId': serializer.toJson<String?>(cardId),
+      'heading': serializer.toJson<String?>(heading),
+    };
+  }
+
+  LocalQuizAttempt copyWith(
+          {String? id,
+          String? userId,
+          String? questionId,
+          String? kind,
+          bool? correct,
+          DateTime? answeredAt,
+          Value<String?> noteId = const Value.absent(),
+          Value<String?> cardId = const Value.absent(),
+          Value<String?> heading = const Value.absent()}) =>
+      LocalQuizAttempt(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        questionId: questionId ?? this.questionId,
+        kind: kind ?? this.kind,
+        correct: correct ?? this.correct,
+        answeredAt: answeredAt ?? this.answeredAt,
+        noteId: noteId.present ? noteId.value : this.noteId,
+        cardId: cardId.present ? cardId.value : this.cardId,
+        heading: heading.present ? heading.value : this.heading,
+      );
+  LocalQuizAttempt copyWithCompanion(LocalQuizAttemptsCompanion data) {
+    return LocalQuizAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      questionId:
+          data.questionId.present ? data.questionId.value : this.questionId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      correct: data.correct.present ? data.correct.value : this.correct,
+      answeredAt:
+          data.answeredAt.present ? data.answeredAt.value : this.answeredAt,
+      noteId: data.noteId.present ? data.noteId.value : this.noteId,
+      cardId: data.cardId.present ? data.cardId.value : this.cardId,
+      heading: data.heading.present ? data.heading.value : this.heading,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalQuizAttempt(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('questionId: $questionId, ')
+          ..write('kind: $kind, ')
+          ..write('correct: $correct, ')
+          ..write('answeredAt: $answeredAt, ')
+          ..write('noteId: $noteId, ')
+          ..write('cardId: $cardId, ')
+          ..write('heading: $heading')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, userId, questionId, kind, correct,
+      answeredAt, noteId, cardId, heading);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalQuizAttempt &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.questionId == this.questionId &&
+          other.kind == this.kind &&
+          other.correct == this.correct &&
+          other.answeredAt == this.answeredAt &&
+          other.noteId == this.noteId &&
+          other.cardId == this.cardId &&
+          other.heading == this.heading);
+}
+
+class LocalQuizAttemptsCompanion extends UpdateCompanion<LocalQuizAttempt> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> questionId;
+  final Value<String> kind;
+  final Value<bool> correct;
+  final Value<DateTime> answeredAt;
+  final Value<String?> noteId;
+  final Value<String?> cardId;
+  final Value<String?> heading;
+  final Value<int> rowid;
+  const LocalQuizAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.questionId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.correct = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+    this.noteId = const Value.absent(),
+    this.cardId = const Value.absent(),
+    this.heading = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalQuizAttemptsCompanion.insert({
+    required String id,
+    required String userId,
+    required String questionId,
+    required String kind,
+    required bool correct,
+    required DateTime answeredAt,
+    this.noteId = const Value.absent(),
+    this.cardId = const Value.absent(),
+    this.heading = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        questionId = Value(questionId),
+        kind = Value(kind),
+        correct = Value(correct),
+        answeredAt = Value(answeredAt);
+  static Insertable<LocalQuizAttempt> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? questionId,
+    Expression<String>? kind,
+    Expression<bool>? correct,
+    Expression<DateTime>? answeredAt,
+    Expression<String>? noteId,
+    Expression<String>? cardId,
+    Expression<String>? heading,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (questionId != null) 'question_id': questionId,
+      if (kind != null) 'kind': kind,
+      if (correct != null) 'correct': correct,
+      if (answeredAt != null) 'answered_at': answeredAt,
+      if (noteId != null) 'note_id': noteId,
+      if (cardId != null) 'card_id': cardId,
+      if (heading != null) 'heading': heading,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalQuizAttemptsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String>? questionId,
+      Value<String>? kind,
+      Value<bool>? correct,
+      Value<DateTime>? answeredAt,
+      Value<String?>? noteId,
+      Value<String?>? cardId,
+      Value<String?>? heading,
+      Value<int>? rowid}) {
+    return LocalQuizAttemptsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      questionId: questionId ?? this.questionId,
+      kind: kind ?? this.kind,
+      correct: correct ?? this.correct,
+      answeredAt: answeredAt ?? this.answeredAt,
+      noteId: noteId ?? this.noteId,
+      cardId: cardId ?? this.cardId,
+      heading: heading ?? this.heading,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (questionId.present) {
+      map['question_id'] = Variable<String>(questionId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (correct.present) {
+      map['correct'] = Variable<bool>(correct.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<DateTime>(answeredAt.value);
+    }
+    if (noteId.present) {
+      map['note_id'] = Variable<String>(noteId.value);
+    }
+    if (cardId.present) {
+      map['card_id'] = Variable<String>(cardId.value);
+    }
+    if (heading.present) {
+      map['heading'] = Variable<String>(heading.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalQuizAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('questionId: $questionId, ')
+          ..write('kind: $kind, ')
+          ..write('correct: $correct, ')
+          ..write('answeredAt: $answeredAt, ')
+          ..write('noteId: $noteId, ')
+          ..write('cardId: $cardId, ')
+          ..write('heading: $heading, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -12111,6 +12590,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $SyncRowVersionsTable(this);
   late final $LocalMediaCacheTable localMediaCache =
       $LocalMediaCacheTable(this);
+  late final $LocalQuizAttemptsTable localQuizAttempts =
+      $LocalQuizAttemptsTable(this);
   late final Index localNotesUserUpdated = Index('local_notes_user_updated',
       'CREATE INDEX local_notes_user_updated ON local_notes (user_id, updated_at)');
   late final Index localNoteBlocksNotePosition = Index(
@@ -12179,6 +12660,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       'CREATE INDEX local_pomodoro_sessions_user_started ON local_pomodoro_sessions (user_id, started_at)');
   late final Index syncQueueEntriesEntity = Index('sync_queue_entries_entity',
       'CREATE INDEX sync_queue_entries_entity ON sync_queue_entries (entity_table, entity_id)');
+  late final Index localQuizAttemptsUserAnswered = Index(
+      'local_quiz_attempts_user_answered',
+      'CREATE INDEX local_quiz_attempts_user_answered ON local_quiz_attempts (user_id, answered_at)');
   late final Index localFoldersUserParent = Index('local_folders_user_parent',
       'CREATE INDEX local_folders_user_parent ON local_folders (user_id, parent_id)');
   @override
@@ -12215,6 +12699,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localFolders,
         syncRowVersions,
         localMediaCache,
+        localQuizAttempts,
         localNotesUserUpdated,
         localNoteBlocksNotePosition,
         localNoteLinksUserCreated,
@@ -12242,6 +12727,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         localHabitsUserCreated,
         localPomodoroSessionsUserStarted,
         syncQueueEntriesEntity,
+        localQuizAttemptsUserAnswered,
         localFoldersUserParent
       ];
   @override
@@ -20330,6 +20816,246 @@ typedef $$LocalMediaCacheTableProcessedTableManager = ProcessedTableManager<
     ),
     LocalMediaCacheData,
     PrefetchHooks Function()>;
+typedef $$LocalQuizAttemptsTableCreateCompanionBuilder
+    = LocalQuizAttemptsCompanion Function({
+  required String id,
+  required String userId,
+  required String questionId,
+  required String kind,
+  required bool correct,
+  required DateTime answeredAt,
+  Value<String?> noteId,
+  Value<String?> cardId,
+  Value<String?> heading,
+  Value<int> rowid,
+});
+typedef $$LocalQuizAttemptsTableUpdateCompanionBuilder
+    = LocalQuizAttemptsCompanion Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String> questionId,
+  Value<String> kind,
+  Value<bool> correct,
+  Value<DateTime> answeredAt,
+  Value<String?> noteId,
+  Value<String?> cardId,
+  Value<String?> heading,
+  Value<int> rowid,
+});
+
+class $$LocalQuizAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalQuizAttemptsTable> {
+  $$LocalQuizAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get correct => $composableBuilder(
+      column: $table.correct, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get noteId => $composableBuilder(
+      column: $table.noteId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get cardId => $composableBuilder(
+      column: $table.cardId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get heading => $composableBuilder(
+      column: $table.heading, builder: (column) => ColumnFilters(column));
+}
+
+class $$LocalQuizAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalQuizAttemptsTable> {
+  $$LocalQuizAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get correct => $composableBuilder(
+      column: $table.correct, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get noteId => $composableBuilder(
+      column: $table.noteId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get cardId => $composableBuilder(
+      column: $table.cardId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get heading => $composableBuilder(
+      column: $table.heading, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LocalQuizAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalQuizAttemptsTable> {
+  $$LocalQuizAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get questionId => $composableBuilder(
+      column: $table.questionId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<bool> get correct =>
+      $composableBuilder(column: $table.correct, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => column);
+
+  GeneratedColumn<String> get noteId =>
+      $composableBuilder(column: $table.noteId, builder: (column) => column);
+
+  GeneratedColumn<String> get cardId =>
+      $composableBuilder(column: $table.cardId, builder: (column) => column);
+
+  GeneratedColumn<String> get heading =>
+      $composableBuilder(column: $table.heading, builder: (column) => column);
+}
+
+class $$LocalQuizAttemptsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LocalQuizAttemptsTable,
+    LocalQuizAttempt,
+    $$LocalQuizAttemptsTableFilterComposer,
+    $$LocalQuizAttemptsTableOrderingComposer,
+    $$LocalQuizAttemptsTableAnnotationComposer,
+    $$LocalQuizAttemptsTableCreateCompanionBuilder,
+    $$LocalQuizAttemptsTableUpdateCompanionBuilder,
+    (
+      LocalQuizAttempt,
+      BaseReferences<_$AppDatabase, $LocalQuizAttemptsTable, LocalQuizAttempt>
+    ),
+    LocalQuizAttempt,
+    PrefetchHooks Function()> {
+  $$LocalQuizAttemptsTableTableManager(
+      _$AppDatabase db, $LocalQuizAttemptsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalQuizAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalQuizAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalQuizAttemptsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String> questionId = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<bool> correct = const Value.absent(),
+            Value<DateTime> answeredAt = const Value.absent(),
+            Value<String?> noteId = const Value.absent(),
+            Value<String?> cardId = const Value.absent(),
+            Value<String?> heading = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalQuizAttemptsCompanion(
+            id: id,
+            userId: userId,
+            questionId: questionId,
+            kind: kind,
+            correct: correct,
+            answeredAt: answeredAt,
+            noteId: noteId,
+            cardId: cardId,
+            heading: heading,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            required String questionId,
+            required String kind,
+            required bool correct,
+            required DateTime answeredAt,
+            Value<String?> noteId = const Value.absent(),
+            Value<String?> cardId = const Value.absent(),
+            Value<String?> heading = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LocalQuizAttemptsCompanion.insert(
+            id: id,
+            userId: userId,
+            questionId: questionId,
+            kind: kind,
+            correct: correct,
+            answeredAt: answeredAt,
+            noteId: noteId,
+            cardId: cardId,
+            heading: heading,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable<$LocalQuizAttemptsTable, LocalQuizAttempt>(
+                        table),
+                    BaseReferences<_$AppDatabase, $LocalQuizAttemptsTable,
+                        LocalQuizAttempt>(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LocalQuizAttemptsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LocalQuizAttemptsTable,
+    LocalQuizAttempt,
+    $$LocalQuizAttemptsTableFilterComposer,
+    $$LocalQuizAttemptsTableOrderingComposer,
+    $$LocalQuizAttemptsTableAnnotationComposer,
+    $$LocalQuizAttemptsTableCreateCompanionBuilder,
+    $$LocalQuizAttemptsTableUpdateCompanionBuilder,
+    (
+      LocalQuizAttempt,
+      BaseReferences<_$AppDatabase, $LocalQuizAttemptsTable, LocalQuizAttempt>
+    ),
+    LocalQuizAttempt,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -20386,4 +21112,6 @@ class $AppDatabaseManager {
       $$SyncRowVersionsTableTableManager(_db, _db.syncRowVersions);
   $$LocalMediaCacheTableTableManager get localMediaCache =>
       $$LocalMediaCacheTableTableManager(_db, _db.localMediaCache);
+  $$LocalQuizAttemptsTableTableManager get localQuizAttempts =>
+      $$LocalQuizAttemptsTableTableManager(_db, _db.localQuizAttempts);
 }

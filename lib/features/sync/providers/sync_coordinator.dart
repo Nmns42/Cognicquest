@@ -17,6 +17,7 @@ import '../../notes/data/folder_repository.dart';
 import '../../notes/data/note_repository.dart';
 import '../../planning/data/planning_repository.dart';
 import '../../pomodoro/data/pomodoro_repository.dart';
+import '../../quiz/data/quiz_repository.dart';
 import '../../review/data/review_repository.dart';
 import '../../settings/data/preferences_repository.dart';
 
@@ -136,6 +137,7 @@ class SyncCoordinator extends Notifier<SyncStatus> {
         ref.read(noteRepositoryProvider)?.sync,
         ref.read(noteLinkRepositoryProvider)?.sync,
         ref.read(reviewRepositoryProvider)?.sync,
+        ref.read(quizRepositoryProvider)?.sync,
         ref.read(metacognitionRepositoryProvider)?.sync,
         ref.read(planningRepositoryProvider)?.sync,
         ref.read(preferencesRepositoryProvider)?.sync,

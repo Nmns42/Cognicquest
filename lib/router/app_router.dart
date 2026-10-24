@@ -34,6 +34,8 @@ import '../features/planning/views/planning_hub_page.dart';
 import '../features/planning/views/revision_speed_page.dart';
 import '../features/pomodoro/providers/pomodoro_provider.dart';
 import '../features/pomodoro/views/pomodoro_page.dart';
+import '../features/quiz/domain/quiz_generator.dart';
+import '../features/quiz/views/quiz_page.dart';
 import '../features/review/views/explain_page.dart';
 import '../features/review/views/review_home_page.dart';
 import '../features/review/views/review_session_page.dart';
@@ -83,6 +85,17 @@ abstract final class AppRoute {
   /// Révision des seules cartes d'une fiche.
   static String reviewSessionFor(String noteId) =>
       '$reviewSession?note=$noteId';
+
+  /// Quiz génératif : ciblé par défaut, `?mode=deepen` pour
+  /// l'approfondissement, `&note=…` pour une seule fiche.
+  static const String quiz = '/review/quiz';
+  static String quizFor({bool deepen = false, String? noteId}) => Uri(
+        path: quiz,
+        queryParameters: {
+          if (deepen) 'mode': 'deepen',
+          if (noteId != null) 'note': noteId,
+        },
+      ).toString();
 
   static const Set<String> publicRoutes = {login, register, forgotPassword};
 }
@@ -280,6 +293,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => PanelSettle(
                     child: ReviewSessionPage(
                         noteId: state.uri.queryParameters['note'])),
+              ),
+              GoRoute(
+                path: 'quiz',
+                builder: (_, state) => PanelSettle(
+                  child: QuizPage(
+                    mode: state.uri.queryParameters['mode'] == 'deepen'
+                        ? QuizMode.deepen
+                        : QuizMode.focus,
+                    noteId: state.uri.queryParameters['note'],
+                  ),
+                ),
               ),
               GoRoute(
                 path: 'sheet/:noteId',
