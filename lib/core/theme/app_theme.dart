@@ -488,6 +488,23 @@ class AppTheme {
         ),
       ),
 
+      // Sélection en aplat pierre et texte principal, comme les autres
+      // sélections (le vert reste réservé aux actions) : sans thème, Material
+      // posait une teinte menthe hors charte.
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          backgroundColor: cq.cardColor,
+          foregroundColor: cq.textPrimary,
+          selectedBackgroundColor: cq.beigeDark,
+          selectedForegroundColor: cq.textPrimary,
+          side: BorderSide(color: cq.beigeDark),
+          textStyle: const TextStyle(
+            fontFamily: appFontFamily,
+            fontSize: TypeScale.body,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: cq.vert,
         foregroundColor: onAccent,

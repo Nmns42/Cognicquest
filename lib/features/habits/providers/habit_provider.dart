@@ -49,8 +49,10 @@ class HabitNotifier extends StreamNotifier<List<Habit>> {
   Future<void> renameHabit(Habit habit, String name, HabitFrequency frequency) {
     final updated = habit.copyWith(name: name.trim(), frequency: frequency);
     return _mutate(
-      optimistic: (habits) =>
-          [for (final h in habits) if (h.id == habit.id) updated else h],
+      optimistic: (habits) => [
+        for (final h in habits)
+          if (h.id == habit.id) updated else h
+      ],
       action: (repository) => repository.update(updated),
     );
   }
@@ -67,8 +69,10 @@ class HabitNotifier extends StreamNotifier<List<Habit>> {
     final before = habit.completedDates.toSet();
     final after = updated.completedDates.toSet();
     return _mutate(
-      optimistic: (habits) =>
-          [for (final h in habits) if (h.id == habit.id) updated else h],
+      optimistic: (habits) => [
+        for (final h in habits)
+          if (h.id == habit.id) updated else h
+      ],
       action: (repository) async {
         for (final key in after.difference(before)) {
           final date = Habit.parseKey(key);

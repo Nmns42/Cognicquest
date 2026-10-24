@@ -6,6 +6,7 @@ import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/habit_model.dart';
 import '../providers/habit_provider.dart';
+import '../widgets/habit_detail_sheet.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
 
@@ -80,12 +81,16 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
       grid: grid,
       onToggle: () => notifier.toggleToday(habit),
       onToggleDay: (day) => notifier.toggleOn(habit, day),
+      onOpen: () => HabitDetailSheet.show(
+        context,
+        habitId: habit.id,
+        onEdit: () => _openEditor(habit: habit),
+      ),
       onEdit: () => _openEditor(habit: habit),
       onDelete: () => _delete(habit),
       // En grille, pas de glisser-déposer : on déplace par le menu.
-      onMoveBefore: grid && index > 0
-          ? () => notifier.move(habit.id, index - 1)
-          : null,
+      onMoveBefore:
+          grid && index > 0 ? () => notifier.move(habit.id, index - 1) : null,
       onMoveAfter: grid && index < habits.length - 1
           ? () => notifier.move(habit.id, index + 1)
           : null,
@@ -133,9 +138,8 @@ class _HabitsPageState extends ConsumerState<HabitsPage> {
               const SizedBox(height: Space.xl),
               LayoutBuilder(builder: (context, constraints) {
                 final columns = constraints.maxWidth >= 760 ? 3 : 2;
-                final width = (constraints.maxWidth -
-                        Space.lg * (columns - 1)) /
-                    columns;
+                final width =
+                    (constraints.maxWidth - Space.lg * (columns - 1)) / columns;
                 return Wrap(
                   spacing: Space.lg,
                   runSpacing: Space.lg,
@@ -280,6 +284,7 @@ class _HabitTile extends StatelessWidget {
     required this.habit,
     required this.onToggle,
     required this.onToggleDay,
+    required this.onOpen,
     required this.onEdit,
     required this.onDelete,
     this.grid = false,
@@ -290,6 +295,9 @@ class _HabitTile extends StatelessWidget {
   final Habit habit;
   final VoidCallback onToggle;
   final ValueChanged<DateTime> onToggleDay;
+
+  /// Toute la carte : ouvre la fiche récapitulative.
+  final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -302,14 +310,41 @@ class _HabitTile extends StatelessWidget {
 
   static const List<String> _dayInitials = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
   static const List<String> _dayNames = [
-    'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche',
+    'lundi',
+    'mardi',
+    'mercredi',
+    'jeudi',
+    'vendredi',
+    'samedi',
+    'dimanche',
   ];
   static const List<String> _monthInitials = [
-    'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D',
+    'J',
+    'F',
+    'M',
+    'A',
+    'M',
+    'J',
+    'J',
+    'A',
+    'S',
+    'O',
+    'N',
+    'D',
   ];
   static const List<String> _monthNames = [
-    'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
-    'septembre', 'octobre', 'novembre', 'décembre',
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre',
   ];
 
   /// Cases de la période, selon la fréquence, et leur total.
@@ -398,145 +433,169 @@ class _HabitTile extends StatelessWidget {
     final card = Card(
       margin: EdgeInsets.zero,
       shape: context.cardShape,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      clipBehavior: Clip.antiAlias,
+      // Toute la ligne s'ouvre en fiche ; la coche, les cases et le menu
+      // gardent leur propre action.
+      child: InkWell(
+        onTap: onOpen,
+        child: Semantics(
+          hint: 'Ouvrir la fiche de l’habitude',
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: onToggle,
-                  borderRadius: BorderRadius.circular(Radii.md),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    // Micro-animation n° 1 : la coche rebondit quand
-                    // l'habitude devient faite (pas quand on la décoche).
-                    child: PulseOnChange(
-                      trigger: isDone,
-                      enabled: isDone,
-                      scale: 1.2,
-                      child: AnimatedContainer(
-                        duration: Motion.duration(
-                            context, const Duration(milliseconds: 200)),
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: isDone
-                              ? context.cq.vertSauge
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isDone
-                                ? context.cq.vertSauge
-                                : context.cq.textHint,
-                            width: 2,
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: onToggle,
+                      borderRadius: BorderRadius.circular(Radii.md),
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        // Micro-animation n° 1 : la coche rebondit quand
+                        // l'habitude devient faite (pas quand on la décoche).
+                        child: PulseOnChange(
+                          trigger: isDone,
+                          enabled: isDone,
+                          scale: 1.2,
+                          child: AnimatedContainer(
+                            duration: Motion.duration(
+                                context, const Duration(milliseconds: 200)),
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: isDone
+                                  ? context.cq.vertSauge
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isDone
+                                    ? context.cq.vertSauge
+                                    : context.cq.textHint,
+                                width: 2,
+                              ),
+                              // Case carrée aux angles doux.
+                              borderRadius: BorderRadius.circular(Radii.xs),
+                            ),
+                            child: isDone
+                                ? Icon(Icons.check,
+                                    size: 16, color: context.cq.beige)
+                                : null,
                           ),
-                          // Case carrée aux angles doux.
-                          borderRadius: BorderRadius.circular(Radii.xs),
                         ),
-                        child: isDone
-                            ? Icon(Icons.check,
-                                size: 16, color: context.cq.beige)
-                            : null,
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            habit.name,
+                            style: TextStyle(
+                              fontSize: TypeScale.bodyLarge,
+                              color: context.cq.textPrimary,
+                              decoration:
+                                  isDone ? TextDecoration.lineThrough : null,
+                              decorationColor: context.cq.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            habit.frequency.label,
+                            // Métadonnée chaleureuse : la terre répond au vert.
+                            style: TextStyle(
+                                fontSize: TypeScale.caption,
+                                color: context.cq.terre),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Pastille de série, en haut à droite : sauge si l'habitude
+                    // est à jour, écorce sinon. Le chiffre monte d'un cran.
+                    RollingNumber(
+                      value: habit.streak,
+                      builder: (context, streak) => CqScoreBadge(
+                        value: '$streak',
+                        semanticLabel:
+                            'Série : $streak ${habit.frequency.shortUnit}',
+                        warm: !isDone,
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      popUpAnimationStyle: Motion.style(context),
+                      tooltip: 'Options',
+                      icon: Icon(Icons.more_vert,
+                          size: 18, color: context.cq.textMuted),
+                      onSelected: (value) => switch (value) {
+                        'edit' => onEdit(),
+                        'before' => onMoveBefore?.call(),
+                        'after' => onMoveAfter?.call(),
+                        _ => onDelete(),
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                            value: 'edit', child: Text('Modifier')),
+                        if (onMoveBefore != null)
+                          const PopupMenuItem(
+                              value: 'before', child: Text('Déplacer avant')),
+                        if (onMoveAfter != null)
+                          const PopupMenuItem(
+                              value: 'after', child: Text('Déplacer après')),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Supprimer',
+                              style: TextStyle(color: context.cq.errorColor)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
+                const SizedBox(height: 10),
+                // Tableau de progression — CdC : « cases cochées par jour » —
+                // adapté à la fréquence (jours, semaines du mois ou mois).
+                // Cases sur toute la largeur, total dessous : les cases gardent
+                // leur taille sur un téléphone et dans une carte de grille.
+                Padding(
+                  padding:
+                      EdgeInsets.only(left: grid ? Space.xs : 36, right: 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        habit.name,
-                        style: TextStyle(
-                          fontSize: TypeScale.bodyLarge,
-                          color: context.cq.textPrimary,
-                          decoration:
-                              isDone ? TextDecoration.lineThrough : null,
-                          decorationColor: context.cq.textMuted,
-                        ),
+                      // À 200 % de texte ou sur un écran très étroit, les cases
+                      // rétrécissent au lieu de déborder.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        // Les 12 mois sur deux lignes (janvier → juin,
+                        // juillet → décembre) : sur une seule, ils
+                        // rétrécissaient jusqu'à devenir illisibles sur un
+                        // téléphone.
+                        child: cells.length > 7
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: cells.sublist(0, 6)),
+                                  const SizedBox(height: Space.xs),
+                                  Row(children: cells.sublist(6)),
+                                ],
+                              )
+                            : Row(children: cells),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: Space.xs),
                       Text(
-                        habit.frequency.label,
-                        // Métadonnée chaleureuse : la terre répond au vert.
+                        total,
                         style: TextStyle(
-                            fontSize: TypeScale.caption,
-                            color: context.cq.terre),
+                          fontSize: TypeScale.caption,
+                          color: context.cq.textMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                // Pastille de série, en haut à droite : sauge si l'habitude
-                // est à jour, écorce sinon. Le chiffre monte d'un cran.
-                RollingNumber(
-                  value: habit.streak,
-                  builder: (context, streak) => CqScoreBadge(
-                    value: '$streak',
-                    semanticLabel:
-                        'Série : $streak ${habit.frequency.shortUnit}',
-                    warm: !isDone,
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  popUpAnimationStyle: Motion.style(context),
-                  tooltip: 'Options',
-                  icon: Icon(Icons.more_vert,
-                      size: 18, color: context.cq.textMuted),
-                  onSelected: (value) => switch (value) {
-                    'edit' => onEdit(),
-                    'before' => onMoveBefore?.call(),
-                    'after' => onMoveAfter?.call(),
-                    _ => onDelete(),
-                  },
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Modifier')),
-                    if (onMoveBefore != null)
-                      const PopupMenuItem(
-                          value: 'before', child: Text('Déplacer avant')),
-                    if (onMoveAfter != null)
-                      const PopupMenuItem(
-                          value: 'after', child: Text('Déplacer après')),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Supprimer',
-                          style: TextStyle(color: context.cq.errorColor)),
-                    ),
-                  ],
-                ),
               ],
             ),
-            const SizedBox(height: 10),
-            // Tableau de progression — CdC : « cases cochées par jour » —
-            // adapté à la fréquence (jours, semaines du mois ou mois).
-            // Cases sur toute la largeur, total dessous : les cases gardent
-            // leur taille sur un téléphone et dans une carte de grille.
-            Padding(
-              padding: EdgeInsets.only(left: grid ? Space.xs : 36, right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // À 200 % de texte ou sur un écran très étroit, les cases
-                  // rétrécissent au lieu de déborder.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(children: cells),
-                  ),
-                  const SizedBox(height: Space.xs),
-                  Text(
-                    total,
-                    style: TextStyle(
-                      fontSize: TypeScale.caption,
-                      color: context.cq.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -618,19 +677,19 @@ class _PeriodCell extends StatelessWidget {
             child: done && checkWhenDone
                 ? Icon(Icons.check, size: Sizes.iconSm, color: context.cq.beige)
                 : Text(
-              label,
-              style: TextStyle(
-                fontSize: TypeScale.caption,
-                fontWeight: FontWeight.w600,
-                color: done
-                    ? context.cq.beige
-                    : (isCurrent
-                        ? context.cq.textPrimary
-                        : (upcoming
-                            ? context.cq.textHint
-                            : context.cq.textMuted)),
-              ),
-            ),
+                    label,
+                    style: TextStyle(
+                      fontSize: TypeScale.caption,
+                      fontWeight: FontWeight.w600,
+                      color: done
+                          ? context.cq.beige
+                          : (isCurrent
+                              ? context.cq.textPrimary
+                              : (upcoming
+                                  ? context.cq.textHint
+                                  : context.cq.textMuted)),
+                    ),
+                  ),
           ),
         ),
       ),
@@ -760,23 +819,106 @@ class _HabitEditorSheetState extends State<_HabitEditorSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              SegmentedButton<HabitFrequency>(
-                segments: [
-                  for (final frequency in HabitFrequency.values)
-                    ButtonSegment(
-                        value: frequency, label: Text(frequency.label)),
-                ],
-                selected: {_frequency},
-                showSelectedIcon: false,
-                onSelectionChanged: (values) =>
-                    setState(() => _frequency = values.first),
-              ),
+              // Une option par ligne, sur toute la largeur : lisible sur
+              // téléphone, même avec un texte agrandi (le sélecteur
+              // segmenté tronquait « Hebdomadaire »).
+              for (final frequency in HabitFrequency.values)
+                _FrequencyOption(
+                  frequency: frequency,
+                  selected: frequency == _frequency,
+                  onTap: () => setState(() => _frequency = frequency),
+                ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _submit,
                 child: Text(widget.habit == null ? 'Ajouter' : 'Enregistrer'),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Option de fréquence : ligne pleine largeur, libellé et rythme expliqué.
+class _FrequencyOption extends StatelessWidget {
+  const _FrequencyOption({
+    required this.frequency,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final HabitFrequency frequency;
+  final bool selected;
+  final VoidCallback onTap;
+
+  String get _detail => switch (frequency) {
+        HabitFrequency.daily => 'Une case par jour, 7 par semaine',
+        HabitFrequency.weekly => 'Une case par semaine, 4 par mois',
+        HabitFrequency.monthly => 'Une case par mois, 12 par an',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final cq = context.cq;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Space.sm),
+      child: Semantics(
+        inMutuallyExclusiveGroup: true,
+        selected: selected,
+        child: Material(
+          color: selected ? cq.beigeDark : cq.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Radii.sm),
+            side: BorderSide(
+              color: selected ? cq.textPrimary : cq.beigeDark,
+              width: selected ? Borders.focus : Borders.thin,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(Radii.sm),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: Sizes.control),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: Space.md, vertical: Space.sm),
+                child: Row(
+                  children: [
+                    Icon(
+                      selected
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      size: Sizes.iconMd,
+                      color: selected ? cq.textPrimary : cq.textHint,
+                    ),
+                    const SizedBox(width: Space.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            frequency.label,
+                            style: TextStyle(
+                              fontSize: TypeScale.bodyLarge,
+                              fontWeight: FontWeight.w600,
+                              color: cq.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            _detail,
+                            style: TextStyle(
+                                fontSize: TypeScale.caption,
+                                color: cq.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
