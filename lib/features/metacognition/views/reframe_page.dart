@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/models/metacognition_model.dart';
+import '../../kanban/providers/task_provider.dart';
 import '../data/metacognition_repository.dart';
+import '../domain/reframe_summary.dart';
 import '../providers/metacognition_provider.dart';
 import '../../../core/theme/tokens.dart';
 import '../../../core/ui/ui.dart';
@@ -178,6 +181,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
                 padding: const EdgeInsets.only(bottom: Space.md),
                 child: TextField(
                   controller: _digControllers[i],
+                  onChanged: (_) => setState(() {}),
                   minLines: 1,
                   maxLines: 3,
                   textCapitalization: TextCapitalization.sentences,
@@ -229,6 +233,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _evidenceController,
+              onChanged: (_) => setState(() {}),
               minLines: 2,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
@@ -242,6 +247,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _reframedController,
+              onChanged: (_) => setState(() {}),
               minLines: 2,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
@@ -262,6 +268,7 @@ class _ReframePageState extends ConsumerState<ReframePage> {
             const SizedBox(height: 8),
             TextField(
               controller: _goalController,
+              onChanged: (_) => setState(() {}),
               minLines: 2,
               maxLines: 3,
               textCapitalization: TextCapitalization.sentences,
@@ -271,6 +278,20 @@ class _ReframePageState extends ConsumerState<ReframePage> {
               ),
             ),
             const SizedBox(height: 26),
+
+            // Bilan personnalisé : il se construit au fil des réponses.
+            _SummaryCard(
+              summary: ReframeSummary.build(
+                thought: _thoughtController.text,
+                digging: [for (final c in _digControllers) c.text],
+                cause: _cause,
+                distortion: _distortion,
+                evidence: _evidenceController.text,
+                reframed: _reframedController.text,
+                goal: _goalController.text,
+              ),
+            ),
+            const SizedBox(height: Space.lg),
 
             ElevatedButton(
               onPressed:
@@ -357,6 +378,155 @@ class _TrapOption extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Bilan du recadrage : synthèse, reformulation, plan d'action relié aux
+/// outils de CognicQuest, et premier pas ajoutable aux tâches.
+class _SummaryCard extends ConsumerWidget {
+  const _SummaryCard({required this.summary});
+
+  final ReframeSummary summary;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (summary.isEmpty) return const SizedBox.shrink();
+    final cq = context.cq;
+    final percent = (summary.completeness * 100).round();
+    final firstStep = summary.firstStep;
+
+    TextStyle body() => TextStyle(
+        fontSize: TypeScale.body,
+        color: cq.textPrimary,
+        height: TypeScale.bodyHeight);
+
+    return Container(
+      padding: const EdgeInsets.all(Space.lg),
+      decoration: BoxDecoration(
+        color: cq.cardColor,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: cq.beigeDark),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Ton bilan',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              Text(
+                '$percent % complété',
+                style: TextStyle(
+                  fontSize: TypeScale.caption,
+                  color: cq.textMuted,
+                  fontFeatures: TypeScale.tabular,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Space.sm),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(Radii.xs),
+            child: LinearProgressIndicator(
+              value: summary.completeness,
+              minHeight: Space.xs,
+              backgroundColor: cq.beigeDark,
+              color: cq.vertSauge,
+            ),
+          ),
+          const SizedBox(height: Space.md),
+          for (final line in summary.synthesis)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.xs),
+              child: Text(line, style: body()),
+            ),
+          if (summary.reframed != null) ...[
+            const SizedBox(height: Space.sm),
+            Container(
+              padding: const EdgeInsets.all(Space.md),
+              decoration: BoxDecoration(
+                color: cq.parchemin,
+                borderRadius: BorderRadius.circular(Radii.sm),
+                border: Border(left: BorderSide(color: cq.vertSauge, width: 3)),
+              ),
+              child: Text(
+                '« ${summary.reframed} »',
+                style: TextStyle(
+                  fontFamily: appSerifFamily,
+                  fontSize: TypeScale.bodyLarge,
+                  color: cq.textPrimary,
+                  height: TypeScale.bodyHeight,
+                ),
+              ),
+            ),
+          ],
+          if (summary.plan.isNotEmpty) ...[
+            const SizedBox(height: Space.lg),
+            Text('Ton plan d’action',
+                style: TextStyle(
+                    fontSize: TypeScale.body,
+                    fontWeight: FontWeight.w600,
+                    color: cq.terre)),
+            const SizedBox(height: Space.sm),
+            for (final (i, step) in summary.plan.indexed)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Space.sm),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: Space.xl,
+                      child: Text('${i + 1}.',
+                          style: TextStyle(
+                              fontSize: TypeScale.body,
+                              fontWeight: FontWeight.w600,
+                              color: cq.vertSauge,
+                              fontFeatures: TypeScale.tabular)),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(step.text, style: body()),
+                          if (step.route != null && step.actionLabel != null)
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero),
+                              onPressed: () => context.push(step.route!),
+                              child: Text(step.actionLabel!),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          if (firstStep != null) ...[
+            const SizedBox(height: Space.sm),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await ref.read(taskProvider.notifier).addTask(
+                      firstStep,
+                      description: 'Premier pas issu d’un recadrage cognitif.',
+                      isImportant: true,
+                    );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  snackBarAnimationStyle: Motion.style(context),
+                  const SnackBar(
+                      content: Text('Premier pas ajouté à tes tâches.')),
+                );
+              },
+              icon: const Icon(Icons.add_task, size: Sizes.iconMd),
+              label: const Text('Ajouter mon premier pas aux tâches'),
+            ),
+          ],
+        ],
       ),
     );
   }

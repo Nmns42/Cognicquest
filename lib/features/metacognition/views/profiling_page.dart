@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../graph/providers/graph_provider.dart';
+import '../../reminders/reminder_service.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../domain/learning_profile.dart';
+import '../domain/profile_playbook.dart';
 import '../providers/metacognition_provider.dart';
 import '../../../core/theme/tokens.dart';
 
@@ -304,6 +308,11 @@ class _ResultScaffold extends StatelessWidget {
                 ),
             ],
 
+            if (style != null || channel != null) ...[
+              const SizedBox(height: Space.xl),
+              _PlaybookSection(profile: profile),
+            ],
+
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () => context.pop(),
@@ -312,6 +321,136 @@ class _ResultScaffold extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Mode d'emploi détaillé : pour chaque conseil, pourquoi il convient à ce
+/// profil, comment l'appliquer dans CognicQuest, et le réglage à poser
+/// d'un appui (Pomodoro, graphe, rappel) ou l'écran à ouvrir.
+class _PlaybookSection extends ConsumerWidget {
+  const _PlaybookSection({required this.profile});
+
+  final LearningProfile profile;
+
+  Future<void> _apply(
+      BuildContext context, WidgetRef ref, PlaybookAction action) async {
+    String? done;
+    switch (action) {
+      case PomodoroPreset():
+        final settings = ref.read(settingsProvider.notifier);
+        settings.setPomodoro(ref.read(settingsProvider).pomodoro.copyWith(
+              workMinutes: action.work,
+              shortBreakMinutes: action.shortBreak,
+              longBreakMinutes: action.longBreak,
+              sessionsBeforeLongBreak: action.sessions,
+            ));
+        done = 'Pomodoro réglé : ${action.work} / ${action.shortBreak} min, '
+            '${action.sessions} sessions.';
+      case GraphOverviewPreset():
+        ref.read(graphSettingsProvider.notifier).update((s) =>
+            s.copyWith(colorByFolder: true, groupByFolder: true));
+        done = 'Graphe : couleurs et regroupement par dossier activés.';
+      case DailyReminderPreset():
+        await ref.read(reminderServiceProvider).requestPermission();
+        final settings = ref.read(settingsProvider.notifier);
+        settings.setDailyReminderMinutes(action.minutes);
+        settings.setDailyReminder(true);
+        done = 'Rappel quotidien activé à '
+            '${reminderTimeLabel(action.minutes)}.';
+      case OpenScreen():
+        if (context.mounted) await context.push(action.route);
+    }
+    if (done != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        snackBarAnimationStyle: Motion.style(context),
+        SnackBar(content: Text(done)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cq = context.cq;
+    final advice = ProfilePlaybook.of(profile);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Ton mode d’emploi détaillé',
+            style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: Space.xs),
+        Text(
+          'Chaque conseil s’appuie sur ton profil et se règle dans '
+          'CognicQuest d’un appui.',
+          style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
+        ),
+        const SizedBox(height: Space.md),
+        for (final item in advice)
+          Container(
+            margin: const EdgeInsets.only(bottom: Space.md),
+            padding: const EdgeInsets.all(Space.lg),
+            decoration: BoxDecoration(
+              color: cq.cardColor,
+              borderRadius: BorderRadius.circular(Radii.card),
+              border: Border.all(color: cq.beigeDark),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(item.title,
+                    style: TextStyle(
+                        fontSize: TypeScale.bodyLarge,
+                        fontWeight: FontWeight.w600,
+                        color: cq.textPrimary)),
+                const SizedBox(height: Space.xs),
+                Text(item.why,
+                    style: TextStyle(
+                        fontSize: TypeScale.caption,
+                        color: cq.terre,
+                        height: TypeScale.bodyHeight)),
+                const SizedBox(height: Space.sm),
+                for (final step in item.steps)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Space.xs),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Icon(Icons.check,
+                              size: Sizes.iconSm, color: cq.vertSauge),
+                        ),
+                        const SizedBox(width: Space.sm),
+                        Expanded(
+                          child: Text(step,
+                              style: TextStyle(
+                                  fontSize: TypeScale.body,
+                                  color: cq.textPrimary,
+                                  height: TypeScale.bodyHeight)),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (item.action case final action?) ...[
+                  const SizedBox(height: Space.sm),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _apply(context, ref, action),
+                      icon: Icon(
+                        action is OpenScreen
+                            ? Icons.arrow_forward
+                            : Icons.tune,
+                        size: Sizes.iconSm,
+                      ),
+                      label: Text(action.label),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
     );
   }
 }
