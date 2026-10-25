@@ -150,14 +150,12 @@ class QuizGenerator {
         kind: reverse ? QuizKind.reverse : QuizKind.card,
         prompt: reverse ? 'À quoi correspond : « $prompt » ?' : prompt,
         answer: answer,
-        pool: _prefer(
-          cardAnswers(card, fronts: reverse),
-          sameDeck: [
-            for (final c in cards)
-              if (c.id != card.id && c.deck == card.deck)
-                reverse ? sides[c.id]!.$1 : sides[c.id]!.$2,
-          ],
-        ),
+        pool: cardAnswers(card, fronts: reverse),
+        preferred: [
+          for (final c in cards)
+            if (c.id != card.id && c.deck == card.deck)
+              reverse ? sides[c.id]!.$1 : sides[c.id]!.$2,
+        ],
         noteId: card.noteId,
         cardId: card.id,
       );
@@ -189,6 +187,8 @@ class QuizGenerator {
           (deepen ? 1 : 0);
 
       for (final (i, section) in sections.indexed) {
+        // Reste un leurre pour les autres sections, mais n'est pas posée.
+        if (section.echoesHeading) continue;
         final question = _choice(
           id: 'sec:${note.id}:$i',
           kind: QuizKind.section,
@@ -205,7 +205,17 @@ class QuizGenerator {
       }
       final allTerms = [for (final t in terms) t.term];
       for (final (i, term) in terms.indexed) {
-        final blank = term.sentence.replaceFirst(term.term, '_____');
+        // « **X** : sens » est déjà posée comme définition.
+        final key = term.term.toLowerCase();
+        if (defs.any((d) =>
+            d.term.toLowerCase() == key && term.sentence.contains(d.meaning))) {
+          continue;
+        }
+        // Mot entier seulement : « ion » ne vide pas « fonction ».
+        final blank = term.sentence.replaceFirst(
+            RegExp('(?<![\\p{L}\\d])${RegExp.escape(term.term)}(?![\\p{L}\\d])',
+                unicode: true),
+            '_____');
         if (blank == term.sentence) continue;
         final question = _choice(
           id: 'cloze:${note.id}:$i',
@@ -213,6 +223,10 @@ class QuizGenerator {
           prompt: 'Complète : $blank',
           answer: term.term,
           pool: [for (final t in allTerms) if (t != term.term) t],
+          preferred: [
+            for (final t in terms)
+              if (t.heading == term.heading && t.term != term.term) t.term,
+          ],
           noteId: note.id,
           heading: term.heading,
           context: term.sentence,
@@ -233,6 +247,11 @@ class QuizGenerator {
             for (final d in defs)
               if (d != def) deepen ? d.term : d.meaning,
           ],
+          preferred: [
+            for (final d in defs)
+              if (d != def && d.heading == def.heading)
+                deepen ? d.term : d.meaning,
+          ],
           noteId: note.id,
           heading: def.heading,
         );
@@ -245,9 +264,35 @@ class QuizGenerator {
     return _weightedSample(candidates, count);
   }
 
-  /// Distracteurs du même paquet d'abord, puis du reste.
-  static List<String> _prefer(List<String> all, {required List<String> sameDeck}) =>
-      [...sameDeck, ...all];
+  static final RegExp _numeric = RegExp(r'^\d');
+
+  /// Classe les leurres : même groupe (paquet, titre) d'abord, puis ceux
+  /// qui ressemblent à la réponse (longueur proche, chiffre ou texte). À
+  /// score égal, l'ordre d'origine est conservé.
+  static List<String> rankDistractors(
+    String answer,
+    List<String> pool, {
+    List<String> preferred = const [],
+  }) {
+    final target = answer.trim();
+    final isNumber = _numeric.hasMatch(target);
+    double score(String option, bool isPreferred) {
+      final o = option.trim();
+      final ratio = target.isEmpty ? 1.0 : o.length / target.length;
+      return (isPreferred ? 2 : 0) +
+          (ratio >= 0.6 && ratio <= 1.6 ? 2 : 0) +
+          (_numeric.hasMatch(o) == isNumber ? 1 : 0);
+    }
+
+    final scored = [
+      for (final (i, o) in preferred.indexed) (o, score(o, true), i),
+      for (final (i, o) in pool.indexed) (o, score(o, false), preferred.length + i),
+    ]..sort((a, b) {
+        final byScore = b.$2.compareTo(a.$2);
+        return byScore != 0 ? byScore : a.$3.compareTo(b.$3);
+      });
+    return [for (final s in scored) s.$1];
+  }
 
   QuizQuestion? _choice({
     required String id,
@@ -255,6 +300,7 @@ class QuizGenerator {
     required String prompt,
     required String answer,
     required List<String> pool,
+    List<String> preferred = const [],
     String? noteId,
     String? cardId,
     String? heading,
@@ -263,8 +309,8 @@ class QuizGenerator {
     final key = answer.trim().toLowerCase();
     final seen = <String>{key};
     final distractors = <String>[];
-    // Ordre de préférence conservé, puis mélange des seuls retenus.
-    for (final option in pool) {
+    // Ordre du classement conservé, puis mélange des seuls retenus.
+    for (final option in rankDistractors(answer, pool, preferred: preferred)) {
       final k = option.trim().toLowerCase();
       if (k.isEmpty || !seen.add(k)) continue;
       distractors.add(option.trim());
@@ -272,6 +318,11 @@ class QuizGenerator {
     }
     // Moins de deux leurres : la question se devinerait.
     if (distractors.length < 2) return null;
+    // Réponse nettement plus longue que tous les leurres : même chose.
+    final longest =
+        distractors.fold<int>(0, (m, d) => math.max(m, d.length));
+    final length = answer.trim().length;
+    if (length > longest * 1.4 && length - longest >= 8) return null;
     final options = [answer.trim(), ...distractors]..shuffle(_random);
     return QuizQuestion(
       id: id,

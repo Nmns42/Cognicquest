@@ -1,7 +1,7 @@
 import '../../notes/domain/rich_text_format.dart';
 
 /// Une section d'une fiche : un titre et le texte qui le suit, jusqu'au
-/// titre suivant de même niveau ou de niveau supérieur.
+/// titre suivant, quel que soit son niveau.
 class NoteSection {
   const NoteSection({
     required this.heading,
@@ -28,6 +28,19 @@ class NoteSection {
     final end = text.indexOf(RegExp(r'[.!?](\s|$)'));
     final sentence = end < 0 ? text : text.substring(0, end + 1);
     return sentence.length > 160 ? '${sentence.substring(0, 157)}…' : sentence;
+  }
+
+  /// Le résumé reprend la majorité des mots du titre : la bonne réponse se
+  /// repérerait sans connaître le cours.
+  bool get echoesHeading {
+    final words = heading
+        .toLowerCase()
+        .split(RegExp(r'[^\p{L}\d]+', unicode: true))
+        .where((w) => w.length >= 4)
+        .toSet();
+    if (words.isEmpty) return false;
+    final text = gist.toLowerCase();
+    return words.where(text.contains).length * 2 > words.length;
   }
 }
 
@@ -66,6 +79,36 @@ abstract final class NoteSections {
   static final RegExp _definition =
       RegExp(r'^\s*(?:[-*]\s+)?\**([^:—\n]{2,50}?)\**\s*(?::|—)\s+(.{6,200})$');
 
+  /// Étiquettes suivies de « : » qui ne sont pas des termes à définir.
+  static const _notTerms = {
+    'exemple', 'exemples', 'ex', 'note', 'nb', 'n.b.', 'remarque', 'attention',
+    'rappel', 'important', 'astuce', 'à retenir', 'source', 'sources', 'cf',
+    'définition', 'conclusion', 'résumé', 'méthode',
+  };
+
+  static String _clean(String text) =>
+      RichTextFormat.plain(text).replaceAll('**', '').trim();
+
+  /// Lignes de texte hors blocs de code, avec le titre qui les couvre.
+  static Iterable<(String, String?)> _lines(String content) sync* {
+    String? heading;
+    var inFence = false;
+    for (final raw in content.split('\n')) {
+      final line = LineAlignment.parse(raw).$2.trim();
+      if (line.startsWith('```')) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      final h = _heading.firstMatch(line);
+      if (h != null) {
+        heading = _clean(h.group(2)!);
+        continue;
+      }
+      yield (line, heading);
+    }
+  }
+
   static List<NoteSection> parse(String content) {
     final sections = <NoteSection>[];
     String? heading;
@@ -82,13 +125,20 @@ abstract final class NoteSections {
       body.clear();
     }
 
+    var inFence = false;
     for (final raw in content.split('\n')) {
       final line = LineAlignment.parse(raw).$2;
+      // Le code ne fait ni titre (« # commentaire ») ni résumé.
+      if (line.trim().startsWith('```')) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
       final match = _heading.firstMatch(line.trim());
       if (match != null) {
         flush();
         level = match.group(1)!.length;
-        heading = RichTextFormat.plain(match.group(2)!).replaceAll('**', '').trim();
+        heading = _clean(match.group(2)!);
       } else {
         body.add(line);
       }
@@ -100,14 +150,7 @@ abstract final class NoteSections {
   /// Termes en gras, avec leur phrase et la section qui les contient.
   static List<BoldTerm> boldTerms(String content) {
     final out = <BoldTerm>[];
-    String? heading;
-    for (final raw in content.split('\n')) {
-      final line = LineAlignment.parse(raw).$2.trim();
-      final h = _heading.firstMatch(line);
-      if (h != null) {
-        heading = RichTextFormat.plain(h.group(2)!).replaceAll('**', '').trim();
-        continue;
-      }
+    for (final (line, heading) in _lines(content)) {
       for (final m in _bold.allMatches(line)) {
         final sentence =
             RichTextFormat.plain(line).replaceAll('**', '').replaceFirst(
@@ -125,14 +168,7 @@ abstract final class NoteSections {
 
   static List<Definition> definitions(String content) {
     final out = <Definition>[];
-    String? heading;
-    for (final raw in content.split('\n')) {
-      final line = LineAlignment.parse(raw).$2.trim();
-      final h = _heading.firstMatch(line);
-      if (h != null) {
-        heading = RichTextFormat.plain(h.group(2)!).replaceAll('**', '').trim();
-        continue;
-      }
+    for (final (line, heading) in _lines(content)) {
       // Pas de lien, d'image ni d'heure (« 10:30 ») pris pour une définition.
       if (line.contains('http') || line.contains('![') || line.startsWith('|')) {
         continue;
@@ -140,7 +176,10 @@ abstract final class NoteSections {
       final m = _definition.firstMatch(line);
       if (m == null) continue;
       final term = RichTextFormat.plain(m.group(1)!).replaceAll('*', '').trim();
-      if (RegExp(r'^\d').hasMatch(term)) continue;
+      if (RegExp(r'^\d').hasMatch(term) ||
+          _notTerms.contains(term.toLowerCase())) {
+        continue;
+      }
       out.add(Definition(
         term: term,
         meaning: RichTextFormat.plain(m.group(2)!).replaceAll('**', '').trim(),

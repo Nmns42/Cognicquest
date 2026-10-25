@@ -74,6 +74,115 @@ void main() {
     });
   });
 
+  group('extraction fiable', () {
+    test('blocs de code ignorés : ni titre, ni définition, ni gras', () {
+      const content = '''
+# Script
+Le script lance la simulation du gaz parfait.
+```
+# commentaire bash
+cle: une valeur de configuration
+echo **gras dans le code**
+```
+''';
+      expect(NoteSections.parse(content).map((s) => s.heading), ['Script']);
+      expect(NoteSections.parse(content).single.body, isNot(contains('echo')));
+      expect(NoteSections.definitions(content), isEmpty);
+      expect(NoteSections.boldTerms(content), isEmpty);
+    });
+
+    test('« Exemple : », « Attention : » ne sont pas des définitions', () {
+      const content = '''
+Exemple : un gaz parfait chauffé à pression constante.
+Attention : ne pas confondre travail et chaleur.
+Isobare : transformation à pression constante.
+''';
+      expect(NoteSections.definitions(content).map((d) => d.term),
+          ['Isobare']);
+    });
+
+    test('texte à trous sur le mot entier', () {
+      const content = '''
+# Chimie
+La fonction d'un **ion** est de porter une charge électrique.
+Un **atome** neutre a autant de protons que d'électrons.
+La **molécule** d'eau compte trois atomes liés.
+''';
+      final questions = QuizGenerator(seed: 3).generate(
+          notes: [note('c', 'Chimie', content)], cards: const [], count: 20);
+      final ion = questions.firstWhere(
+          (q) => q.kind == QuizKind.cloze && q.answer == 'ion');
+      expect(ion.prompt, contains('fonction'));
+      expect(ion.prompt, contains("d'un _____ est"));
+    });
+
+    test('« **X** : sens » : une définition, pas de texte à trous en double', () {
+      const content = '''
+- **Entropie** : grandeur qui mesure le désordre d'un système.
+- **Enthalpie** : énergie interne augmentée du produit PV.
+- **Rendement** : rapport du travail fourni à la chaleur reçue.
+''';
+      final questions = QuizGenerator(seed: 4).generate(
+          notes: [note('d', 'Thermo', content)], cards: const [], count: 20);
+      expect(questions.where((q) => q.kind == QuizKind.definition), hasLength(3));
+      expect(questions.where((q) => q.kind == QuizKind.cloze), isEmpty);
+    });
+
+    test('section dont le résumé répète le titre : pas posée', () {
+      expect(
+          const NoteSection(
+                  heading: 'Chaleur',
+                  level: 2,
+                  body: 'La chaleur est un transfert.')
+              .echoesHeading,
+          isTrue);
+      expect(
+          const NoteSection(
+                  heading: 'Premier principe',
+                  level: 1,
+                  body: "L'énergie se conserve.")
+              .echoesHeading,
+          isFalse);
+      final sections = QuizGenerator(seed: 5)
+          .generate(
+              notes: [note('n', 'Thermodynamique', thermo)],
+              cards: const [],
+              count: 50)
+          .where((q) => q.kind == QuizKind.section);
+      expect(sections.map((q) => q.heading),
+          unorderedEquals(['Premier principe', 'Second principe']));
+    });
+
+    test('leurres : même groupe puis forme proche de la réponse', () {
+      expect(
+          QuizGenerator.rankDistractors(
+                  'Watt', ['Une réponse bien trop longue', '42', 'Pascal'])
+              .first,
+          'Pascal');
+      expect(
+          QuizGenerator.rankDistractors('Watt', ['Pascal'], preferred: ['Ohm'])
+              .first,
+          'Ohm');
+      expect(QuizGenerator.rankDistractors('135', ['Sodium', '145', 'Potassium']).first,
+          '145');
+    });
+
+    test('réponse bien plus longue que les leurres : question écartée', () {
+      final questions = QuizGenerator(seed: 6).generate(
+        notes: const [],
+        cards: [
+          card('long', 'Q1', 'Une définition très longue et détaillée'),
+          card('a', 'Q2', 'Oui'),
+          card('b', 'Q3', 'Non'),
+          card('c', 'Q4', 'Peut-être'),
+        ],
+        count: 10,
+      );
+      expect(questions.map((q) => q.cardId), isNot(contains('long')));
+      expect(questions, isNotEmpty);
+    });
+  });
+
   group('génération', () {
     final notes = [note('n', 'Thermodynamique', thermo)];
     final cards = [
