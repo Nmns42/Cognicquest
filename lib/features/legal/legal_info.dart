@@ -22,6 +22,9 @@ abstract final class LegalInfo {
       'Supabase, Inc. — supabase.com (base de données, authentification et '
       'stockage des images)';
 
+  static const String crashReportHost =
+      'Functional Software, Inc. (Sentry) — sentry.io (rapports de plantage)';
+
   /// Date de dernière mise à jour des textes.
   static const String updatedOn = '25 octobre 2026';
 

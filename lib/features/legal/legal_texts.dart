@@ -62,6 +62,11 @@ const LegalDocument privacyPolicy = LegalDocument(
           'de l’appareil et de nos serveurs.',
       '• Sécurité du compte (authentification, prévention des abus) : '
           'intérêt légitime (art. 6.1.f).',
+      '• Corriger les plantages : rapport technique anonyme (type '
+          'd’erreur, pile d’appels, version de l’app et de l’appareil), sans '
+          'compte, sans contenu, sans adresse IP ni capture d’écran. Intérêt '
+          'légitime (art. 6.1.f) ; tu peux t’y opposer dans Réglages > '
+          'Confidentialité > Rapports de plantage.',
       'Tes données ne sont ni vendues, ni louées, ni utilisées à des fins '
           'publicitaires, ni pour entraîner un modèle d’intelligence '
           'artificielle.',
@@ -71,6 +76,8 @@ const LegalDocument privacyPolicy = LegalDocument(
           'hors ligne. Elle est effacée à la déconnexion.',
       '• Une fois connecté, chez notre sous-traitant ${LegalInfo.dataHost}. '
           'Région d’hébergement : ${LegalInfo.databaseRegion}.',
+      '• Les rapports de plantage, chez ${LegalInfo.crashReportHost}, '
+          'conservés 90 jours au plus.',
       'Chaque ligne est protégée par des règles d’accès au niveau de la base '
           '(Row Level Security) : un compte ne peut lire ni modifier que ses '
           'propres données. Les images sont rangées dans un espace privé, au '

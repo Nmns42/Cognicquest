@@ -39,6 +39,7 @@ dependencies:
   pdf: ^3.13.1
   printing: ^5.15.1
   pdfrx: ^2.4.8
+  sentry_flutter: ^10.2.0
 
   # ──────────────────────────────────────────────────────────────────────────
   # Base locale : arbitrage tranché au Lot 4 en faveur de Drift/SQLite.

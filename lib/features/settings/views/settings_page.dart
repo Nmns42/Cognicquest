@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/monitoring/crash_reporting.dart';
 import '../../../core/motion/reduce_motion.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -377,6 +378,19 @@ class _PrivacyPanel extends ConsumerWidget {
                     'Le retrait les efface.'
                 : 'Facultatif. Active-la pour utiliser le journal, le '
                     'recadrage et les conseils tirés de ton humeur.',
+            style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
+          ),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
+          value: ref.watch(crashReportsProvider).valueOrNull ?? true,
+          onChanged: (enabled) =>
+              ref.read(crashReportsProvider.notifier).set(enabled),
+          title: const Text('Rapports de plantage',
+              style: TextStyle(fontSize: TypeScale.body)),
+          subtitle: Text(
+            'Envoie un rapport anonyme quand l’app plante, pour corriger le '
+            'bug. Ni compte, ni contenu, ni capture d’écran.',
             style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
           ),
         ),

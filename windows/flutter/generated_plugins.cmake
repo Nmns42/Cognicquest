@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   flutter_timezone
   printing
+  sentry_flutter
   url_launcher_windows
 )
 

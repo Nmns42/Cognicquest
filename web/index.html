@@ -18,7 +18,8 @@
       par l'app (build `--no-web-resources-cdn`) ; aucun script en ligne
       exécutable (le JSON-LD n'est pas exécuté).
     - style-src 'unsafe-inline' : Flutter injecte ses styles au démarrage.
-    - connect-src : API, temps réel et Storage Supabase ; polices de repli.
+    - connect-src : API, temps réel et Storage Supabase ; polices de repli ;
+      rapports de plantage Sentry.
     - img-src https: : les images collées par lien dans les fiches.
   -->
   <meta http-equiv="Content-Security-Policy" content="
@@ -28,7 +29,7 @@
     font-src 'self' data: https://fonts.gstatic.com;
     img-src 'self' data: blob: https:;
     media-src 'self' blob: https:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.gstatic.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.gstatic.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io;
     worker-src 'self' blob:;
     manifest-src 'self';
     object-src 'none';

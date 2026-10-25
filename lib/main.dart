@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/ui/zen_background.dart';
 import 'core/config/app_config.dart';
+import 'core/monitoring/crash_reporting.dart';
 import 'core/motion/reduce_motion.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dev/demo_seed.dart';
@@ -52,7 +53,10 @@ Future<void> main() async {
     return;
   }
 
-  runApp(const ProviderScope(child: CognicQuestApp()));
+  // Rapports de plantage (si SENTRY_DSN est fourni) : erreurs Flutter,
+  // asynchrones et natives à partir d'ici.
+  await CrashReporting.run(
+      () => runApp(const ProviderScope(child: CognicQuestApp())));
 }
 
 class CognicQuestApp extends ConsumerWidget {

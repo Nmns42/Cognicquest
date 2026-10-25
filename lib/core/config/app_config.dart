@@ -27,6 +27,10 @@ class AppConfig {
   static const String supabaseAnonKey =
       String.fromEnvironment('SUPABASE_ANON_KEY');
 
+  /// Adresse d'envoi des rapports de plantage (Sentry). Vide en
+  /// développement : Sentry reste éteint (cf. `CrashReporting`).
+  static const String sentryDsn = String.fromEnvironment('SENTRY_DSN');
+
   static bool get isSupabaseConfigured =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
