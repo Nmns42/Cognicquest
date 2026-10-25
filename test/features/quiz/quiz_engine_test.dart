@@ -3,6 +3,7 @@ import 'package:cognicquest/features/quiz/domain/quiz_generator.dart';
 import 'package:cognicquest/features/quiz/domain/quiz_loops.dart';
 import 'package:cognicquest/features/review/domain/spaced_repetition.dart';
 import 'package:cognicquest/shared/models/flashcard_model.dart';
+import 'package:cognicquest/shared/models/metacognition_model.dart';
 import 'package:cognicquest/shared/models/note_model.dart';
 import 'package:cognicquest/shared/models/planning_model.dart';
 import 'package:cognicquest/shared/models/task_model.dart';
@@ -393,6 +394,40 @@ La déshydratation entraîne une hypernatrémie.
       expect(outcome.fuzzyHeadings, {
         'n': {'Second principe'}
       });
+    });
+
+    test('chaque faute part au Cahier d\'erreurs, sans doublon non corrigé',
+        () {
+      final outcome = QuizOutcome.of([(cardQ, false), (clozeQ, false)]);
+      expect(outcome.errorsToLog, hasLength(2));
+      final cloze = outcome.errorsToLog.last;
+      expect(cloze.errorType, ErrorType.memorisation);
+      expect(cloze.noteId, 'n');
+      expect(cloze.description, contains(clozeQ.prompt));
+      expect(cloze.description, contains('Bonne réponse : ${clozeQ.context}'));
+
+      ErrorLog logged(String correction) => ErrorLog(
+            id: 'e',
+            userId: 'u',
+            description: ErrorDraft.describe(clozeQ),
+            errorType: ErrorType.memorisation,
+            correction: correction,
+            createdAt: DateTime(2026, 10, 25),
+          );
+      // Déjà consignée, pas corrigée : pas recopiée.
+      expect(
+          QuizOutcome.of([(clozeQ, false)], existingErrors: [logged('')])
+              .errorsToLog,
+          isEmpty);
+      // Corrigée puis ratée à nouveau : nouvelle entrée.
+      expect(
+          QuizOutcome.of([(clozeQ, false)],
+              existingErrors: [logged('Relire le second principe')])
+              .errorsToLog,
+          hasLength(1));
+      // Réussie : rien.
+      expect(QuizOutcome.of([(clozeQ, true)]).errorsToLog, isEmpty);
+      expect(ErrorDraft.typeOf(QuizKind.section), ErrorType.comprehension);
     });
 
     test('titres flous : levés après deux réussites', () {

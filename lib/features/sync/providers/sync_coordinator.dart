@@ -12,6 +12,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../graph/data/note_link_repository.dart';
 import '../../habits/data/habit_repository.dart';
 import '../../kanban/data/task_repository.dart';
+import '../../legal/consent_sync.dart';
 import '../../metacognition/data/metacognition_repository.dart';
 import '../../notes/data/folder_repository.dart';
 import '../../notes/data/note_repository.dart';
@@ -126,6 +127,9 @@ class SyncCoordinator extends Notifier<SyncStatus> {
   /// les tâches avant les sessions Pomodoro qui peuvent y renvoyer, les
   /// fiches avant leurs liens et leurs cartes.
   List<Future<void> Function()?> _modules() => [
+        // Preuve de consentement, et purge serveur du bien-être après un
+        // retrait hors ligne, avant tout autre envoi.
+        ref.read(consentSyncProvider)?.sync,
         // Les images d'abord : une fiche qui les référence ne doit pas
         // arriver sur un autre appareil avant elles.
         ref.read(mediaStoreProvider)?.sync,

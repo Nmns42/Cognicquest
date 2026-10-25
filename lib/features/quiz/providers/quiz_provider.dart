@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/models/metacognition_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../kanban/providers/task_provider.dart';
+import '../../metacognition/data/metacognition_repository.dart';
+import '../../metacognition/providers/metacognition_provider.dart';
 import '../../notes/providers/note_provider.dart';
 import '../../planning/providers/planning_provider.dart';
 import '../../review/domain/spaced_repetition.dart';
@@ -62,7 +65,8 @@ final quizQuestionsProvider = Provider.autoDispose
 });
 
 /// Applique les boucles d'un quiz terminé : cartes ratées remises à J0,
-/// cartes créées pour les notions de fiche ratées.
+/// cartes créées pour les notions de fiche ratées, fautes consignées dans
+/// le Cahier d'erreurs.
 class QuizActions {
   const QuizActions(this._ref);
 
@@ -73,7 +77,12 @@ class QuizActions {
 
   Future<QuizOutcome> finish(List<(QuizQuestion, bool)> answers) async {
     final cards = _ref.read(flashcardsProvider).valueOrNull ?? const [];
-    final outcome = QuizOutcome.of(answers, existingCards: cards);
+    final outcome = QuizOutcome.of(
+      answers,
+      existingCards: cards,
+      // `.future` : le cahier n'est peut-être écouté par aucun écran.
+      existingErrors: await _ref.read(errorLogsProvider.future),
+    );
     final review = _ref.read(reviewActionsProvider);
     final repository = _ref.read(reviewRepositoryProvider);
     if (repository != null) {
@@ -83,19 +92,33 @@ class QuizActions {
         if (card != null) await repository.grade(card, ReviewGrade.again);
       }
     }
+    String? subjectOf(String? noteId) => _ref
+        .read(notesProvider)
+        .valueOrNull
+        ?.where((n) => n.id == noteId)
+        .firstOrNull
+        ?.subject;
     for (final draft in outcome.cardsToCreate) {
-      final deck = _ref
-          .read(notesProvider)
-          .valueOrNull
-          ?.where((n) => n.id == draft.noteId)
-          .firstOrNull
-          ?.subject;
       await review.createCard(
         front: draft.front,
         back: draft.back,
         noteId: draft.noteId,
-        deck: deck,
+        deck: subjectOf(draft.noteId),
       );
+    }
+    final metacognition = _ref.read(metacognitionActionsProvider);
+    final now = DateTime.now();
+    for (final draft in outcome.errorsToLog) {
+      await metacognition.saveError(ErrorLog(
+        id: newMetacognitionId(),
+        userId: '',
+        noteId: draft.noteId,
+        subject: subjectOf(draft.noteId),
+        description: draft.description,
+        errorType: draft.errorType,
+        createdAt: now,
+        isSynced: false,
+      ));
     }
     return outcome;
   }

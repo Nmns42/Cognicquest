@@ -41,20 +41,25 @@ const LegalDocument privacyPolicy = LegalDocument(
           'auto-explications, liens du graphe, dossiers.',
       '• Organisation : tâches, habitudes, sessions Pomodoro, objectifs, '
           'planning, vitesses de travail, échéances d’examen, réglages.',
-      '• Journal métacognitif : humeur, niveau de fatigue et d’effort, '
-          'réflexions, recadrages, cahier d’erreurs, profil d’apprentissage. '
-          'Ces données touchent à ton bien-être : elles sont traitées '
-          'uniquement avec ton consentement explicite.',
+      '• Données de bien-être : humeur, niveau de fatigue et d’effort, '
+          'réflexions du journal, recadrages, chaînes des 5 pourquoi. Elles '
+          'ne sont collectées qu’avec ton consentement explicite, '
+          'facultatif : sans lui, le journal et le recadrage restent '
+          'désactivés et le reste de l’application fonctionne normalement.',
+      '• Métacognition : cahier d’erreurs (y compris les erreurs relevées '
+          'par les quiz), profil d’apprentissage.',
       'Aucune donnée de localisation, aucun contact, aucun identifiant '
           'publicitaire n’est collecté.',
     ]),
     LegalSection('Finalités et bases légales', [
       '• Faire fonctionner l’application et synchroniser tes appareils : '
           'exécution du service que tu utilises (art. 6.1.b du RGPD).',
-      '• Analyser ton journal pour te proposer des conseils (arbre de '
-          'croissance, profil d’apprentissage) : consentement explicite '
-          '(art. 9.2.a), donné à la première ouverture et retirable à tout '
-          'moment.',
+      '• Enregistrer et analyser tes données de bien-être pour te proposer '
+          'des conseils (arbre de croissance) : consentement explicite et '
+          'facultatif (art. 9.2.a), demandé à la première ouverture, '
+          'modifiable à tout moment. Chaque décision est conservée comme '
+          'preuve (date, version des textes). Le retrait efface ces données '
+          'de l’appareil et de nos serveurs.',
       '• Sécurité du compte (authentification, prévention des abus) : '
           'intérêt légitime (art. 6.1.f).',
       'Tes données ne sont ni vendues, ni louées, ni utilisées à des fins '
@@ -92,6 +97,8 @@ const LegalDocument privacyPolicy = LegalDocument(
       'Tu disposes des droits d’accès, de rectification, d’effacement, de '
           'limitation, de portabilité et d’opposition, ainsi que du droit de '
           'retirer ton consentement à tout moment (Réglages > Confidentialité). '
+          'Accès et portabilité en un appui : Réglages > Confidentialité > '
+          'Exporter mes données (fichier JSON). '
           'Pour les exercer : ${LegalInfo.contactEmail}. Réponse sous un mois.',
       'Tu peux aussi adresser une réclamation à la CNIL '
           '(www.cnil.fr, 3 place de Fontenoy, 75007 Paris).',

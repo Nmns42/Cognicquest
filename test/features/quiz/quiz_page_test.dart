@@ -1,11 +1,13 @@
 import 'package:cognicquest/core/database/app_database.dart';
 import 'package:cognicquest/core/theme/app_theme.dart';
+import 'package:cognicquest/features/metacognition/data/metacognition_repository.dart';
 import 'package:cognicquest/features/notes/data/note_repository.dart';
 import 'package:cognicquest/features/quiz/data/quiz_repository.dart';
 import 'package:cognicquest/features/quiz/domain/quiz_generator.dart';
 import 'package:cognicquest/features/quiz/providers/quiz_provider.dart';
 import 'package:cognicquest/features/quiz/views/quiz_page.dart';
 import 'package:cognicquest/features/review/data/review_repository.dart';
+import 'package:cognicquest/shared/models/metacognition_model.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -27,6 +29,8 @@ void main() {
     final reviews = LocalFirstReviewRepository(
         database: db, client: client, userId: 'u1', syncEnabled: false);
     final quiz = QuizRepository(
+        database: db, client: client, userId: 'u1', syncEnabled: false);
+    final metacognition = LocalFirstMetacognitionRepository(
         database: db, client: client, userId: 'u1', syncEnabled: false);
 
     late String noteId;
@@ -67,6 +71,7 @@ void main() {
         noteRepositoryProvider.overrideWithValue(notes),
         reviewRepositoryProvider.overrideWithValue(reviews),
         quizRepositoryProvider.overrideWithValue(quiz),
+        metacognitionRepositoryProvider.overrideWithValue(metacognition),
         quizQuestionsProvider.overrideWith((ref, request) => questions),
       ],
       child: MaterialApp(
@@ -109,6 +114,13 @@ void main() {
         contains("L'_____ ne peut que croître."));
     final attempts = (await tester.runAsync(() => quiz.watchAll().first))!;
     expect(attempts.where((a) => !a.correct), hasLength(2));
+    // Quiz → Cahier d'erreurs : une entrée par faute, à corriger.
+    final errors =
+        (await tester.runAsync(() => metacognition.watchErrors().first))!;
+    expect(errors, hasLength(2));
+    expect(errors.every((e) => !e.isCorrected), isTrue);
+    expect(errors.map((e) => e.errorType).toSet(), {ErrorType.memorisation});
+    expect(errors.every((e) => e.noteId == noteId), isTrue);
 
     await tester.pumpWidget(const SizedBox());
     await settle();

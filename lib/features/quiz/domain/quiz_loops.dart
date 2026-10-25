@@ -1,4 +1,5 @@
 import '../../../shared/models/flashcard_model.dart';
+import '../../../shared/models/metacognition_model.dart';
 import '../../../shared/models/note_model.dart';
 import '../../../shared/models/planning_model.dart';
 import '../../../shared/models/task_model.dart';
@@ -37,6 +38,37 @@ class CardDraft {
   final String? noteId;
 }
 
+/// Entrée du Cahier d'erreurs à créer après une faute de quiz. La
+/// correction (action corrective) reste vide : c'est à l'apprenant de
+/// l'écrire, l'erreur apparaît donc « à corriger ».
+class ErrorDraft {
+  const ErrorDraft({
+    required this.description,
+    required this.errorType,
+    this.noteId,
+  });
+
+  final String description;
+  final ErrorType errorType;
+  final String? noteId;
+
+  /// Description consignée pour [q] : la question et la bonne réponse.
+  static String describe(QuizQuestion q) =>
+      'Quiz (${q.kind.label}) — ${q.prompt}\n'
+      'Bonne réponse : ${q.context ?? q.answer}';
+
+  /// Rappel (carte, trou, valeur…) → mémorisation ; sens d'une partie,
+  /// d'une chaîne ou d'une liste → compréhension.
+  static ErrorType typeOf(QuizKind kind) => switch (kind) {
+        QuizKind.section ||
+        QuizKind.causal ||
+        QuizKind.callout ||
+        QuizKind.intruder =>
+          ErrorType.comprehension,
+        _ => ErrorType.memorisation,
+      };
+}
+
 /// Effets d'un quiz sur le reste de l'apprentissage — les boucles :
 ///
 /// - **Quiz → Flashcards (méthode des J)** : une erreur sur une carte la
@@ -44,6 +76,8 @@ class CardDraft {
 ///   carte correspondante, à réviser aujourd'hui.
 /// - **Quiz → Apprentissage guidé** : les titres de fiche où l'on se trompe
 ///   deviennent des titres flous, à reprendre en étude guidée.
+/// - **Quiz → Cahier d'erreurs** : chaque faute y est consignée, une seule
+///   fois tant qu'elle n'a pas été corrigée.
 class QuizOutcome {
   const QuizOutcome({
     required this.correct,
@@ -51,6 +85,7 @@ class QuizOutcome {
     required this.cardsToRelearn,
     required this.cardsToCreate,
     required this.fuzzyHeadings,
+    this.errorsToLog = const [],
   });
 
   final int correct;
@@ -65,11 +100,15 @@ class QuizOutcome {
   /// Titres flous révélés par ce quiz : `noteId → {titre}`.
   final Map<String, Set<String>> fuzzyHeadings;
 
+  /// Fautes à consigner dans le Cahier d'erreurs.
+  final List<ErrorDraft> errorsToLog;
+
   double get rate => total == 0 ? 0 : correct / total;
 
   static QuizOutcome of(
     List<(QuizQuestion, bool)> answers, {
     Iterable<Flashcard> existingCards = const [],
+    Iterable<ErrorLog> existingErrors = const [],
   }) {
     final fronts = {
       for (final c in existingCards) CardSide.parse(c.front).text.trim().toLowerCase(),
@@ -77,11 +116,25 @@ class QuizOutcome {
     final relearn = <String>[];
     final create = <CardDraft>[];
     final fuzzy = <String, Set<String>>{};
+    // Une faute déjà consignée et pas encore corrigée n'est pas recopiée.
+    final logged = {
+      for (final e in existingErrors)
+        if (!e.isCorrected) e.description,
+    };
+    final errors = <ErrorDraft>[];
     var correct = 0;
     for (final (question, ok) in answers) {
       if (ok) {
         correct++;
         continue;
+      }
+      final description = ErrorDraft.describe(question);
+      if (logged.add(description)) {
+        errors.add(ErrorDraft(
+          description: description,
+          errorType: ErrorDraft.typeOf(question.kind),
+          noteId: question.noteId,
+        ));
       }
       if (question.kind.fromCard && question.cardId != null) {
         if (!relearn.contains(question.cardId)) relearn.add(question.cardId!);
@@ -105,6 +158,7 @@ class QuizOutcome {
       cardsToRelearn: relearn,
       cardsToCreate: create,
       fuzzyHeadings: fuzzy,
+      errorsToLog: errors,
     );
   }
 

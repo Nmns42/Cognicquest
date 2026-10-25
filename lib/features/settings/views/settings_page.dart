@@ -14,6 +14,7 @@ import '../domain/user_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_button.dart';
 import '../widgets/demo_data_button.dart';
+import '../widgets/export_data_tile.dart';
 import '../widgets/sign_out_button.dart';
 import '../../../core/theme/tokens.dart';
 
@@ -314,13 +315,45 @@ class _RemindersPanel extends ConsumerWidget {
   }
 }
 
-/// Textes légaux et retrait du consentement aux données de bien-être.
+/// Textes légaux, consentement aux données de bien-être (facultatif) et
+/// export des données.
 class _PrivacyPanel extends ConsumerWidget {
   const _PrivacyPanel();
+
+  /// Le retrait efface des données : confirmation d'abord.
+  Future<void> _setWellbeing(
+      BuildContext context, WidgetRef ref, bool enabled) async {
+    if (!enabled) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Retirer ton accord ?'),
+          content: const Text(
+            'Ton journal, tes recadrages et tes chaînes des 5 pourquoi seront '
+            'effacés de cet appareil et du serveur. Le journal et le '
+            'recadrage seront désactivés.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Retirer et effacer'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await ref.read(consentProvider.notifier).setWellbeing(enabled);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cq = context.cq;
+    final wellbeing = ref.watch(wellbeingConsentProvider);
     Widget link(String title, String route) => ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
           title: Text(title, style: const TextStyle(fontSize: TypeScale.body)),
@@ -332,18 +365,22 @@ class _PrivacyPanel extends ConsumerWidget {
       children: [
         link('Politique de confidentialité', LegalRoute.privacy),
         link('Mentions légales', LegalRoute.notice),
-        ListTile(
+        SwitchListTile.adaptive(
           contentPadding: const EdgeInsets.symmetric(horizontal: Space.lg),
-          title: const Text('Retirer mon consentement',
+          value: wellbeing,
+          onChanged: (enabled) => _setWellbeing(context, ref, enabled),
+          title: const Text('Analyse de mon bien-être',
               style: TextStyle(fontSize: TypeScale.body)),
           subtitle: Text(
-            'L’analyse de ton humeur et de ton journal s’arrête ; l’accord '
-            'te sera redemandé.',
+            wellbeing
+                ? 'Humeur, fatigue, journal et recadrages servent aux conseils. '
+                    'Le retrait les efface.'
+                : 'Facultatif. Active-la pour utiliser le journal, le '
+                    'recadrage et les conseils tirés de ton humeur.',
             style: TextStyle(fontSize: TypeScale.caption, color: cq.textMuted),
           ),
-          trailing: Icon(Icons.undo, size: Sizes.iconMd, color: cq.terre),
-          onTap: () => ref.read(consentProvider.notifier).withdraw(),
         ),
+        const ExportDataTile(),
       ],
     );
   }

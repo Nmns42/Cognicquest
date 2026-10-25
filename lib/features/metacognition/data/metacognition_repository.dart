@@ -25,6 +25,14 @@ abstract interface class MetacognitionRepository {
   Future<void> saveError(ErrorLog error);
   Future<void> saveProfile(LearningProfile profile);
 
+  /// Retrait du consentement bien-être : efface de l'appareil le journal,
+  /// les recadrages et les chaînes des 5 pourquoi, file d'envoi comprise.
+  Future<void> purgeLocalWellbeing();
+
+  /// Même effacement sur le serveur. Lève une erreur hors ligne : l'appelant
+  /// le reprogramme.
+  Future<void> purgeRemoteWellbeing();
+
   Future<void> sync();
 }
 
@@ -293,6 +301,34 @@ class LocalFirstMetacognitionRepository implements MetacognitionRepository {
 
   void _syncQuietly() {
     sync().catchError((_) {});
+  }
+
+  // ── Retrait du consentement bien-être ───────────────────────────────────
+
+  static const List<String> _wellbeingTables = [
+    _journalTable,
+    _reframesTable,
+    _whyTable,
+  ];
+
+  @override
+  Future<void> purgeLocalWellbeing() async {
+    await _db.transaction(() async {
+      await _db.delete(_db.localJournalEntries).go();
+      await _db.delete(_db.localReframes).go();
+      await _db.delete(_db.localWhyChains).go();
+      await (_db.delete(_db.syncQueueEntries)
+            ..where((t) => t.entityTable.isIn(_wellbeingTables)))
+          .go();
+    });
+  }
+
+  @override
+  Future<void> purgeRemoteWellbeing() async {
+    if (!_syncEnabled) return;
+    for (final table in _wellbeingTables) {
+      await _client.from(table).delete().eq('user_id', _userId);
+    }
   }
 
   // ── Synchronisation ──────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import '../features/kanban/views/kanban_page.dart';
 import '../features/legal/consent.dart';
 import '../features/legal/legal_texts.dart';
 import '../features/legal/views/legal_page.dart';
+import '../features/legal/views/wellbeing_gate.dart';
 import '../features/metacognition/views/error_logs_page.dart';
 import '../features/metacognition/views/journal_entry_page.dart';
 import '../features/metacognition/views/journal_hub_page.dart';
@@ -267,12 +268,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'entry',
-                builder: (_, __) =>
-                    const PanelSettle(child: JournalEntryPage()),
+                builder: (_, __) => const PanelSettle(
+                    child: WellbeingGate(
+                        title: 'Bilan de session', child: JournalEntryPage())),
               ),
               GoRoute(
                 path: 'reframe',
-                builder: (_, __) => const PanelSettle(child: ReframePage()),
+                builder: (_, __) => const PanelSettle(
+                    child: WellbeingGate(
+                        title: 'Recadrage cognitif', child: ReframePage())),
               ),
               GoRoute(
                 path: 'errors',

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/tokens.dart';
+import '../auth/providers/auth_provider.dart';
+import '../metacognition/data/metacognition_repository.dart';
+import 'consent_sync.dart';
 import 'legal_info.dart';
 
 /// Chemins des textes légaux, ouverts connecté ou non.
@@ -15,6 +21,58 @@ abstract final class LegalRoute {
   static bool contains(String location) => location.startsWith('/legal/');
 }
 
+/// Choix enregistré sur l'appareil.
+class ConsentChoice {
+  const ConsentChoice({required this.version, required this.wellbeing});
+
+  /// Aucun choix encore fait.
+  static const ConsentChoice none = ConsentChoice(version: 0, wellbeing: false);
+
+  /// Version des textes acceptée, `0` si aucune.
+  final int version;
+
+  /// Consentement explicite au traitement des données de bien-être
+  /// (humeur, fatigue, journal, recadrages) : facultatif.
+  final bool wellbeing;
+
+  /// `false` : le bandeau doit être (re)présenté.
+  bool get isCurrent => version >= LegalInfo.consentVersion;
+}
+
+/// Une décision, en attente d'envoi au serveur comme preuve (art. 7.1).
+class ConsentRecord {
+  const ConsentRecord({
+    required this.version,
+    required this.wellbeing,
+    required this.decidedAt,
+    this.userId,
+  });
+
+  factory ConsentRecord.fromJson(Map<String, dynamic> json) => ConsentRecord(
+        version: json['version'] as int,
+        wellbeing: json['wellbeing'] as bool,
+        decidedAt: DateTime.parse(json['decided_at'] as String),
+        userId: json['user_id'] as String?,
+      );
+
+  final int version;
+  final bool wellbeing;
+  final DateTime decidedAt;
+
+  /// Compte connecté au moment du choix ; `null` au bandeau d'avant
+  /// connexion : la preuve ira au premier compte qui se connecte.
+  final String? userId;
+
+  Map<String, dynamic> toJson() => {
+        'version': version,
+        'wellbeing': wellbeing,
+        'decided_at': decidedAt.toUtc().toIso8601String(),
+        'user_id': userId,
+      };
+
+  String get key => jsonEncode(toJson());
+}
+
 /// Mémoire du consentement, propre à l'appareil : hors de la base locale,
 /// qui est effacée à chaque déconnexion.
 class ConsentStore {
@@ -22,47 +80,127 @@ class ConsentStore {
 
   static const String _versionKey = 'cq_consent_version';
   static const String _atKey = 'cq_consent_at';
+  static const String _wellbeingKey = 'cq_consent_wellbeing';
+  static const String _pendingKey = 'cq_consent_pending';
+  static const String _purgeKey = 'cq_wellbeing_purge_user';
 
-  /// Version acceptée sur cet appareil, `0` si aucune.
-  Future<int> acceptedVersion() async =>
-      (await SharedPreferences.getInstance()).getInt(_versionKey) ?? 0;
-
-  Future<void> accept(int version) async {
+  Future<ConsentChoice> read() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_versionKey, version);
-    await prefs.setString(_atKey, DateTime.now().toUtc().toIso8601String());
+    final version = prefs.getInt(_versionKey) ?? 0;
+    return ConsentChoice(
+      version: version,
+      // Avant le choix séparé, accepter valait accord au bien-être.
+      wellbeing: prefs.getBool(_wellbeingKey) ?? version > 0,
+    );
   }
 
-  Future<void> withdraw() async {
+  Future<void> save(ConsentChoice choice, DateTime at) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_versionKey);
-    await prefs.remove(_atKey);
+    await prefs.setInt(_versionKey, choice.version);
+    await prefs.setBool(_wellbeingKey, choice.wellbeing);
+    await prefs.setString(_atKey, at.toUtc().toIso8601String());
+  }
+
+  Future<List<ConsentRecord>> pending() async {
+    final raw = (await SharedPreferences.getInstance()).getString(_pendingKey);
+    if (raw == null) return const [];
+    return [
+      for (final item in jsonDecode(raw) as List)
+        ConsentRecord.fromJson(item as Map<String, dynamic>),
+    ];
+  }
+
+  Future<void> addPending(ConsentRecord record) async =>
+      _writePending([...await pending(), record]);
+
+  /// Retire de la file les décisions envoyées (relue : un choix fait pendant
+  /// l'envoi reste en attente).
+  Future<void> removePending(Iterable<ConsentRecord> sent) async {
+    final keys = {for (final r in sent) r.key};
+    await _writePending(
+        [for (final r in await pending()) if (!keys.contains(r.key)) r]);
+  }
+
+  Future<void> _writePending(List<ConsentRecord> records) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (records.isEmpty) {
+      await prefs.remove(_pendingKey);
+    } else {
+      await prefs.setString(
+          _pendingKey, jsonEncode([for (final r in records) r.toJson()]));
+    }
+  }
+
+  /// Compte dont les données de bien-être restent à effacer du serveur
+  /// (retrait fait hors ligne). Lié au compte : un autre compte connecté
+  /// ensuite sur l'appareil n'est jamais purgé.
+  Future<String?> purgeUser() async =>
+      (await SharedPreferences.getInstance()).getString(_purgeKey);
+
+  Future<void> setPurgeUser(String? userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (userId == null) {
+      await prefs.remove(_purgeKey);
+    } else {
+      await prefs.setString(_purgeKey, userId);
+    }
   }
 }
 
 final consentStoreProvider = Provider<ConsentStore>((_) => const ConsentStore());
 
-/// `true` : consentement à jour ; `false` : à demander. En chargement, rien
-/// n'est affiché (pas de bandeau qui clignote au démarrage).
-class ConsentNotifier extends AsyncNotifier<bool> {
+/// Choix de l'appareil. En chargement, rien n'est affiché (pas de bandeau
+/// qui clignote au démarrage).
+class ConsentNotifier extends AsyncNotifier<ConsentChoice> {
   @override
-  Future<bool> build() async =>
-      await ref.read(consentStoreProvider).acceptedVersion() >=
-      LegalInfo.consentVersion;
+  Future<ConsentChoice> build() => ref.read(consentStoreProvider).read();
 
-  Future<void> accept() async {
-    await ref.read(consentStoreProvider).accept(LegalInfo.consentVersion);
-    state = const AsyncValue.data(true);
+  /// Choix du bandeau de première ouverture.
+  Future<void> accept({required bool wellbeing}) => _decide(wellbeing);
+
+  /// Activation ou retrait du consentement bien-être (Réglages). Le retrait
+  /// efface aussitôt le journal, les recadrages et les chaînes des 5
+  /// pourquoi de l'appareil, puis du serveur (dès que possible).
+  Future<void> setWellbeing(bool enabled) async {
+    if (state.valueOrNull?.wellbeing == enabled) return;
+    if (!enabled) {
+      await ref.read(metacognitionRepositoryProvider)?.purgeLocalWellbeing();
+      final userId = ref.read(currentUserProvider)?.id;
+      if (userId != null) {
+        await ref.read(consentStoreProvider).setPurgeUser(userId);
+      }
+    }
+    await _decide(enabled);
   }
 
-  Future<void> withdraw() async {
-    await ref.read(consentStoreProvider).withdraw();
-    state = const AsyncValue.data(false);
+  Future<void> _decide(bool wellbeing) async {
+    final store = ref.read(consentStoreProvider);
+    final now = DateTime.now();
+    final choice = ConsentChoice(
+        version: LegalInfo.consentVersion, wellbeing: wellbeing);
+    await store.save(choice, now);
+    await store.addPending(ConsentRecord(
+      version: choice.version,
+      wellbeing: wellbeing,
+      decidedAt: now,
+      userId: ref.read(currentUserProvider)?.id,
+    ));
+    state = AsyncValue.data(choice);
+    // Preuve et purge serveur tout de suite si possible ; sinon à la
+    // prochaine synchronisation.
+    unawaited(ref.read(consentSyncProvider)?.sync().catchError((_) {}));
   }
 }
 
 final consentProvider =
-    AsyncNotifierProvider<ConsentNotifier, bool>(ConsentNotifier.new);
+    AsyncNotifierProvider<ConsentNotifier, ConsentChoice>(ConsentNotifier.new);
+
+/// `true` seulement avec un accord explicite et à jour : le journal, le
+/// recadrage et les conseils tirés de l'humeur en dépendent.
+final wellbeingConsentProvider = Provider<bool>((ref) {
+  final choice = ref.watch(consentProvider).valueOrNull;
+  return choice != null && choice.isCurrent && choice.wellbeing;
+});
 
 /// Bandeau de consentement à la première ouverture : il recouvre l'app tant
 /// que l'accord n'est pas donné, sauf sur les pages légales elles-mêmes
@@ -106,8 +244,8 @@ class _ConsentGateState extends ConsumerState<ConsentGate> {
   Widget build(BuildContext context) {
     // Erreur de lecture (stockage indisponible) : on n'empêche pas
     // d'utiliser l'app, le bandeau reviendra au prochain lancement.
-    final accepted = ref.watch(consentProvider).valueOrNull ?? true;
-    if (accepted || _onLegalPage) return widget.child;
+    final decided = ref.watch(consentProvider).valueOrNull?.isCurrent ?? true;
+    if (decided || _onLegalPage) return widget.child;
 
     return Stack(
       children: [
@@ -132,7 +270,9 @@ class _ConsentGateState extends ConsumerState<ConsentGate> {
                 constraints: const BoxConstraints(maxWidth: 560),
                 child: _ConsentCard(
                   onOpen: widget.router.go,
-                  onAccept: () => ref.read(consentProvider.notifier).accept(),
+                  onContinue: (wellbeing) => ref
+                      .read(consentProvider.notifier)
+                      .accept(wellbeing: wellbeing),
                 ),
               ),
             ),
@@ -144,10 +284,13 @@ class _ConsentGateState extends ConsumerState<ConsentGate> {
 }
 
 class _ConsentCard extends StatefulWidget {
-  const _ConsentCard({required this.onOpen, required this.onAccept});
+  const _ConsentCard({required this.onOpen, required this.onContinue});
 
   final ValueChanged<String> onOpen;
-  final VoidCallback onAccept;
+
+  /// Choix validé ; le bien-être est facultatif (art. 7.4 RGPD : l'accès à
+  /// l'app ne dépend pas de ce consentement).
+  final ValueChanged<bool> onContinue;
 
   @override
   State<_ConsentCard> createState() => _ConsentCardState();
@@ -206,7 +349,8 @@ class _ConsentCardState extends State<_ConsentCard> {
                   style: body,
                 ),
                 subtitle: Text(
-                  'Données de bien-être : consentement explicite, retirable '
+                  'Facultatif. Sans cet accord, le journal et le recadrage '
+                  'restent désactivés ; tout le reste fonctionne. Modifiable '
                   'à tout moment dans les Réglages.',
                   style: TextStyle(
                       fontSize: TypeScale.caption, color: cq.textMuted),
@@ -228,8 +372,8 @@ class _ConsentCardState extends State<_ConsentCard> {
               ),
               const SizedBox(height: Space.md),
               FilledButton(
-                onPressed: _wellbeing ? widget.onAccept : null,
-                child: const Text('Accepter et continuer'),
+                onPressed: () => widget.onContinue(_wellbeing),
+                child: const Text('Continuer'),
               ),
             ],
           ),

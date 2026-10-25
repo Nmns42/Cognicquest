@@ -23,7 +23,7 @@ abstract final class LegalInfo {
       'stockage des images)';
 
   /// Date de dernière mise à jour des textes.
-  static const String updatedOn = '24 octobre 2026';
+  static const String updatedOn = '25 octobre 2026';
 
   /// Version du consentement : l'augmenter redemande l'accord à chacun
   /// (changement substantiel de la politique).

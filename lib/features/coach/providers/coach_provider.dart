@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../habits/providers/habit_provider.dart';
+import '../../legal/consent.dart';
 import '../../metacognition/providers/metacognition_provider.dart';
 import '../../notes/providers/note_provider.dart';
 import '../../quiz/providers/quiz_provider.dart';
@@ -15,8 +16,12 @@ const Duration coachRecentWindow = Duration(days: 7);
 /// Signaux du coach, recalculés dès qu'une donnée change (bilan écrit,
 /// habitude cochée, carte jugée, explication enregistrée).
 final coachSignalsProvider = Provider<CoachSignals>((ref) {
+  // Sans consentement bien-être, le journal n'est pas analysé.
+  final wellbeing = ref.watch(wellbeingConsentProvider);
   final insights = ref.watch(metacognitionInsightsProvider);
-  final journal = ref.watch(journalProvider).valueOrNull ?? const [];
+  final journal = wellbeing
+      ? ref.watch(journalProvider).valueOrNull ?? const <JournalEntry>[]
+      : const <JournalEntry>[];
   final habits = ref.watch(habitProvider).valueOrNull ?? const [];
   final retention = ref.watch(retentionProvider).valueOrNull;
   final cards = ref.watch(flashcardsProvider).valueOrNull ?? const [];
@@ -78,7 +83,7 @@ final coachSignalsProvider = Provider<CoachSignals>((ref) {
     recentEnergy: mean((e) => e.energy),
     recentEffort: mean((e) => e.rpe),
     journalEntries: journal.length,
-    strainedDays: insights.strainedDays,
+    strainedDays: wellbeing ? insights.strainedDays : 0,
     daysSinceLastEntry: last == null
         ? null
         : today.difference(DateTime(last.year, last.month, last.day)).inDays,
@@ -90,6 +95,7 @@ final coachSignalsProvider = Provider<CoachSignals>((ref) {
     reviewsLast30Days: retention?.reviews ?? 0,
     dueCards: ref.watch(dueCardsProvider).length,
     fuzzyChapters: fuzzy.take(3).toList(),
+    wellbeingEnabled: wellbeing,
   );
 });
 

@@ -22,6 +22,7 @@ class CoachSignals {
     this.reviewsLast30Days = 0,
     this.dueCards = 0,
     this.fuzzyChapters = const [],
+    this.wellbeingEnabled = true,
   });
 
   /// Moyennes récentes du journal : humeur et énergie de 1 à 5, effort
@@ -51,6 +52,10 @@ class CoachSignals {
 
   /// Fiches dont la compréhension reste floue, la plus floue d'abord.
   final List<FuzzyChapter> fuzzyChapters;
+
+  /// Consentement aux données de bien-être : sans lui, aucun conseil ne
+  /// renvoie vers le journal (désactivé).
+  final bool wellbeingEnabled;
 }
 
 /// Fiche à retravailler : auto-explication jugée peu claire, ou cartes
@@ -237,7 +242,7 @@ class TreeCoach {
 
     // 6. Journal délaissé.
     final silent = s.daysSinceLastEntry;
-    if (silent == null || silent >= 3) {
+    if (s.wellbeingEnabled && (silent == null || silent >= 3)) {
       out.add(CoachAdvice(
         topic: CoachTopic.journal,
         title: silent == null
