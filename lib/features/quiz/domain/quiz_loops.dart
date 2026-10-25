@@ -111,7 +111,9 @@ class QuizOutcome {
   /// Recto d'une carte tirée d'une question de fiche, lisible seul.
   static String _frontFor(QuizQuestion q) => switch (q.kind) {
         QuizKind.section => 'Que retenir de « ${q.heading} » ?',
-        QuizKind.cloze => q.prompt.replaceFirst('Complète : ', ''),
+        QuizKind.cloze || QuizKind.numeric =>
+          q.prompt.replaceFirst('Complète : ', ''),
+        QuizKind.causal => q.prompt.replaceFirst('Complète la chaîne : ', ''),
         _ => q.prompt,
       };
 }

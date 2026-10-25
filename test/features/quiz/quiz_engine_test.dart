@@ -183,6 +183,132 @@ La **molécule** d'eau compte trois atomes liés.
     });
   });
 
+  group('nouveaux extracteurs', () {
+    const physio = '''
+# Ionogramme
+La natrémie normale est comprise entre 135-145 mmol/L chez l'adulte.
+La température centrale normale avoisine 37 °C au repos.
+Le pH artériel normal vaut 7,40 en moyenne.
+En 1628, Harvey décrit la circulation sanguine.
+
+## Cations
+Les principaux cations :
+- Sodium
+- Potassium
+- Calcium
+
+## Anions
+Les principaux anions :
+- Chlore
+- Bicarbonate
+- Phosphate
+
+## Hormones
+| Hormone | Glande | Effet |
+|---|---|---|
+| Insuline | Pancréas | Hypoglycémiante |
+| Cortisol | Surrénale | Hyperglycémiant |
+| Thyroxine | Thyroïde | Métabolisme basal |
+| ADH | Hypophyse | Réabsorption d'eau |
+
+## Mécanismes
+Hyperkaliémie → troubles du rythme → arrêt cardiaque
+Hypovolémie → tachycardie réflexe
+La déshydratation entraîne une hypernatrémie.
+
+## À retenir
+> [!important] Urgence
+> Une kaliémie au-delà de 6,5 mmol/L impose un ECG immédiat.
+
+> [!tip]
+> Toujours vérifier l'hémolyse du prélèvement avant de conclure.
+''';
+
+    test('valeurs chiffrées : unité, fourchette, décimales, année', () {
+      final facts = NoteSections.numericFacts(physio);
+      expect(facts.map((f) => f.value),
+          containsAll(['135-145 mmol/L', '37 °C', '7,40', '1628', '6,5 mmol/L']));
+      final range = facts.firstWhere((f) => f.value == '135-145 mmol/L');
+      expect(range.blanked, contains('entre _____ chez'));
+      expect(range.variants(), everyElement(endsWith(' mmol/L')));
+      expect(range.variants(), everyElement(contains('-')));
+      final ph = facts.firstWhere((f) => f.value == '7,40');
+      expect(ph.variants(), everyElement(matches(RegExp(r'^\d+,\d{2}$'))));
+      final year = facts.firstWhere((f) => f.value == '1628');
+      expect(year.variants(), containsAll(['1618', '1623', '1631']));
+      expect(facts.firstWhere((f) => f.value == '6,5 mmol/L').emphasized, isTrue);
+    });
+
+    test('pas de faux nombres : heures, ordinaux, formules chimiques', () {
+      expect(
+          NoteSections.numericFacts(
+              'Rendez-vous à 10:30 pour le 3e cours.\nLe CO2 est un gaz acide.'),
+          isEmpty);
+    });
+
+    test('listes, tableaux, causes, encadrés', () {
+      final enums = NoteSections.enumerations(physio);
+      expect(enums.map((e) => e.intro),
+          ['Les principaux cations', 'Les principaux anions']);
+      expect(enums.first.items, ['Sodium', 'Potassium', 'Calcium']);
+
+      final table = NoteSections.tables(physio).single;
+      expect(table.headers, ['Hormone', 'Glande', 'Effet']);
+      expect(table.rows, hasLength(4));
+      expect(table.heading, 'Hormones');
+
+      final links = NoteSections.causes(physio);
+      expect(links.map((l) => (l.cause, l.effect)), [
+        ('Hyperkaliémie', 'troubles du rythme'),
+        ('troubles du rythme', 'arrêt cardiaque'),
+        ('Hypovolémie', 'tachycardie réflexe'),
+        ('La déshydratation', 'une hypernatrémie'),
+      ]);
+
+      final callouts = NoteSections.callouts(physio);
+      expect(callouts.map((c) => c.label), ['Important', 'Astuce']);
+      expect(callouts.first.title, 'Urgence');
+      expect(callouts.first.gist, startsWith('Une kaliémie'));
+    });
+
+    test('QCM des nouveaux types : valides et reliés aux boucles', () {
+      final questions = QuizGenerator(seed: 7).generate(
+          notes: [note('p', 'Physiologie', physio)], cards: const [], count: 200);
+      expect(
+          questions.map((q) => q.kind).toSet(),
+          containsAll([
+            QuizKind.numeric,
+            QuizKind.intruder,
+            QuizKind.table,
+            QuizKind.causal,
+            QuizKind.callout,
+          ]));
+      for (final q in questions) {
+        expect(q.options.length, inInclusiveRange(3, 4));
+        expect(q.options.toSet(), hasLength(q.options.length));
+        expect(q.options[q.answerIndex], q.answer);
+      }
+      final odd = questions.firstWhere((q) => q.kind == QuizKind.intruder);
+      final cations = {'Sodium', 'Potassium', 'Calcium'};
+      final anions = {'Chlore', 'Bicarbonate', 'Phosphate'};
+      final inCations = odd.prompt.contains('cations');
+      expect((inCations ? anions : cations).contains(odd.answer), isTrue);
+      expect(
+          odd.options.where((o) => o != odd.answer),
+          everyElement(isIn(inCations ? cations : anions)));
+
+      final cell = questions.firstWhere((q) => q.kind == QuizKind.table);
+      expect(cell.prompt, contains('tableau de « Hormones »'));
+
+      // Erreur sur une valeur : carte créée, lisible seule.
+      final numeric = questions.firstWhere((q) => q.kind == QuizKind.numeric);
+      final outcome = QuizOutcome.of([(numeric, false)]);
+      expect(outcome.cardsToCreate.single.front, isNot(startsWith('Complète')));
+      expect(outcome.cardsToCreate.single.front, contains('_____'));
+      expect(outcome.cardsToCreate.single.back, numeric.context);
+    });
+  });
+
   group('génération', () {
     final notes = [note('n', 'Thermodynamique', thermo)];
     final cards = [

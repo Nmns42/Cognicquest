@@ -19,7 +19,22 @@ enum QuizKind {
   cloze('Texte à trous'),
 
   /// Définition « terme : sens » de la fiche.
-  definition('Définition');
+  definition('Définition'),
+
+  /// Texte à trous sur une valeur chiffrée, leurres calculés.
+  numeric('Valeur chiffrée'),
+
+  /// Liste à puces : trouver l'élément qui n'en fait pas partie.
+  intruder('Intrus'),
+
+  /// Case d'un tableau markdown.
+  table('Tableau'),
+
+  /// Chaîne « cause → effet ».
+  causal('Cause → effet'),
+
+  /// Encadré `> [!important]` ou citation.
+  callout('Encadré');
 
   const QuizKind(this.label);
 
@@ -92,7 +107,8 @@ class QuizFocus {
 }
 
 /// Quiz génératif, sans IA : les questions viennent de la structure des
-/// fiches (titres, termes en gras, définitions) et des cartes, et les
+/// fiches (titres, termes en gras, définitions, valeurs chiffrées, listes,
+/// tableaux, chaînes cause → effet, encadrés) et des cartes, et les
 /// mauvaises réponses d'autres éléments du même cours.
 class QuizGenerator {
   QuizGenerator({int seed = 0}) : _random = math.Random(seed);
@@ -167,6 +183,9 @@ class QuizGenerator {
     }
 
     // ── Fiches ─────────────────────────────────────────────────────────
+    final enumsByNote = <String, List<Enumeration>>{};
+    List<Enumeration> enumsOf(Note n) => enumsByNote.putIfAbsent(
+        n.id, () => NoteSections.enumerations(n.content));
     final noteIdsForDepth = deepen
         ? {for (final c in pool) c.noteId}.whereType<String>().toSet()
         : null;
@@ -232,7 +251,10 @@ class QuizGenerator {
           context: term.sentence,
         );
         if (question != null) {
-          candidates.add((question, weightFor(term.heading) + 0.5));
+          candidates.add((
+            question,
+            weightFor(term.heading) + 0.5 + (term.emphasized ? 1.5 : 0)
+          ));
         }
       }
       for (final (i, def) in defs.indexed) {
@@ -257,6 +279,146 @@ class QuizGenerator {
         );
         if (question != null) {
           candidates.add((question, weightFor(def.heading) + 0.5));
+        }
+      }
+
+      // Valeurs chiffrées : leurres calculés, pas tirés de la fiche.
+      for (final (i, fact) in NoteSections.numericFacts(note.content).indexed) {
+        if (defs.any((d) => fact.sentence.contains(d.meaning))) continue;
+        final question = _choice(
+          id: 'num:${note.id}:$i',
+          kind: QuizKind.numeric,
+          prompt: 'Complète : ${fact.blanked}',
+          answer: fact.value,
+          pool: fact.variants()..shuffle(_random),
+          noteId: note.id,
+          heading: fact.heading,
+          context: fact.sentence,
+        );
+        if (question != null) {
+          candidates.add((
+            question,
+            weightFor(fact.heading) + 0.5 + (fact.emphasized ? 1.5 : 0)
+          ));
+        }
+      }
+
+      // Intrus : un élément d'une autre liste du cours parmi les vrais.
+      final enums = enumsOf(note);
+      for (final (i, list) in enums.indexed) {
+        final own = {for (final item in list.items) item.toLowerCase()};
+        List<String> outsiders(Iterable<Enumeration> lists) => [
+              for (final other in lists)
+                if (other != list)
+                  for (final item in other.items)
+                    if (!own.contains(item.toLowerCase())) item,
+            ];
+        var strangers = outsiders(enums);
+        if (strangers.isEmpty) {
+          strangers = outsiders([
+            for (final n in notes)
+              if (n.id != note.id &&
+                  n.subject != null &&
+                  n.subject == note.subject)
+                ...enumsOf(n),
+          ]);
+        }
+        if (strangers.isEmpty) continue;
+        final close = rankDistractors(list.items.first, strangers).take(3).toList();
+        final intruder = close[_random.nextInt(close.length)];
+        final question = _choice(
+          id: 'odd:${note.id}:$i',
+          kind: QuizKind.intruder,
+          prompt: 'Intrus : lequel ne fait pas partie de « ${list.intro} » ?',
+          answer: intruder,
+          pool: [...list.items]..shuffle(_random),
+          noteId: note.id,
+          heading: list.heading,
+          context: '${list.intro} : ${list.items.join(', ')}.',
+        );
+        if (question != null) {
+          candidates.add((question, weightFor(list.heading) + 0.5));
+        }
+      }
+
+      // Tableaux : quelques cases par tableau, pour ne pas noyer le reste.
+      for (final (t, table) in NoteSections.tables(note.content).indexed) {
+        final cells = [
+          for (var r = 0; r < table.rows.length; r++)
+            for (var c = 1; c < table.headers.length; c++)
+              if (table.rows[r][c].isNotEmpty) (r, c),
+        ]..shuffle(_random);
+        final where = table.heading == null ? '' : ' de « ${table.heading} »';
+        for (final (r, c) in cells.take(6)) {
+          final row = table.rows[r];
+          final question = _choice(
+            id: 'tab:${note.id}:$t:$r:$c',
+            kind: QuizKind.table,
+            prompt: 'Dans le tableau$where, que vaut « ${table.headers[c]} » '
+                'pour « ${row.first} » ?',
+            answer: row[c],
+            pool: [
+              for (final other in table.rows)
+                if (other != row) other[c],
+            ],
+            noteId: note.id,
+            heading: table.heading,
+            context: '${row.first} — ${table.headers[c]} : ${row[c]}',
+          );
+          if (question != null) {
+            candidates.add((question, weightFor(table.heading) + 0.3));
+          }
+        }
+      }
+
+      // Cause → effet : les leurres sont les autres effets du cours.
+      final links = NoteSections.causes(note.content);
+      for (final (i, link) in links.indexed) {
+        final question = _choice(
+          id: 'cause:${note.id}:$i',
+          kind: QuizKind.causal,
+          prompt: 'Complète la chaîne : ${link.cause} → _____',
+          answer: link.effect,
+          pool: [
+            for (final l in links)
+              if (l != link && l.cause != link.effect) l.effect,
+          ],
+          preferred: [
+            for (final l in links)
+              if (l != link && l.heading == link.heading) l.effect,
+          ],
+          noteId: note.id,
+          heading: link.heading,
+          context: '${link.cause} → ${link.effect}',
+        );
+        if (question != null) {
+          candidates.add((question, weightFor(link.heading) + 0.5));
+        }
+      }
+
+      // Encadrés : jugés importants par l'élève, ils sortent plus souvent.
+      final callouts = NoteSections.callouts(note.content);
+      final gists = {for (final s in sections) s.gist};
+      for (final (i, callout) in callouts.indexed) {
+        if (gists.contains(callout.gist)) continue;
+        final about = callout.title ?? callout.heading;
+        final question = _choice(
+          id: 'call:${note.id}:$i',
+          kind: QuizKind.callout,
+          prompt: 'Encadré « ${callout.label} »'
+              '${about == null ? '' : ' sur « $about »'} : que dit-il ?',
+          answer: callout.gist,
+          pool: [for (final s in sections) s.gist],
+          preferred: [
+            for (final c in callouts)
+              if (c != callout) c.gist,
+          ],
+          noteId: note.id,
+          heading: callout.heading,
+          context: callout.gist,
+        );
+        if (question != null) {
+          candidates.add((question, weightFor(callout.heading) + 1.5));
         }
       }
     }

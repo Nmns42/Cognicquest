@@ -321,6 +321,19 @@ class _NoteEditorPageState extends ConsumerState<NoteEditorPage> {
                 _updateDraft((d) => d.copyWith(isFavorite: !d.isFavorite)),
           ),
           IconButton(
+            tooltip: 'S’entraîner sur cette fiche',
+            icon: const Icon(Icons.quiz_outlined),
+            onPressed: () {
+              // Le quiz lit la fiche enregistrée : la frappe en attente
+              // doit y être.
+              if (_hasUnsavedEdits) {
+                _autosave?.cancel();
+                _persist();
+              }
+              context.push(AppRoute.quizFor(noteId: widget.noteId));
+            },
+          ),
+          IconButton(
             tooltip: _isPreview ? 'Modifier la fiche' : 'Voir l’aperçu',
             icon: Icon(
                 _isPreview ? Icons.edit_outlined : Icons.visibility_outlined),

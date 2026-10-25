@@ -428,8 +428,10 @@ class _EmptyQuiz extends StatelessWidget {
           padding: const EdgeInsets.all(Space.xl),
           child: Text(
             'Pas encore assez de matière pour un quiz : ajoute des cartes, '
-            'ou des fiches avec des titres, des termes en **gras** et des '
-            'définitions « terme : sens ».',
+            'ou des fiches avec des titres, des termes en **gras**, des '
+            'définitions « terme : sens », des valeurs chiffrées, des listes, '
+            'des tableaux, des flèches « cause → effet » ou des encadrés '
+            '« > [!important] ».',
             textAlign: TextAlign.center,
             style:
                 TextStyle(fontSize: TypeScale.body, color: context.cq.textMuted),

@@ -794,6 +794,12 @@ class _StudySheetRow extends ConsumerWidget {
               ],
             ),
           ),
+          IconButton(
+            tooltip: 'S’entraîner sur ${note.displayTitle}',
+            icon: Icon(Icons.quiz_outlined,
+                size: Sizes.iconMd, color: cq.vertSauge),
+            onPressed: () => context.push(AppRoute.quizFor(noteId: noteId)),
+          ),
         ],
       ),
     );
